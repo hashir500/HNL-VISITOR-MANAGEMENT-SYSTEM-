@@ -176,3 +176,5 @@ foreign key (report_type_id) references tbl_report_types(report_type_id);
 alter table tbl_reports
 add constraint fk_report_user
 foreign key (generated_by_user) references tbl_users(user_id);
+
+-- these tables are only for my conceptual understanding and they shall vary based on the requirements of the project.
