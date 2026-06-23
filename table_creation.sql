@@ -39,6 +39,7 @@ CREATE TABLE tbl_visitors(
     visitor_created_at DATETIME2 DEFAULT GETDATE()
 );
 
+-- creating employees table
 CREATE TABLE tbl_employees(
     employee_id INT IDENTITY(1,1) PRIMARY KEY,
     employee_name VARCHAR(100) NOT NULL,
@@ -50,11 +51,48 @@ CREATE TABLE tbl_employees(
     employee_created_at DATETIME2 DEFAULT GETDATE()
 );
 
+-- creating departments table
 create table tbl_departments(
     department_id INT IDENTITY(1,1) PRIMARY KEY,
     department_name VARCHAR(100) NOT NULL UNIQUE
 );
 
+-- adding fk constraint to employee_department column in tbl_employees
 alter table tbl_employees
 add constraint fk_department
 foreign key (employee_department) references tbl_departments(department_id);
+
+-- creating visitor card table
+CREATE TABLE tbl_visitor_cards(
+    card_id INT IDENTITY(1,1) PRIMARY KEY,
+    card_color VARCHAR(50) NOT NULL,
+    card_access_level VARCHAR(50) NOT NULL
+);
+
+-- creating visits table
+CREATE TABLE tbl_visits(
+    visit_id INT IDENTITY(1,1) PRIMARY KEY,
+    visitor_id INT NOT NULL,
+    employee_id INT NOT NULL,
+    card_id INT NOT NULL,
+    purpose_of_visit VARCHAR(255) NOT NULL,
+    check_in_time DATETIME2 DEFAULT GETDATE(),
+    check_out_time DATETIME2,
+    status VARCHAR(20) NOT NULL
+);
+
+-- adding fk constraint to visitor_id column in tbl_visits
+alter table tbl_visits
+add constraint fk_visitor
+foreign key (visitor_id) references tbl_visitors(visitor_id);
+
+-- adding fk constraint to employee_id column in tbl_visits
+alter table tbl_visits
+add constraint fk_employee
+foreign key (employee_id) references tbl_employees(employee_id);
+
+-- adding fk constraint to card_id column in tbl_visits
+alter table tbl_visits
+add constraint fk_card
+foreign key (card_id) references tbl_visitor_cards(card_id);
+
