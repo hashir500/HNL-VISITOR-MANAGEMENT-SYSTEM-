@@ -96,3 +96,83 @@ alter table tbl_visits
 add constraint fk_card
 foreign key (card_id) references tbl_visitor_cards(card_id);
 
+-- creating appointments table
+CREATE TABLE tbl_appointments(
+    appointment_id INT IDENTITY(1,1) PRIMARY KEY,
+    visitor_id INT NOT NULL,
+    employee_id INT NOT NULL,
+    appointment_date DATE NOT NULL,
+    appointment_time TIME NOT NULL,
+    purpose_of_appointment VARCHAR(255) NOT NULL,
+    status VARCHAR(20) NOT NULL default 'pending',
+    created_by_user INT NOT NULL,
+    created_at DATETIME2 DEFAULT GETDATE()
+);
+
+-- adding fk constraint to visitor_id column in tbl_appointments
+alter table tbl_appointments
+add constraint fk_appointment_visitor
+foreign key (visitor_id) references tbl_visitors(visitor_id);
+
+-- adding fk constraint to employee_id column in tbl_appointments
+alter table tbl_appointments
+add constraint fk_appointment_employee
+foreign key (employee_id) references tbl_employees(employee_id);
+
+-- adding fk constraint to created_by_user column in tbl_appointments
+alter table tbl_appointments
+add constraint fk_appointment_user
+foreign key (created_by_user) references tbl_users(user_id);
+
+-- creating blacklist table
+CREATE TABLE tbl_blacklist(
+    blacklist_id INT IDENTITY(1,1) PRIMARY KEY,
+    visitor_id INT NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    added_by_user INT NOT NULL,
+    blacklisted_at DATETIME2 DEFAULT GETDATE(),
+    status VARCHAR(20) NOT NULL default 'active'
+);
+
+-- adding fk constraint to visitor_id column in tbl_blacklist
+alter table tbl_blacklist
+add constraint fk_blacklist_visitor
+foreign key (visitor_id) references tbl_visitors(visitor_id);
+
+-- adding fk constraint to added_by_user column in tbl_blacklist
+alter table tbl_blacklist
+add constraint fk_blacklist_user
+foreign key (added_by_user) references tbl_users(user_id);
+
+
+-- creating reports type table
+CREATE TABLE tbl_report_types(
+    report_type_id INT IDENTITY(1,1) PRIMARY KEY,
+    report_type_name VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- creating reports table
+CREATE TABLE tbl_reports(
+    report_id INT IDENTITY(1,1) PRIMARY KEY,
+    report_type_id INT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    total_visits INT NOT NULL,
+    total_visitors INT NOT NULL,
+    total_employees INT NOT NULL,
+    total_departments INT NOT NULL,
+    total_appointments INT NOT NULL,
+    generated_by_user INT NOT NULL,
+    generated_at DATETIME2 DEFAULT GETDATE()
+
+);
+
+-- adding fk constraint to report_type_id column in tbl_reports
+alter table tbl_reports
+add constraint fk_report_type
+foreign key (report_type_id) references tbl_report_types(report_type_id);
+
+-- adding fk constraint to generated_by_user column in tbl_reports
+alter table tbl_reports
+add constraint fk_report_user
+foreign key (generated_by_user) references tbl_users(user_id);
