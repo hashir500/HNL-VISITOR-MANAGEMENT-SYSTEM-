@@ -35,10 +35,26 @@ CREATE TABLE tbl_visitors(
     visitor_name VARCHAR(100) NOT NULL,
     visitor_email VARCHAR(100) NOT NULL UNIQUE,
     visitor_phone VARCHAR(15) NOT NULL,
-    viitor_cnic VARCHAR(20) NOT NULL UNIQUE,
-    purpose_of_visit VARCHAR(255) NOT NULL,
-    department_to_visit VARCHAR(100) NOT NULL,
-    visiting_employee VARCHAR(100) NOT NULL,
+    visitor_cnic VARCHAR(20) NOT NULL UNIQUE,
     visitor_created_at DATETIME2 DEFAULT GETDATE()
 );
 
+CREATE TABLE tbl_employees(
+    employee_id INT IDENTITY(1,1) PRIMARY KEY,
+    employee_name VARCHAR(100) NOT NULL,
+    employee_email VARCHAR(100) NOT NULL UNIQUE,
+    employee_phone VARCHAR(15) NOT NULL,
+    employee_cnic VARCHAR(20) NOT NULL UNIQUE,
+    employee_designation VARCHAR(150) NOT NULL,
+    employee_department int NOT NULL,
+    employee_created_at DATETIME2 DEFAULT GETDATE()
+);
+
+create table tbl_departments(
+    department_id INT IDENTITY(1,1) PRIMARY KEY,
+    department_name VARCHAR(100) NOT NULL UNIQUE
+);
+
+alter table tbl_employees
+add constraint fk_department
+foreign key (employee_department) references tbl_departments(department_id);
