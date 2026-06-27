@@ -2,6 +2,7 @@ from django.db import models
 
 # Create your models here.
 
+# visitor_card model
 class visitor_card(models.Model):
     card_id = models.AutoField(primary_key= True)
     card_color = models.CharField(max_length= 50, unique= True)
@@ -9,3 +10,17 @@ class visitor_card(models.Model):
 
     def __str__(self):
         return self.card_color
+    
+# visitor model
+
+class visitor(models.Model):
+    visitor_id = models.AutoField(primary_key= True)
+    visitor_name = models.CharField(max_length= 100)
+    visitor_email = models.EmailField(unique= True)
+    visitor_phone = models.CharField(max_length= 15)
+    visitor_cnic = models.CharField(max_length= 20,unique= True)
+    visitor_created_at = models.DateTimeField(auto_now_add= True)
+
+    def __str__(self):
+        return self.visitor_name
+
