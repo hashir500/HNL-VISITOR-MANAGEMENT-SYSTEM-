@@ -1,0 +1,342 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="{% static 'assets/img/apple-icon.png' %}">
+  <link rel="icon" type="image/png" href="{% static 'assets/img/favicon.png' %}">
+
+  <title>
+    {% block title %}
+      {% if system_settings %}
+        {{ system_settings.company_name }}
+      {% else %}
+        Highnoon VMS
+      {% endif %}
+    {% endblock %}
+  </title>
+
+  <link href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,800" rel="stylesheet" />
+  <link href="{% static 'assets/css/nucleo-icons.css' %}" rel="stylesheet" />
+  <link href="{% static 'assets/css/nucleo-svg.css' %}" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+  <link id="pagestyle" href="{% static 'assets/css/soft-ui-dashboard.css' %}?v=1.1.0" rel="stylesheet" />
+
+  <style>
+    :root {
+      --hn-orange: #f26322;
+      --hn-dark: #20232a;
+      --hn-muted: #677084;
+      --hn-bg: #f8f9fb;
+      --hn-sidebar: #ffffff;
+    }
+
+    body {
+      background: var(--hn-bg) !important;
+      font-family: "Inter", sans-serif;
+    }
+
+    .sidenav {
+      background: var(--hn-sidebar) !important;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+      border-radius: 0 !important;
+      margin: 0 !important;
+      min-height: 100vh;
+      width: 280px !important;
+      max-width: 280px !important;
+      padding-top: 22px;
+      border-right: 1px solid rgba(15, 23, 42, 0.06) !important;
+    }
+
+    .main-content {
+      margin-left: 280px !important;
+      background: var(--hn-bg);
+      min-height: 100vh;
+    }
+
+    .sidenav-header {
+      height: auto !important;
+    }
+
+    .sidenav .navbar-brand {
+      padding: 14px 28px 28px 28px !important;
+      display: block;
+    }
+
+    .sidenav .navbar-brand span {
+      color: var(--hn-orange) !important;
+      font-size: 32px !important;
+      font-weight: 800 !important;
+      letter-spacing: -1px;
+      line-height: 1.1;
+    }
+
+    .horizontal.dark {
+      margin-top: 6px !important;
+      margin-bottom: 24px !important;
+      opacity: 0.12;
+    }
+
+    .sidenav .navbar-nav {
+      padding: 0 18px;
+    }
+
+    .sidenav .nav-item {
+      margin-bottom: 16px;
+    }
+
+    .sidenav .nav-link {
+      padding: 15px 20px !important;
+      border-radius: 12px;
+      color: var(--hn-muted) !important;
+      font-size: 17px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .sidenav .nav-link-text {
+      font-size: 17px;
+      margin-left: 10px !important;
+    }
+
+    .sidenav .nav-link i {
+      font-size: 18px;
+      width: 24px;
+      color: var(--hn-muted);
+      transition: all 0.2s ease;
+    }
+
+    .sidenav .nav-link:hover {
+      color: #111827 !important;
+      background: rgba(242, 99, 34, 0.08);
+    }
+
+    .sidenav .nav-link:hover i {
+      color: var(--hn-orange);
+    }
+
+    .sidenav .nav-link.active {
+      color: #111827 !important;
+      background: rgba(242, 99, 34, 0.08);
+      position: relative;
+    }
+
+    .sidenav .nav-link.active::before {
+      content: "";
+      position: absolute;
+      left: -18px;
+      top: 10px;
+      height: calc(100% - 20px);
+      width: 4px;
+      border-radius: 0 8px 8px 0;
+      background: var(--hn-orange);
+    }
+
+    .sidenav .nav-link.active i {
+      color: var(--hn-orange);
+    }
+
+    .navbar-main {
+      padding-top: 28px !important;
+    }
+
+    .container-fluid.py-4 {
+      padding-left: 3rem !important;
+      padding-right: 3rem !important;
+    }
+
+    .breadcrumb a {
+      color: var(--hn-orange) !important;
+      opacity: 1 !important;
+      font-weight: 700;
+    }
+
+    .breadcrumb .active {
+      color: #7b8497 !important;
+      font-weight: 600;
+    }
+
+    .font-weight-bolder {
+      color: #1f2937;
+      font-size: 30px;
+      font-weight: 800 !important;
+    }
+
+    .text-secondary {
+      color: #4b5563 !important;
+      font-weight: 600;
+    }
+
+    @media (max-width: 1199.98px) {
+      .main-content {
+        margin-left: 0 !important;
+      }
+
+      .sidenav {
+        border-radius: 0 !important;
+      }
+    }
+  </style>
+
+  {% block extra_css %}{% endblock %}
+</head>
+
+<body class="g-sidenav-show bg-gray-100">
+
+  <aside class="sidenav navbar navbar-vertical navbar-expand-xs fixed-start"
+         id="sidenav-main">
+
+    <div class="sidenav-header">
+      <i class="fas fa-times p-3 cursor-pointer text-secondary opacity-5 position-absolute end-0 top-0 d-none d-xl-none"
+         aria-hidden="true" id="iconSidenav"></i>
+
+      <a class="navbar-brand m-0" href="{% url 'department_list' %}">
+        <span>
+          {% if system_settings %}
+            {{ system_settings.company_name }}
+          {% else %}
+            Highnoon
+          {% endif %}
+        </span>
+      </a>
+    </div>
+
+    <hr class="horizontal dark mt-0">
+
+    <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
+      <ul class="navbar-nav">
+
+        <li class="nav-item">
+          <a class="nav-link" href="#">
+            <i class="fas fa-chart-line"></i>
+            <span class="nav-link-text">Dashboard</span>
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'department_list' %}active{% endif %}"
+             href="{% url 'department_list' %}">
+            <i class="far fa-folder"></i>
+            <span class="nav-link-text">Departments</span>
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'employee_list' %}active{% endif %}"
+             href="{% url 'employee_list' %}">
+            <i class="far fa-user"></i>
+            <span class="nav-link-text">Employees</span>
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="#">
+            <i class="fas fa-users"></i>
+            <span class="nav-link-text">Visitors</span>
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="#">
+            <i class="far fa-calendar-alt"></i>
+            <span class="nav-link-text">Visits</span>
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="#">
+            <i class="far fa-file-alt"></i>
+            <span class="nav-link-text">Reports</span>
+          </a>
+        </li>
+
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
+
+    <nav class="navbar navbar-main navbar-expand-lg px-0 mx-4 shadow-none border-radius-xl"
+         id="navbarBlur" navbar-scroll="true">
+
+      <div class="container-fluid py-1 px-3">
+
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb bg-transparent mb-0 pb-0 pt-1 px-0 me-sm-6 me-5">
+            <li class="breadcrumb-item text-sm">
+              <a href="{% url 'department_list' %}">
+                {% if system_settings %}
+                  {{ system_settings.company_name }}
+                {% else %}
+                  Highnoon
+                {% endif %}
+              </a>
+            </li>
+
+            <li class="breadcrumb-item text-sm text-dark active" aria-current="page">
+              {% block breadcrumb %}
+                {% block title_text %}{% endblock %}
+              {% endblock %}
+            </li>
+          </ol>
+
+          <h6 class="font-weight-bolder mb-0">
+            {% block page_heading %}
+              {% block heading %}{% endblock %}
+            {% endblock %}
+          </h6>
+        </nav>
+
+        <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
+          <div class="ms-md-auto pe-md-3 d-flex align-items-center">
+            <span class="text-sm text-secondary">Admin</span>
+          </div>
+
+          <ul class="navbar-nav justify-content-end">
+            <li class="nav-item d-xl-none ps-3 d-flex align-items-center">
+              <a href="javascript:;" class="nav-link text-body p-0" id="iconNavbarSidenav">
+                <div class="sidenav-toggler-inner">
+                  <i class="sidenav-toggler-line"></i>
+                  <i class="sidenav-toggler-line"></i>
+                  <i class="sidenav-toggler-line"></i>
+                </div>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} text-white" role="alert">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {% block content %}
+      {% endblock %}
+
+    </div>
+
+  </main>
+
+  <script src="{% static 'assets/js/core/popper.min.js' %}"></script>
+  <script src="{% static 'assets/js/core/bootstrap.min.js' %}"></script>
+  <script src="{% static 'assets/js/plugins/perfect-scrollbar.min.js' %}"></script>
+  <script src="{% static 'assets/js/plugins/smooth-scrollbar.min.js' %}"></script>
+  <script src="{% static 'assets/js/soft-ui-dashboard.min.js' %}?v=1.1.0"></script>
+
+  {% block extra_js %}{% endblock %}
+
+</body>
+</html>

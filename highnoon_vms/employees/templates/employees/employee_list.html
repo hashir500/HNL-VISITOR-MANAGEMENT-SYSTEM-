@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}
+Employees
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+    <h2>Employees</h2>
+
+    <a href="{% url 'employee_create' %}" class="btn btn-primary">
+        Add Employee
+    </a>
+</div>
+
+
+<table class="table table-bordered table-striped bg-white">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Designation</th>
+            <th>Department</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for emp in employees %}
+        <tr>
+            <td>{{ emp.employee_id }}</td>
+            <td>{{ emp.employee_name }}</td>
+            <td>{{ emp.employee_email }}</td>
+            <td>{{ emp.employee_phone }}</td>
+            <td>{{ emp.employee_designation }}</td>
+            <td>{{ emp.employee_department }}</td>
+            <td>
+                <a href="{% url 'employee_update' emp.employee_id %}"
+                    class="btn btn-warning btn-sm">
+                    Edit
+                </a>
+
+                <a href="{% url 'employee_delete' emp.employee_id %}"
+                    class="btn btn-danger btn-sm">
+                    Delete
+                </a>
+</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7">No employees found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
