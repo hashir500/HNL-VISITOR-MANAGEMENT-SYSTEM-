@@ -22,38 +22,40 @@
   <link href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,800" rel="stylesheet" />
   <link href="{% static 'assets/css/nucleo-icons.css' %}" rel="stylesheet" />
   <link href="{% static 'assets/css/nucleo-svg.css' %}" rel="stylesheet" />
-  <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link id="pagestyle" href="{% static 'assets/css/soft-ui-dashboard.css' %}?v=1.1.0" rel="stylesheet" />
 
   <style>
     :root {
-       --hn-orange: {{ system_settings.primary_color|default:'#f26322'|cut:' ' }};
-       --hn-orange-hover: #d95518;
-       --hn-dark: #20232a;
-       --hn-muted: #677084;
-       --hn-bg: #f8f9fb;
-       --hn-sidebar: #ffffff;
-}
+     --hn-orange: {{ system_settings.primary_color|default:'#f26322'|cut:' ' }};
+     --hn-logo-color: {{ system_settings.logo_color|default:'#ffffff'|cut:' ' }};
+     --hn-orange-hover: #d95518;
+     --hn-dark: #20232a;
+     --hn-muted: #677084;
+     --hn-bg: #f8f9fb;
+     --hn-sidebar: var(--hn-orange);
+    }
+
     body {
       background: var(--hn-bg) !important;
       font-family: "Inter", sans-serif;
     }
 
     .sidenav {
-      background: var(--hn-sidebar) !important;
+       background: var(--hn-sidebar) !important;
       box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
       border-radius: 0 !important;
       margin: 0 !important;
       min-height: 100vh;
-      width: 280px !important;
-      max-width: 280px !important;
+      width: 320px !important;
+      max-width: 320px !important;
       padding-top: 22px;
       border-right: 1px solid rgba(15, 23, 42, 0.06) !important;
       overflow: visible !important;
     }
 
     .main-content {
-      margin-left: 280px !important;
+      margin-left: 320px !important;
       background: var(--hn-bg);
       min-height: 100vh;
     }
@@ -69,7 +71,7 @@
       min-height: 60px !important;
       overflow: visible !important;
       white-space: normal !important;
-      padding: 18px 28px 28px 28px !important;
+      padding: 30px 28px 28px 28px !important;
       display: block !important;
       text-align: left !important;
       opacity: 1 !important;
@@ -77,10 +79,10 @@
 
     .sidenav .navbar-brand .brand-text {
       display: block !important;
-      color: var(--hn-orange) !important;
+      color: var(--hn-logo-color) !important;
       opacity: 1 !important;
       visibility: visible !important;
-      font-size: 32px !important;
+      font-size: 40px !important;
       font-weight: 800 !important;
       line-height: 1.1 !important;
       letter-spacing: -1px !important;
@@ -108,7 +110,7 @@
       padding: 15px 20px !important;
       margin: 0 !important;
       border-radius: 12px;
-      color: var(--hn-muted) !important;
+      color: #ffffff !important;
       font-size: 16px;
       font-weight: 600;
       display: flex !important;
@@ -125,43 +127,38 @@
     }
 
     .sidenav .nav-link i {
-      font-size: 18px;
-      width: 24px;
-      min-width: 24px;
-      text-align: center;
-      color: var(--hn-muted);
-      transition: all 0.2s ease;
+      display: inline-block !important;
+      width: 22px;
+      min-width: 22px;
+      margin-right: 12px;
+      color: inherit !important;
+      font-size: 16px;
     }
+    
 
     .sidenav .nav-link:hover {
-      color: #111827 !important;
-      background: rgba(242, 99, 34, 0.08);
+       background: rgba(255,255,255,.15);
+       color:#ffffff !important;
     }
 
     .sidenav .nav-link:hover i {
-      color: var(--hn-orange);
+      color:#ffffff !important;
     }
 
     .sidenav .nav-link.active {
-      color: #111827 !important;
-      background: rgba(242, 99, 34, 0.08);
+      background:#ffffff !important;
+      color:var(--hn-orange) !important;
+      box-shadow:0 8px 20px rgba(0,0,0,.10);
       position: relative;
       font-weight: 700 !important;
     }
 
     .sidenav .nav-link.active::before {
-      content: "";
-      position: absolute;
-      left: -18px;
-      top: 10px;
-      height: calc(100% - 20px);
-      width: 4px;
-      border-radius: 0 8px 8px 0;
-      background: var(--hn-orange);
+      display:none;
     }
 
     .sidenav .nav-link.active i {
-      color: var(--hn-orange);
+      color:var(--hn-orange) !important;
     }
 
     .navbar-main {
@@ -251,6 +248,54 @@
       font-size: 15px !important;
       color: #677084 !important;
     }
+
+    /* Edit button */
+    .btn-warning {
+      background: #f59e0b !important;
+      background-color: #f59e0b !important;
+      background-image: none !important;
+      color: #ffffff !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    .btn-warning:hover {
+      background: #d97706 !important;
+      color: #ffffff !important;
+    }
+
+/* Delete button */
+    .btn-danger {
+      background: #b91c1c !important;
+      background-color: #b91c1c !important;
+      background-image: none !important;
+      color: #ffffff !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    .btn-danger:hover {
+      background: #991b1b !important;
+      color: #ffffff !important;
+    }
+
+    /* Wider sidebar fix */
+    #sidenav-main {
+      width: 320px !important;
+      max-width: 320px !important;
+      min-width: 320px !important;
+    }
+
+    #sidenav-collapse-main {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .main-content {
+      margin-left: 320px !important;
+    }
+
+    
 
   </style>
 
