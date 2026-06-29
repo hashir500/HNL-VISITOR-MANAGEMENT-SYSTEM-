@@ -27,13 +27,13 @@
 
   <style>
     :root {
-      --hn-orange: #f26322;
-      --hn-dark: #20232a;
-      --hn-muted: #677084;
-      --hn-bg: #f8f9fb;
-      --hn-sidebar: #ffffff;
-    }
-
+       --hn-orange: {{ system_settings.primary_color|default:'#f26322'|cut:' ' }};
+       --hn-orange-hover: #d95518;
+       --hn-dark: #20232a;
+       --hn-muted: #677084;
+       --hn-bg: #f8f9fb;
+       --hn-sidebar: #ffffff;
+}
     body {
       background: var(--hn-bg) !important;
       font-family: "Inter", sans-serif;
@@ -49,6 +49,7 @@
       max-width: 280px !important;
       padding-top: 22px;
       border-right: 1px solid rgba(15, 23, 42, 0.06) !important;
+      overflow: visible !important;
     }
 
     .main-content {
@@ -59,19 +60,31 @@
 
     .sidenav-header {
       height: auto !important;
+      min-height: 95px !important;
+      overflow: visible !important;
     }
 
     .sidenav .navbar-brand {
-      padding: 14px 28px 28px 28px !important;
-      display: block;
+      height: auto !important;
+      min-height: 60px !important;
+      overflow: visible !important;
+      white-space: normal !important;
+      padding: 18px 28px 28px 28px !important;
+      display: block !important;
+      text-align: left !important;
+      opacity: 1 !important;
     }
 
-    .sidenav .navbar-brand span {
+    .sidenav .navbar-brand .brand-text {
+      display: block !important;
       color: var(--hn-orange) !important;
+      opacity: 1 !important;
+      visibility: visible !important;
       font-size: 32px !important;
       font-weight: 800 !important;
-      letter-spacing: -1px;
-      line-height: 1.1;
+      line-height: 1.1 !important;
+      letter-spacing: -1px !important;
+      text-transform: none !important;
     }
 
     .horizontal.dark {
@@ -81,32 +94,41 @@
     }
 
     .sidenav .navbar-nav {
-      padding: 0 18px;
+      padding: 0 18px !important;
+      width: 100%;
     }
 
     .sidenav .nav-item {
-      margin-bottom: 16px;
+      width: 100%;
+      margin-bottom: 12px;
     }
 
     .sidenav .nav-link {
+      width: 100%;
       padding: 15px 20px !important;
+      margin: 0 !important;
       border-radius: 12px;
       color: var(--hn-muted) !important;
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 600;
-      display: flex;
-      align-items: center;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      text-align: left !important;
       transition: all 0.2s ease;
     }
 
     .sidenav .nav-link-text {
-      font-size: 17px;
-      margin-left: 10px !important;
+      font-size: 16px;
+      margin-left: 14px !important;
+      text-align: left !important;
     }
 
     .sidenav .nav-link i {
       font-size: 18px;
       width: 24px;
+      min-width: 24px;
+      text-align: center;
       color: var(--hn-muted);
       transition: all 0.2s ease;
     }
@@ -124,6 +146,7 @@
       color: #111827 !important;
       background: rgba(242, 99, 34, 0.08);
       position: relative;
+      font-weight: 700 !important;
     }
 
     .sidenav .nav-link.active::before {
@@ -172,6 +195,33 @@
       font-weight: 600;
     }
 
+    .btn,
+    .btn-primary,
+    .btn.bg-gradient-primary {
+      color: #ffffff !important;
+      opacity: 1 !important;
+    }
+
+    .btn-primary,
+    .btn.bg-gradient-primary,
+    .bg-gradient-primary {
+      background: var(--hn-orange) !important;
+      background-color: var(--hn-orange) !important;
+      background-image: none !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    .btn-primary:hover,
+    .btn.bg-gradient-primary:hover {
+      background: var(--hn-orange-hover) !important;
+      background-color: var(--hn-orange-hover) !important;
+      background-image: none !important;
+      color: #ffffff !important;
+      opacity: 1 !important;
+      box-shadow: none !important;
+    }
+
     @media (max-width: 1199.98px) {
       .main-content {
         margin-left: 0 !important;
@@ -188,15 +238,14 @@
 
 <body class="g-sidenav-show bg-gray-100">
 
-  <aside class="sidenav navbar navbar-vertical navbar-expand-xs fixed-start"
-         id="sidenav-main">
+  <aside class="sidenav navbar navbar-vertical navbar-expand-xs fixed-start" id="sidenav-main">
 
     <div class="sidenav-header">
       <i class="fas fa-times p-3 cursor-pointer text-secondary opacity-5 position-absolute end-0 top-0 d-none d-xl-none"
          aria-hidden="true" id="iconSidenav"></i>
 
       <a class="navbar-brand m-0" href="{% url 'department_list' %}">
-        <span>
+        <span class="brand-text">
           {% if system_settings %}
             {{ system_settings.company_name }}
           {% else %}
@@ -219,7 +268,7 @@
         </li>
 
         <li class="nav-item">
-          <a class="nav-link {% if request.resolver_match.url_name == 'department_list' %}active{% endif %}"
+          <a class="nav-link {% if request.resolver_match.url_name == 'department_list' or request.resolver_match.url_name == 'department_create' or request.resolver_match.url_name == 'department_update' or request.resolver_match.url_name == 'department_delete' %}active{% endif %}"
              href="{% url 'department_list' %}">
             <i class="far fa-folder"></i>
             <span class="nav-link-text">Departments</span>
@@ -227,7 +276,7 @@
         </li>
 
         <li class="nav-item">
-          <a class="nav-link {% if request.resolver_match.url_name == 'employee_list' %}active{% endif %}"
+          <a class="nav-link {% if request.resolver_match.url_name == 'employee_list' or request.resolver_match.url_name == 'employee_create' or request.resolver_match.url_name == 'employee_update' or request.resolver_match.url_name == 'employee_delete' %}active{% endif %}"
              href="{% url 'employee_list' %}">
             <i class="far fa-user"></i>
             <span class="nav-link-text">Employees</span>
@@ -238,6 +287,14 @@
           <a class="nav-link" href="#">
             <i class="fas fa-users"></i>
             <span class="nav-link-text">Visitors</span>
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'visitor_card_list' or request.resolver_match.url_name == 'visitor_card_create' or request.resolver_match.url_name == 'visitor_card_update' or request.resolver_match.url_name == 'visitor_card_delete' %}active{% endif %}"
+             href="{% url 'visitor_card_list' %}">
+            <i class="far fa-address-card"></i>
+            <span class="nav-link-text">Visitor Cards</span>
           </a>
         </li>
 

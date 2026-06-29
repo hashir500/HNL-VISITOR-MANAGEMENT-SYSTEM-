@@ -32,12 +32,13 @@ class employee(models.Model):
         return self.employee_name
     
 
-
+# department list function
 def department_list(request):
     departments = department.objects.all()
     return render(request, "employees/department_list.html", {"departments": departments})
 
 
+# department create function
 def department_create(request):
     if request.method == "POST":
         department_name = request.POST.get("department_name")
@@ -49,7 +50,7 @@ def department_create(request):
 
     return render(request, "employees/department_form.html")
 
-
+# department update function
 def department_update(request, department_id):
     dept = get_object_or_404(department, department_id=department_id)
 

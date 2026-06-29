@@ -1,22 +1,24 @@
 {% extends "base.html" %}
 
-{% block title %}
-Employees
-{% endblock %}
+{% block title %}Employees{% endblock %}
+{% block breadcrumb %}Employees{% endblock %}
+{% block page_heading %}Employees{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between mb-3">
-    <h2>Employees</h2>
 
-    <a href="{% url 'employee_create' %}" class="btn btn-primary">
-        Add Employee
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">Employees</h6>
+    <a href="{% url 'employee_create' %}" class="btn btn-primary btn-sm mb-0">
+      Add Employee
     </a>
-</div>
+  </div>
 
-
-<table class="table table-bordered table-striped bg-white">
-    <thead class="table-dark">
-        <tr>
+  <div class="card-body px-0 pt-0 pb-2">
+    <div class="table-responsive p-3">
+      <table class="table align-items-center mb-0">
+        <thead>
+          <tr>
             <th>ID</th>
             <th>Name</th>
             <th>Email</th>
@@ -24,12 +26,12 @@ Employees
             <th>Designation</th>
             <th>Department</th>
             <th>Actions</th>
-        </tr>
-    </thead>
+          </tr>
+        </thead>
 
-    <tbody>
-        {% for emp in employees %}
-        <tr>
+        <tbody>
+          {% for emp in employees %}
+          <tr>
             <td>{{ emp.employee_id }}</td>
             <td>{{ emp.employee_name }}</td>
             <td>{{ emp.employee_email }}</td>
@@ -37,23 +39,19 @@ Employees
             <td>{{ emp.employee_designation }}</td>
             <td>{{ emp.employee_department }}</td>
             <td>
-                <a href="{% url 'employee_update' emp.employee_id %}"
-                    class="btn btn-warning btn-sm">
-                    Edit
-                </a>
-
-                <a href="{% url 'employee_delete' emp.employee_id %}"
-                    class="btn btn-danger btn-sm">
-                    Delete
-                </a>
-</td>
-        </tr>
-        {% empty %}
-        <tr>
+              <a href="{% url 'employee_update' emp.employee_id %}" class="btn btn-warning btn-sm mb-0">Edit</a>
+              <a href="{% url 'employee_delete' emp.employee_id %}" class="btn btn-danger btn-sm mb-0">Delete</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
             <td colspan="7">No employees found.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
 {% endblock %}

@@ -1,12 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import department, employee
 
-
+# department list view, it gets the http request
 def department_list(request):
     departments = department.objects.all()
     return render(request, "employees/department_list.html", {"departments": departments})
 
 
+# department create view
 def department_create(request):
     if request.method == "POST":
         department_name = request.POST.get("department_name")
@@ -18,7 +19,7 @@ def department_create(request):
 
     return render(request, "employees/department_form.html")
 
-
+# department update view
 def department_update(request, department_id):
     dept = get_object_or_404(department, department_id=department_id)
 
@@ -33,6 +34,7 @@ def department_update(request, department_id):
 
     return render(request, "employees/department_form.html", {"dept": dept})
 
+# department delete view
 def department_delete(request, department_id):
     dept = get_object_or_404(department, department_id=department_id)
 
@@ -42,10 +44,14 @@ def department_delete(request, department_id):
 
     return render(request, "employees/department_confirm_delete.html", {"dept": dept})
 
+
+# employee list view
 def employee_list(request):
     employees = employee.objects.all()
     return render(request, "employees/employee_list.html", {"employees": employees})
 
+
+# employee create view
 def employee_create(request):
 
     departments = department.objects.all()
@@ -74,6 +80,8 @@ def employee_create(request):
         }
     )
 
+
+# employee update view
 def employee_update(request, employee_id):
 
     emp = employee.objects.get(pk=employee_id)
@@ -105,6 +113,8 @@ def employee_update(request, employee_id):
         },
     )
 
+
+# employee delete view
 def employee_delete(request, employee_id):
 
     emp = employee.objects.get(pk=employee_id)

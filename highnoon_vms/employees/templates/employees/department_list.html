@@ -1,69 +1,136 @@
 {% extends "base.html" %}
 
-{% block title %}
-Departments
-{% endblock %}
+{% block title %}Departments{% endblock %}
+{% block breadcrumb %}Departments{% endblock %}
+{% block page_heading %}Departments{% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between mb-3">
-    <h2>Departments</h2>
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">Departments</h6>
 
-    <a href="{% url 'department_create' %}" class="btn btn-primary">
-        Add Department
-    </a>
-</div>
+    <button type="button" class="btn btn-primary btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">
+      Add Department
+    </button>
+  </div>
 
-<table class="table table-bordered table-striped bg-white">
-
-    <thead class="table-dark">
-        <tr>
+  <div class="card-body px-0 pt-0 pb-2">
+    <div class="table-responsive p-3">
+      <table class="table align-items-center mb-0">
+        <thead>
+          <tr>
             <th>ID</th>
             <th>Department Name</th>
             <th>Actions</th>
-        </tr>
-    </thead>
+          </tr>
+        </thead>
 
-    <tbody>
-
-        {% for dept in departments %}
-
-        <tr>
-
+        <tbody>
+          {% for dept in departments %}
+          <tr>
             <td>{{ dept.department_id }}</td>
-
             <td>{{ dept.department_name }}</td>
-
             <td>
+              <button type="button" class="btn btn-warning btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#editDepartmentModal{{ dept.department_id }}">
+                Edit
+              </button>
 
-                <a href="{% url 'department_update' dept.department_id %}"
-                   class="btn btn-warning btn-sm">
-                    Edit
-                </a>
-
-                <a href="{% url 'department_delete' dept.department_id %}"
-                   class="btn btn-danger btn-sm">
-                    Delete
-                </a>
-
+              <button type="button" class="btn btn-danger btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#deleteDepartmentModal{{ dept.department_id }}">
+                Delete
+              </button>
             </td>
+          </tr>
 
-        </tr>
+          <div class="modal fade" id="editDepartmentModal{{ dept.department_id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
 
-        {% empty %}
+                <form method="POST" action="{% url 'department_update' dept.department_id %}">
+                  {% csrf_token %}
 
-        <tr>
+                  <div class="modal-header">
+                    <h5 class="modal-title">Edit Department</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
 
-            <td colspan="3">
-                No departments found.
-            </td>
+                  <div class="modal-body">
+                    <label class="form-label">Department Name</label>
+                    <input type="text" name="department_name" class="form-control" value="{{ dept.department_name }}" required>
+                  </div>
 
-        </tr>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Update Department</button>
+                  </div>
+                </form>
 
-        {% endfor %}
+              </div>
+            </div>
+          </div>
 
-    </tbody>
+          <div class="modal fade" id="deleteDepartmentModal{{ dept.department_id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
 
-</table>
+                <form method="POST" action="{% url 'department_delete' dept.department_id %}">
+                  {% csrf_token %}
+
+                  <div class="modal-header">
+                    <h5 class="modal-title text-danger">Delete Department</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+
+                  <div class="modal-body">
+                    Are you sure you want to delete <strong>{{ dept.department_name }}</strong>?
+                  </div>
+
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                  </div>
+                </form>
+
+              </div>
+            </div>
+          </div>
+
+          {% empty %}
+          <tr>
+            <td colspan="3">No departments found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addDepartmentModal" tabindex="-1" aria-labelledby="addDepartmentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <form method="POST" action="{% url 'department_create' %}">
+        {% csrf_token %}
+
+        <div class="modal-header">
+          <h5 class="modal-title" id="addDepartmentModalLabel">Add Department</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <label class="form-label">Department Name</label>
+          <input type="text" name="department_name" class="form-control" required>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Department</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
 
 {% endblock %}

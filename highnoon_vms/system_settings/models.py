@@ -1,6 +1,6 @@
 from django.db import models
 
-
+# system table model
 class SystemSettings(models.Model):
     company_name = models.CharField(max_length=150)
     company_domain = models.CharField(max_length=150, blank=True, null=True)
