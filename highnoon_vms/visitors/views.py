@@ -18,6 +18,7 @@ def visitor_card_create(request):
 
         visitor_card.objects.create(
             card_color=request.POST["card_color"],
+            card_number=request.POST["card_number"],
             card_access_level=request.POST["card_access_level"],
         )
 
@@ -31,6 +32,7 @@ def visitor_card_update(request, pk):
     if request.method == "POST":
 
         card.card_color = request.POST["card_color"]
+        card.card_number = request.POST["card_number"]
         card.card_access_level = request.POST["card_access_level"]
 
         card.save()
