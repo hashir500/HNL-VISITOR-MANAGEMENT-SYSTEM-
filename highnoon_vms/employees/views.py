@@ -48,8 +48,11 @@ def department_delete(request, department_id):
 # employee list view
 def employee_list(request):
     employees = employee.objects.all()
-    return render(request, "employees/employee_list.html", {"employees": employees})
-
+    departments = department.objects.all()
+    return render(request, "employees/employee_list.html", {
+        "employees": employees,
+        "departments": departments,
+    })
 
 # employee create view
 def employee_create(request):

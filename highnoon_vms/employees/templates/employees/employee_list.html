@@ -9,9 +9,10 @@
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h6 class="mb-0">Employees</h6>
-    <a href="{% url 'employee_create' %}" class="btn btn-primary btn-sm mb-0">
+
+    <button type="button" class="btn btn-primary btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
       Add Employee
-    </a>
+    </button>
   </div>
 
   <div class="card-body px-0 pt-0 pb-2">
@@ -39,10 +40,105 @@
             <td>{{ emp.employee_designation }}</td>
             <td>{{ emp.employee_department }}</td>
             <td>
-              <a href="{% url 'employee_update' emp.employee_id %}" class="btn btn-warning btn-sm mb-0">Edit</a>
-              <a href="{% url 'employee_delete' emp.employee_id %}" class="btn btn-danger btn-sm mb-0">Delete</a>
+              <button type="button" class="btn btn-warning btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#editEmployeeModal{{ emp.employee_id }}">
+                Edit
+              </button>
+
+              <button type="button" class="btn btn-danger btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#deleteEmployeeModal{{ emp.employee_id }}">
+                Delete
+              </button>
             </td>
           </tr>
+
+          <div class="modal fade" id="editEmployeeModal{{ emp.employee_id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+              <div class="modal-content">
+
+                <form method="POST" action="{% url 'employee_update' emp.employee_id %}">
+                  {% csrf_token %}
+
+                  <div class="modal-header">
+                    <h5 class="modal-title">Edit Employee</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+
+                  <div class="modal-body">
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Employee Name</label>
+                        <input type="text" name="employee_name" class="form-control" value="{{ emp.employee_name }}" required>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="employee_email" class="form-control" value="{{ emp.employee_email }}" required>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" name="employee_phone" class="form-control" value="{{ emp.employee_phone }}" required>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">CNIC</label>
+                        <input type="text" name="employee_cnic" class="form-control" value="{{ emp.employee_cnic }}" required>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Designation</label>
+                        <input type="text" name="employee_designation" class="form-control" value="{{ emp.employee_designation }}" required>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Department</label>
+                        <select name="employee_department" class="form-control" required>
+                          {% for dept in departments %}
+                            <option value="{{ dept.department_id }}"
+                              {% if emp.employee_department.department_id == dept.department_id %}selected{% endif %}>
+                              {{ dept.department_name }}
+                            </option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Update Employee</button>
+                  </div>
+                </form>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="modal fade" id="deleteEmployeeModal{{ emp.employee_id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+
+                <form method="POST" action="{% url 'employee_delete' emp.employee_id %}">
+                  {% csrf_token %}
+
+                  <div class="modal-header">
+                    <h5 class="modal-title text-danger">Delete Employee</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+
+                  <div class="modal-body">
+                    Are you sure you want to delete <strong>{{ emp.employee_name }}</strong>?
+                  </div>
+
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                  </div>
+                </form>
+
+              </div>
+            </div>
+          </div>
+
           {% empty %}
           <tr>
             <td colspan="7">No employees found.</td>
@@ -50,6 +146,67 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addEmployeeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+
+      <form method="POST" action="{% url 'employee_create' %}">
+        {% csrf_token %}
+
+        <div class="modal-header">
+          <h5 class="modal-title">Add Employee</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Employee Name</label>
+              <input type="text" name="employee_name" class="form-control" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" name="employee_email" class="form-control" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Phone</label>
+              <input type="text" name="employee_phone" class="form-control" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">CNIC</label>
+              <input type="text" name="employee_cnic" class="form-control" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Designation</label>
+              <input type="text" name="employee_designation" class="form-control" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Department</label>
+              <select name="employee_department" class="form-control" required>
+                <option value="">Select Department</option>
+                {% for dept in departments %}
+                  <option value="{{ dept.department_id }}">{{ dept.department_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Employee</button>
+        </div>
+      </form>
+
     </div>
   </div>
 </div>
