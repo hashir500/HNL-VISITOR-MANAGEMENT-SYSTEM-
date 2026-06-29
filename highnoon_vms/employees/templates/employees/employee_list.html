@@ -79,11 +79,7 @@
                         <input type="text" name="employee_phone" class="form-control" value="{{ emp.employee_phone }}" required>
                       </div>
 
-                      <div class="col-md-6 mb-3">
-                        <label class="form-label">CNIC</label>
-                        <input type="text" name="employee_cnic" class="form-control" value="{{ emp.employee_cnic }}" required>
-                      </div>
-
+                    
                       <div class="col-md-6 mb-3">
                         <label class="form-label">Designation</label>
                         <input type="text" name="employee_designation" class="form-control" value="{{ emp.employee_designation }}" required>
@@ -141,7 +137,7 @@
 
           {% empty %}
           <tr>
-            <td colspan="7">No employees found.</td>
+            <td colspan="6">No employees found.</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -179,10 +175,6 @@
               <input type="text" name="employee_phone" class="form-control" required>
             </div>
 
-            <div class="col-md-6 mb-3">
-              <label class="form-label">CNIC</label>
-              <input type="text" name="employee_cnic" class="form-control" required>
-            </div>
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Designation</label>

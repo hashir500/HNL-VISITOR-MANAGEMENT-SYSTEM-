@@ -67,7 +67,6 @@ def visitor_create(request):
             visitor_name=request.POST.get("visitor_name"),
             visitor_email=request.POST.get("visitor_email") or None,
             visitor_phone=request.POST.get("visitor_phone"),
-            visitor_cnic=request.POST.get("visitor_cnic"),
             visitor_address=request.POST.get("visitor_address") or None,
         )
 
@@ -81,7 +80,6 @@ def visitor_update(request, visitor_id):
         v.visitor_name = request.POST.get("visitor_name")
         v.visitor_email = request.POST.get("visitor_email") or None
         v.visitor_phone = request.POST.get("visitor_phone")
-        v.visitor_cnic = request.POST.get("visitor_cnic")
         v.visitor_address = request.POST.get("visitor_address") or None
         v.save()
 

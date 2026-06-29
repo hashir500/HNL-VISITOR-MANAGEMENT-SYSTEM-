@@ -24,7 +24,6 @@
             <th>Name</th>
             <th>Email</th>
             <th>Phone</th>
-            <th>CNIC</th>
             <th>Address</th>
             <th>Actions</th>
           </tr>
@@ -37,7 +36,6 @@
             <td>{{ v.visitor_name }}</td>
             <td>{{ v.visitor_email|default:"-" }}</td>
             <td>{{ v.visitor_phone }}</td>
-            <td>{{ v.visitor_cnic }}</td>
             <td>{{ v.visitor_address|default:"-" }}</td>
             <td>
               <button type="button" class="btn btn-warning btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#editVisitorModal{{ v.visitor_id }}">
@@ -78,10 +76,6 @@
                         <input type="text" name="visitor_phone" class="form-control" value="{{ v.visitor_phone }}" required>
                       </div>
 
-                      <div class="col-md-6 mb-3">
-                        <label class="form-label">CNIC</label>
-                        <input type="text" name="visitor_cnic" class="form-control" value="{{ v.visitor_cnic }}" required>
-                      </div>
 
                       <div class="col-md-12 mb-3">
                         <label class="form-label">Address</label>
@@ -125,7 +119,7 @@
 
           {% empty %}
           <tr>
-            <td colspan="7">No visitors found.</td>
+            <td colspan="6">No visitors found.</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -160,11 +154,6 @@
             <div class="col-md-6 mb-3">
               <label class="form-label">Phone</label>
               <input type="text" name="visitor_phone" class="form-control" required>
-            </div>
-
-            <div class="col-md-6 mb-3">
-              <label class="form-label">CNIC</label>
-              <input type="text" name="visitor_cnic" class="form-control" required>
             </div>
 
             <div class="col-md-12 mb-3">

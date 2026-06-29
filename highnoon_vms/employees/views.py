@@ -65,7 +65,6 @@ def employee_create(request):
             employee_name=request.POST.get("employee_name"),
             employee_email=request.POST.get("employee_email"),
             employee_phone=request.POST.get("employee_phone"),
-            employee_cnic=request.POST.get("employee_cnic"),
             employee_designation=request.POST.get("employee_designation"),
 
             employee_department=department.objects.get(
@@ -96,7 +95,6 @@ def employee_update(request, employee_id):
         emp.employee_name = request.POST.get("employee_name")
         emp.employee_email = request.POST.get("employee_email")
         emp.employee_phone = request.POST.get("employee_phone")
-        emp.employee_cnic = request.POST.get("employee_cnic")
         emp.employee_designation = request.POST.get("employee_designation")
 
         emp.employee_department = department.objects.get(

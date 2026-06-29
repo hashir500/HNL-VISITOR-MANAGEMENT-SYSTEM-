@@ -17,7 +17,6 @@ class employee(models.Model):
     employee_name = models.CharField(max_length= 100)
     employee_email = models.EmailField(unique=True)
     employee_phone = models.CharField(max_length = 11)
-    employee_cnic = models.CharField(max_length=20,unique=True)
     employee_designation = models.CharField(max_length= 100)
 
     employee_department = models.ForeignKey(
