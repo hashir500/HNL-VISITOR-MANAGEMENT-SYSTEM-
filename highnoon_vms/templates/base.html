@@ -379,8 +379,9 @@
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="#">
-            <i class="far fa-calendar-alt"></i>
+          <a class="nav-link {% if request.resolver_match.url_name == 'visit_list' or request.resolver_match.url_name == 'visit_create' or request.resolver_match.url_name == 'visit_update' or request.resolver_match.url_name == 'visit_delete' %}active{% endif %}"
+             href="{% url 'visit_list' %}">
+            <i class="far fa-address-card"></i>
             <span class="nav-link-text">Visits</span>
           </a>
         </li>

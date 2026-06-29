@@ -4,13 +4,15 @@ from django.db import models
 
 # visitor_card model
 class visitor_card(models.Model):
-    card_id = models.AutoField(primary_key= True)
-    card_color = models.CharField(max_length= 50)
-    card_number = models.CharField(max_length= 5,unique= True, default= 000)
-    card_access_level= models.CharField(max_length=100)
+    card_id = models.AutoField(primary_key=True)
+    card_number = models.CharField(max_length=20, unique=True)
+    card_color = models.CharField(max_length=50)
+    card_access_level = models.CharField(max_length=100)
+
+    is_available = models.BooleanField(default=True)
 
     def __str__(self):
-        return self.card_color
+        return f"{self.card_color} ({self.card_number})"
     
 # visitor model
 

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Visits{% endblock %}
+{% block breadcrumb %}Visits{% endblock %}
+{% block page_heading %}Visits{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">Visits</h6>
+
+    <button type="button" class="btn btn-primary btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#addVisitModal">
+      Add Visit
+    </button>
+  </div>
+
+  <div class="card-body px-0 pt-0 pb-2">
+    <div class="table-responsive p-3">
+      <table class="table align-items-center mb-0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Visitor</th>
+            <th>Employee</th>
+            <th>Card</th>
+            <th>Purpose</th>
+            <th>Check In</th>
+            <th>Check Out</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for v in visits %}
+          <tr>
+            <td>{{ v.visit_id }}</td>
+            <td>{{ v.visitor }}</td>
+            <td>{{ v.employee }}</td>
+            <td>{{ v.visitor_card|default:"-" }}</td>
+            <td>{{ v.visit_purpose }}</td>
+            <td>{{ v.check_in_time }}</td>
+            <td>{{ v.check_out_time|default:"-" }}</td>
+
+            <td>
+              {% if v.status == "Checked In" %}
+                <span class="badge bg-success">{{ v.status }}</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ v.status }}</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if v.status == "Checked In" %}
+                <form method="POST" action="{% url 'visit_checkout' v.visit_id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger btn-sm mb-0">
+                    Check Out
+                  </button>
+                </form>
+              {% else %}
+                <span class="text-muted">Completed</span>
+              {% endif %}
+            </td>
+          </tr>
+
+          {% empty %}
+          <tr>
+            <td colspan="9">No visits found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addVisitModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+
+      <form method="POST" action="{% url 'visit_create' %}">
+        {% csrf_token %}
+
+        <div class="modal-header">
+          <h5 class="modal-title">Add Visit</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row">
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Visitor</label>
+              <select name="visitor" class="form-control" required>
+                <option value="">Select Visitor</option>
+                {% for visitor in visitors %}
+                  <option value="{{ visitor.visitor_id }}">{{ visitor.visitor_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Employee To Visit</label>
+              <select name="employee" class="form-control" required>
+                <option value="">Select Employee</option>
+                {% for emp in employees %}
+                  <option value="{{ emp.employee_id }}">{{ emp.employee_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Card Type</label>
+              <select name="card_color" class="form-control" required>
+                <option value="">Select Card Type</option>
+                <option value="Red">Red - Head Office</option>
+                <option value="Blue">Blue - Production Area</option>
+                <option value="Green">Green - Cargo / Empty Area</option>
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Purpose</label>
+              <input type="text" name="visit_purpose" class="form-control" required>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Visit</button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
