@@ -19,6 +19,7 @@ class visitor(models.Model):
     visitor_email = models.EmailField(unique= True)
     visitor_phone = models.CharField(max_length= 15)
     visitor_cnic = models.CharField(max_length= 20,unique= True)
+    visitor_address = models.CharField(max_length=255, blank=True, null=True)
     visitor_created_at = models.DateTimeField(auto_now_add= True)
 
     def __str__(self):

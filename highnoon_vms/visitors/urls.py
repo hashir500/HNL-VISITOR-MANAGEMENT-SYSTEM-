@@ -11,4 +11,7 @@ urlpatterns = [
 
 # visitor urls
     path("visitors/", views.visitor_list, name="visitor_list"),
+    path("visitors/create/", views.visitor_create, name="visitor_create"),
+    path("visitors/update/<int:visitor_id>/", views.visitor_update, name="visitor_update"),
+    path("visitors/delete/<int:visitor_id>/", views.visitor_delete, name="visitor_delete"),
 ]

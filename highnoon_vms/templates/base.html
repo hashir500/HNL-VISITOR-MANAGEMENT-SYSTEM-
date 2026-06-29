@@ -6,8 +6,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-  <link rel="apple-touch-icon" sizes="76x76" href="{% static 'assets/img/apple-icon.png' %}">
-  <link rel="icon" type="image/png" href="{% static 'assets/img/favicon.png' %}">
+  <link rel="Highnoon logo" sizes="76x76" href="{% static 'assets/img/hn_logo.png' %}">
+  <link rel="icon" type="image/png" href="{% static 'assets/img/hn_logo.png' %}">
 
   <title>
     {% block title %}
@@ -305,9 +305,10 @@
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="#">
-            <i class="fas fa-users"></i>
-            <span class="nav-link-text">Visitors</span>
+          <a class="nav-link {% if request.resolver_match.url_name == 'visitor_list' or request.resolver_match.url_name == 'visitor_create' or request.resolver_match.url_name == 'visitor_update' or request.resolver_match.url_name == 'visitor_delete' %}active{% endif %}"
+            href="{% url 'visitor_list' %}">
+           <i class="fas fa-users"></i>
+           <span class="nav-link-text">Visitors</span>
           </a>
         </li>
 

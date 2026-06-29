@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Visitors{% endblock %}
+{% block breadcrumb %}Visitors{% endblock %}
+{% block page_heading %}Visitors{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">Visitors</h6>
+
+    <button type="button" class="btn btn-primary btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#addVisitorModal">
+      Add Visitor
+    </button>
+  </div>
+
+  <div class="card-body px-0 pt-0 pb-2">
+    <div class="table-responsive p-3">
+      <table class="table align-items-center mb-0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>CNIC</th>
+            <th>Address</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for v in visitors %}
+          <tr>
+            <td>{{ v.visitor_id }}</td>
+            <td>{{ v.visitor_name }}</td>
+            <td>{{ v.visitor_email|default:"-" }}</td>
+            <td>{{ v.visitor_phone }}</td>
+            <td>{{ v.visitor_cnic }}</td>
+            <td>{{ v.visitor_address|default:"-" }}</td>
+            <td>
+              <button type="button" class="btn btn-warning btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#editVisitorModal{{ v.visitor_id }}">
+                Edit
+              </button>
+
+              <button type="button" class="btn btn-danger btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#deleteVisitorModal{{ v.visitor_id }}">
+                Delete
+              </button>
+            </td>
+          </tr>
+
+          <div class="modal fade" id="editVisitorModal{{ v.visitor_id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+              <div class="modal-content">
+                <form method="POST" action="{% url 'visitor_update' v.visitor_id %}">
+                  {% csrf_token %}
+
+                  <div class="modal-header">
+                    <h5 class="modal-title">Edit Visitor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+
+                  <div class="modal-body">
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Visitor Name</label>
+                        <input type="text" name="visitor_name" class="form-control" value="{{ v.visitor_name }}" required>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="visitor_email" class="form-control" value="{{ v.visitor_email }}">
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" name="visitor_phone" class="form-control" value="{{ v.visitor_phone }}" required>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">CNIC</label>
+                        <input type="text" name="visitor_cnic" class="form-control" value="{{ v.visitor_cnic }}" required>
+                      </div>
+
+                      <div class="col-md-12 mb-3">
+                        <label class="form-label">Address</label>
+                        <input type="text" name="visitor_address" class="form-control" value="{{ v.visitor_address }}">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Update Visitor</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal fade" id="deleteVisitorModal{{ v.visitor_id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <form method="POST" action="{% url 'visitor_delete' v.visitor_id %}">
+                  {% csrf_token %}
+
+                  <div class="modal-header">
+                    <h5 class="modal-title text-danger">Delete Visitor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+
+                  <div class="modal-body">
+                    Are you sure you want to delete <strong>{{ v.visitor_name }}</strong>?
+                  </div>
+
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {% empty %}
+          <tr>
+            <td colspan="7">No visitors found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addVisitorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <form method="POST" action="{% url 'visitor_create' %}">
+        {% csrf_token %}
+
+        <div class="modal-header">
+          <h5 class="modal-title">Add Visitor</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Visitor Name</label>
+              <input type="text" name="visitor_name" class="form-control" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" name="visitor_email" class="form-control">
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Phone</label>
+              <input type="text" name="visitor_phone" class="form-control" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">CNIC</label>
+              <input type="text" name="visitor_cnic" class="form-control" required>
+            </div>
+
+            <div class="col-md-12 mb-3">
+              <label class="form-label">Address</label>
+              <input type="text" name="visitor_address" class="form-control">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Visitor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
