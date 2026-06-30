@@ -1,5 +1,6 @@
 from django.shortcuts import redirect, get_object_or_404,render
 from django.utils import timezone
+from django.contrib import messages
 
 from .models import visit
 from visitors.models import visitor, visitor_card
@@ -17,6 +18,8 @@ def visit_list(request):
         "visitors": visitors,
         "employees": employees,
         "cards": cards,
+        "selected_visitor_id": request.GET.get("visitor_id"),
+        "open_add_visit": request.GET.get("open_add_visit"),
     })
 
 
@@ -39,31 +42,32 @@ def visit_checkout(request, visit_id):
 
 def visit_create(request):
     if request.method == "POST":
+        visitor_obj = get_object_or_404(visitor, visitor_id=request.POST.get("visitor"))
+        employee_obj = get_object_or_404(employee, employee_id=request.POST.get("employee"))
 
-        visitor_obj = get_object_or_404(
-            visitor,
-            visitor_id=request.POST["visitor"]
-        )
+        card_color = request.POST.get("card_color")
+        card_number = request.POST.get("card_number")
 
-        employee_obj = get_object_or_404(
-            employee,
-            employee_id=request.POST["employee"]
-        )
-
-        available_card = visitor_card.objects.filter(
-        card_color=request.POST.get("card_color"),
-        is_available=True
+        selected_card = visitor_card.objects.filter(
+            card_color=card_color,
+            card_number=card_number,
+            is_available=True
         ).first()
+
+        if selected_card is None:
+            messages.error(request, f"Card {card_number} ({card_color}) is already assigned or does not exist.")
+            return redirect("visit_list")
 
         visit.objects.create(
             visitor=visitor_obj,
             employee=employee_obj,
-            visitor_card=available_card,
-            visit_purpose=request.POST["visit_purpose"],
+            visitor_card=selected_card,
+            visit_purpose=request.POST.get("visit_purpose"),
         )
 
-        if available_card:
-            available_card.is_available = False
-            available_card.save()
+        selected_card.is_available = False
+        selected_card.save()
+
+        messages.success(request, "Visit created successfully.")
 
     return redirect("visit_list")

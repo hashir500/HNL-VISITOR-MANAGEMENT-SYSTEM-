@@ -17,7 +17,7 @@
 
   <div class="card-body px-0 pt-0 pb-2">
     <div class="table-responsive">
-        <table class="table table-hover align-middle text-nowrap mb-0">
+      <table class="table table-hover align-middle text-nowrap mb-0">
         <thead>
           <tr>
             <th>ID</th>
@@ -51,6 +51,7 @@
 
             <td>{{ v.visit_purpose }}</td>
             <td>{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
+
             <td>
               {% if v.check_out_time %}
                 {{ v.check_out_time|date:"d M Y, h:i A" }}
@@ -109,25 +110,35 @@
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Visitor</label>
+
               <select name="visitor" class="form-control searchable-select" required>
                 <option value="">Search visitor by name or phone</option>
-                  {% for visitor in visitors %}
-                <option value="{{ visitor.visitor_id }}">
-                  {{ visitor.visitor_name }} - {{ visitor.visitor_phone }}
-                </option>
-                  {% endfor %}
-                </select>
+
+                {% for visitor in visitors %}
+                  <option value="{{ visitor.visitor_id }}"
+                    {% if selected_visitor_id == visitor.visitor_id|stringformat:"s" %}selected{% endif %}>
+                    {{ visitor.visitor_name }} - {{ visitor.visitor_phone }}
+                  </option>
+                {% endfor %}
+              </select>
+
+              <a href="{% url 'visitor_list' %}?open_add_visitor=1&next=visits"
+                 class="btn btn-primary btn-sm py-2 px-3 mt-2 text-white">
+                + Add New Visitor
+              </a>
             </div>
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Employee To Visit</label>
+
               <select name="employee" class="form-control searchable-select" required>
                 <option value="">Search employee by name or phone</option>
-                  {% for emp in employees %}
-                <option value="{{ emp.employee_id }}">
-                  {{ emp.employee_name }} - {{ emp.employee_phone }} - {{ emp.employee_department.department_name }}
-                </option>
-                  {% endfor %}
+
+                {% for emp in employees %}
+                  <option value="{{ emp.employee_id }}">
+                    {{ emp.employee_name }} - {{ emp.employee_phone }} - {{ emp.employee_department.department_name }}
+                  </option>
+                {% endfor %}
               </select>
             </div>
 
@@ -140,7 +151,12 @@
                 <option value="Green">Green - Cargo / Empty Area</option>
               </select>
             </div>
-
+            
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Card Number</label>
+              <input type="text" name="card_number" class="form-control" placeholder="Example: 001" required>
+            </div>
+            
             <div class="col-md-6 mb-3">
               <label class="form-label">Purpose</label>
               <input type="text" name="visit_purpose" class="form-control" required>
@@ -173,8 +189,14 @@
       });
     });
   });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("open_add_visit") === "1") {
+      const modal = new bootstrap.Modal(document.getElementById("addVisitModal"));
+      modal.show();
+    }
+  });
 </script>
 {% endblock %}
-
-
-

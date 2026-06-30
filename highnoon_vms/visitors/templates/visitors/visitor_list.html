@@ -42,7 +42,7 @@
                 Edit
               </button>
 
-              <button type="button" class="btn btn-danger btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#deleteVisitorModal{{ v.visitor_id }}">
+              <button type="button" class="btn btn-danger btn-sm py-2 px-4 mb-0" data-bs-toggle="modal" data-bs-target="#deleteVisitorModal{{ v.visitor_id }}">
                 Delete
               </button>
             </td>
@@ -75,7 +75,6 @@
                         <label class="form-label">Phone</label>
                         <input type="text" name="visitor_phone" class="form-control" value="{{ v.visitor_phone }}" required>
                       </div>
-
 
                       <div class="col-md-12 mb-3">
                         <label class="form-label">Address</label>
@@ -134,6 +133,8 @@
       <form method="POST" action="{% url 'visitor_create' %}">
         {% csrf_token %}
 
+        <input type="hidden" name="next" value="{{ request.GET.next }}">
+
         <div class="modal-header">
           <h5 class="modal-title">Add Visitor</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -172,4 +173,17 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("open_add_visitor") === "1") {
+      const modal = new bootstrap.Modal(document.getElementById("addVisitorModal"));
+      modal.show();
+    }
+  });
+</script>
 {% endblock %}

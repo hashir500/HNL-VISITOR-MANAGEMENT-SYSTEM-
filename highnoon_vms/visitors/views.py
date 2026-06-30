@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from .models import visitor_card, visitor
 
 
@@ -65,12 +66,19 @@ def visitor_list(request):
 # visitor create view
 def visitor_create(request):
     if request.method == "POST":
-        visitor.objects.create(
+        new_visitor = visitor.objects.create(
             visitor_name=request.POST.get("visitor_name"),
             visitor_email=request.POST.get("visitor_email") or None,
             visitor_phone=request.POST.get("visitor_phone"),
             visitor_address=request.POST.get("visitor_address") or None,
         )
+
+        next_page = request.POST.get("next")
+
+        if next_page == "visits":
+            return redirect(
+                f"{reverse('visit_list')}?open_add_visit=1&visitor_id={new_visitor.visitor_id}"
+            )
 
     return redirect("visitor_list")
 

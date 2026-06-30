@@ -5,7 +5,7 @@ from django.db import models
 # visitor_card model
 class visitor_card(models.Model):
     card_id = models.AutoField(primary_key=True)
-    card_number = models.CharField(max_length=20, unique=True)
+    card_number = models.CharField(max_length=20, unique= True)
     card_color = models.CharField(max_length=50)
     card_access_level = models.CharField(max_length=100)
 
