@@ -8,7 +8,20 @@ from employees.models import employee
 
 
 def visit_list(request):
+    search = request.GET.get("search", "")
+
     visits = visit.objects.all().order_by("-check_in_time")
+
+    if search:
+        visits = visits.filter(
+            visitor_card__card_color__icontains=search.split()[0]
+        )
+
+        if len(search.split()) > 1:
+            visits = visits.filter(
+                visitor_card__card_number__icontains=search.split()[1]
+            )
+
     visitors = visitor.objects.all()
     employees = employee.objects.all()
     cards = visitor_card.objects.all()
@@ -18,8 +31,8 @@ def visit_list(request):
         "visitors": visitors,
         "employees": employees,
         "cards": cards,
+        "search": search,
         "selected_visitor_id": request.GET.get("visitor_id"),
-        "open_add_visit": request.GET.get("open_add_visit"),
     })
 
 
