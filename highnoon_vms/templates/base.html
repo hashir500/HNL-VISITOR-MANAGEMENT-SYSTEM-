@@ -8,6 +8,7 @@
 
   <link rel="Highnoon logo" sizes="76x76" href="{% static 'assets/img/hn_logo.png' %}">
   <link rel="icon" type="image/png" href="{% static 'assets/img/hn_logo.png' %}">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
   <title>
     {% block title %}
@@ -309,6 +310,92 @@
       height: 44px;
     }
     
+    /* Visits Table */
+    .table {
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    .table th,
+    .table td {
+      padding: 0.8rem 0.6rem;
+      vertical-align: middle;
+      font-size: 14px;
+    }
+
+    .table th {
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .table td {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Individual column widths */
+    .table th:nth-child(1),
+    .table td:nth-child(1) {
+      width: 50px;
+    }
+
+    .table th:nth-child(2),
+    .table td:nth-child(2) {
+      width: 170px;
+    }
+
+    .table th:nth-child(3),
+    .table td:nth-child(3) {
+      width: 170px;
+    }
+
+    .table th:nth-child(4),
+    .table td:nth-child(4) {
+      width: 160px;
+    }
+
+    .table th:nth-child(5),
+    .table td:nth-child(5) {
+      width: 90px;
+    }
+
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+      width: 140px;
+    }
+
+    .table th:nth-child(7),
+    .table td:nth-child(7),
+    .table th:nth-child(8),
+    .table td:nth-child(8) {
+      width: 150px;
+    }
+
+    .table th:nth-child(9),
+    .table td:nth-child(9) {
+      width: 110px;
+    }
+
+    .table th:nth-child(10),
+    .table td:nth-child(10) {
+      width: 130px;
+    }
+
+    
+    .table td:last-child {
+      overflow: visible !important;
+      text-overflow: unset !important;
+      white-space: nowrap !important;
+    }
+
+    .table td:last-child .btn {
+      display: inline-block !important;
+      margin-right: 6px !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
 
   </style>
 
@@ -473,6 +560,8 @@
   <script src="{% static 'assets/js/plugins/perfect-scrollbar.min.js' %}"></script>
   <script src="{% static 'assets/js/plugins/smooth-scrollbar.min.js' %}"></script>
   <script src="{% static 'assets/js/soft-ui-dashboard.min.js' %}?v=1.1.0"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
   {% block extra_js %}{% endblock %}
 

@@ -16,13 +16,14 @@
   </div>
 
   <div class="card-body px-0 pt-0 pb-2">
-    <div class="table-responsive p-3">
-      <table class="table align-items-center mb-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle text-nowrap mb-0">
         <thead>
           <tr>
             <th>ID</th>
             <th>Visitor</th>
             <th>Employee</th>
+            <th>Department</th>
             <th>Card</th>
             <th>Purpose</th>
             <th>Check In</th>
@@ -36,12 +37,27 @@
           {% for v in visits %}
           <tr>
             <td>{{ v.visit_id }}</td>
-            <td>{{ v.visitor }}</td>
-            <td>{{ v.employee }}</td>
-            <td>{{ v.visitor_card|default:"-" }}</td>
+            <td>{{ v.visitor.visitor_name }}</td>
+            <td>{{ v.employee.employee_name }}</td>
+            <td>{{ v.employee.employee_department.department_name }}</td>
+
+            <td>
+              {% if v.visitor_card %}
+                {{ v.visitor_card.card_color }} - {{ v.visitor_card.card_number }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+
             <td>{{ v.visit_purpose }}</td>
-            <td>{{ v.check_in_time }}</td>
-            <td>{{ v.check_out_time|default:"-" }}</td>
+            <td>{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
+            <td>
+              {% if v.check_out_time %}
+                {{ v.check_out_time|date:"d M Y, h:i A" }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
 
             <td>
               {% if v.status == "Checked In" %}
@@ -55,7 +71,7 @@
               {% if v.status == "Checked In" %}
                 <form method="POST" action="{% url 'visit_checkout' v.visit_id %}" style="display:inline;">
                   {% csrf_token %}
-                  <button type="submit" class="btn btn-danger btn-sm mb-0">
+                  <button type="submit" class="btn btn-danger btn-sm py-2 px-3 mb-0">
                     Check Out
                   </button>
                 </form>
@@ -67,7 +83,7 @@
 
           {% empty %}
           <tr>
-            <td colspan="9">No visits found.</td>
+            <td colspan="10">No visits found.</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -93,21 +109,25 @@
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Visitor</label>
-              <select name="visitor" class="form-control" required>
-                <option value="">Select Visitor</option>
-                {% for visitor in visitors %}
-                  <option value="{{ visitor.visitor_id }}">{{ visitor.visitor_name }}</option>
-                {% endfor %}
-              </select>
+              <select name="visitor" class="form-control searchable-select" required>
+                <option value="">Search visitor by name or phone</option>
+                  {% for visitor in visitors %}
+                <option value="{{ visitor.visitor_id }}">
+                  {{ visitor.visitor_name }} - {{ visitor.visitor_phone }}
+                </option>
+                  {% endfor %}
+                </select>
             </div>
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Employee To Visit</label>
-              <select name="employee" class="form-control" required>
-                <option value="">Select Employee</option>
-                {% for emp in employees %}
-                  <option value="{{ emp.employee_id }}">{{ emp.employee_name }}</option>
-                {% endfor %}
+              <select name="employee" class="form-control searchable-select" required>
+                <option value="">Search employee by name or phone</option>
+                  {% for emp in employees %}
+                <option value="{{ emp.employee_id }}">
+                  {{ emp.employee_name }} - {{ emp.employee_phone }} - {{ emp.employee_department.department_name }}
+                </option>
+                  {% endfor %}
               </select>
             </div>
 
@@ -141,3 +161,20 @@
 </div>
 
 {% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    $('#addVisitModal').on('shown.bs.modal', function () {
+      $('.searchable-select').select2({
+        dropdownParent: $('#addVisitModal'),
+        width: '100%',
+        placeholder: 'Search here'
+      });
+    });
+  });
+</script>
+{% endblock %}
+
+
+
