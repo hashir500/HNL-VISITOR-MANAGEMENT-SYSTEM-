@@ -330,13 +330,15 @@
     }
 
     .table td {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: unset !important;
+      word-break: normal !important;
     }
+    
 
     /* Individual column widths */
-    .table th:nth-child(1),
+    /*.table th:nth-child(1),
     .table td:nth-child(1) {
       width: 50px;
     }
@@ -382,7 +384,7 @@
     .table td:nth-child(10) {
       width: 130px;
     }
-
+*/
     
     .table td:last-child {
       overflow: visible !important;
@@ -564,6 +566,8 @@
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
   {% block extra_js %}{% endblock %}
+
+
 
 </body>
 </html>
