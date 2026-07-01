@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 15mm 10mm 15mm 15mm;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 8pt;
+      color: #000;
+    }
+
+    .report-box {
+      border: 2px solid #555;
+      min-height: 260mm;
+      padding: 6px;
+    }
+
+    .header {
+      position: relative;
+      height: 70px;
+      border-bottom: 2px solid #555;
+      margin-bottom: 12px;
+    }
+
+    .published {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 150px;
+      font-size: 8pt;
+      text-align: left;
+      line-height: 1.4;
+    }
+
+    .title-area {
+      text-align: center;
+      padding-top: 4px;
+    }
+
+    .company {
+      font-size: 12pt;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .report-title {
+      font-size: 15pt;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .page-no {
+      position: absolute;
+      right: 0;
+      bottom: 2px;
+      font-size: 8pt;
+      font-weight: bold;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 8pt;
+    }
+
+    th, td {
+      border: 1px solid #999;
+      padding: 5px;
+      text-align: left;
+    }
+
+    th {
+      font-weight: bold;
+      background: #f2f2f2;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+  <div class="published">
+    <strong>Published</strong><br>
+    Date&nbsp;&nbsp;: {{ published_date }}<br>
+    At&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ published_time }}<br>
+    By&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ generated_by }}
+  </div>
+
+  <div class="title-area">
+    <div class="company">HIGHNOON LABORATORIES LIMITED</div>
+    <div class="report-title">{{ report_title }}</div>
+  </div>
+
+  <div class="page-no">Page 1 of 1</div>
+</div>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Visitor</th>
+          <th>Employee</th>
+          <th>Department</th>
+          <th>Card</th>
+          <th>Purpose</th>
+          <th>Check In</th>
+          <th>Check Out</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for v in visits %}
+        <tr>
+          <td>{{ v.visit_id }}</td>
+          <td>{{ v.visitor.visitor_name }}</td>
+          <td>{{ v.employee.employee_name }}</td>
+          <td>{{ v.employee.employee_department.department_name }}</td>
+          <td>{{ v.visitor_card.card_color }} - {{ v.visitor_card.card_number }}</td>
+          <td>{{ v.visit_purpose }}</td>
+          <td>{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
+          <td>
+            {% if v.check_out_time %}
+              {{ v.check_out_time|date:"d M Y, h:i A" }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>{{ v.status }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9">No records found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  </div>
+</body>
+</html>
