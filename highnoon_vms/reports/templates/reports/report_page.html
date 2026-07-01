@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Reports{% endblock %}
+{% block breadcrumb %}Reports{% endblock %}
+{% block page_heading %}Reports{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <h6 class="mb-0">Generate Report</h6>
+  </div>
+
+  <div class="card-body">
+    <form method="GET" action="#">
+      <div class="row">
+
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Report Type</label>
+          <select name="report_type" id="reportType" class="form-control" required>
+            <option value="">Select Report Type</option>
+            <option value="daily">Daily Report</option>
+            <option value="weekly">Weekly Report</option>
+            <option value="monthly">Monthly Report</option>
+          </select>
+        </div>
+
+        <div class="col-md-4 mb-3 report-field" id="dailyField" style="display:none;">
+          <label class="form-label">Select Date</label>
+          <input type="date" name="date" class="form-control">
+        </div>
+
+        <div class="col-md-4 mb-3 report-field" id="weeklyField" style="display:none;">
+          <label class="form-label">Select Week Start Date</label>
+          <input type="date" name="week_start" class="form-control">
+        </div>
+
+        <div class="col-md-4 mb-3 report-field" id="monthlyField" style="display:none;">
+          <label class="form-label">Select Month</label>
+          <input type="month" name="month" class="form-control">
+        </div>
+
+        <div class="col-md-0 mb-30 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary btn-sm py-2 px-4 mb-0">
+            Generate Report
+          </button>
+        </div>
+
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const reportType = document.getElementById("reportType");
+    const dailyField = document.getElementById("dailyField");
+    const weeklyField = document.getElementById("weeklyField");
+    const monthlyField = document.getElementById("monthlyField");
+
+    function hideAllFields() {
+      dailyField.style.display = "none";
+      weeklyField.style.display = "none";
+      monthlyField.style.display = "none";
+    }
+
+    reportType.addEventListener("change", function () {
+      hideAllFields();
+
+      if (this.value === "daily") {
+        dailyField.style.display = "block";
+      }
+
+      if (this.value === "weekly") {
+        weeklyField.style.display = "block";
+      }
+
+      if (this.value === "monthly") {
+        monthlyField.style.display = "block";
+      }
+    });
+  });
+</script>
+{% endblock %}

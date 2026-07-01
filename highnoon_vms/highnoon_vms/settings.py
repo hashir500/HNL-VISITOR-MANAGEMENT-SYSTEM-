@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'visitors',
     'visits',
     "system_settings",
+    "reports",
 ]
 
 MIDDLEWARE = [
