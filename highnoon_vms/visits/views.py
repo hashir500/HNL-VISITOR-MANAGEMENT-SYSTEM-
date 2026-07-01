@@ -70,12 +70,20 @@ def visit_create(request):
 
         selected_card = visitor_card.objects.filter(
             card_color=card_color,
-            card_number=card_number,
-            is_available=True
+            card_number=card_number
         ).first()
 
         if selected_card is None:
-            messages.error(request, f"Card {card_number} ({card_color}) is already assigned or does not exist.")
+            messages.error(request, f"Card {card_color} {card_number} does not exist.")
+            return redirect("visit_list")
+
+        card_in_use = visit.objects.filter(
+            visitor_card=selected_card,
+            status="Checked In"
+        ).exists()
+
+        if card_in_use:
+            messages.error(request, f"Card {card_color} {card_number} is already in use.")
             return redirect("visit_list")
 
         visit.objects.create(
