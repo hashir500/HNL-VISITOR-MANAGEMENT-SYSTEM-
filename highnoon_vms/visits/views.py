@@ -1,6 +1,8 @@
 from django.shortcuts import redirect, get_object_or_404,render
 from django.utils import timezone
 from django.contrib import messages
+from django.db.models import Q
+from django.utils import timezone
 
 from .models import visit
 from visitors.models import visitor, visitor_card
@@ -9,18 +11,21 @@ from employees.models import employee
 
 def visit_list(request):
     search = request.GET.get("search", "")
+    today = timezone.localdate()
 
-    visits = visit.objects.all().order_by("-check_in_time")
+    visits = visit.objects.filter(
+        Q(check_in_time__date=today) |
+        Q(status="Checked In")
+    ).order_by("-check_in_time")
 
     if search:
-        visits = visits.filter(
-            visitor_card__card_color__icontains=search.split()[0]
-        )
+        search_parts = search.split()
 
-        if len(search.split()) > 1:
-            visits = visits.filter(
-                visitor_card__card_number__icontains=search.split()[1]
-            )
+        if len(search_parts) >= 1:
+            visits = visits.filter(visitor_card__card_color__icontains=search_parts[0])
+
+        if len(search_parts) >= 2:
+            visits = visits.filter(visitor_card__card_number__icontains=search_parts[1])
 
     visitors = visitor.objects.all()
     employees = employee.objects.all()
@@ -32,7 +37,9 @@ def visit_list(request):
         "employees": employees,
         "cards": cards,
         "search": search,
+        "today": today,
         "selected_visitor_id": request.GET.get("visitor_id"),
+        "open_add_visit": request.GET.get("open_add_visit"),
     })
 
 
