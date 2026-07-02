@@ -1,14 +1,16 @@
-from django.shortcuts import redirect, get_object_or_404,render
+from django.shortcuts import redirect, get_object_or_404, render
 from django.utils import timezone
 from django.contrib import messages
 from django.db.models import Q
-from django.utils import timezone
+from django.contrib.auth.decorators import login_required, permission_required
 
 from .models import visit
 from visitors.models import visitor, visitor_card
 from employees.models import employee
 
 
+@login_required
+@permission_required("visits.view_visit", raise_exception=True)
 def visit_list(request):
     search = request.GET.get("search", "")
     today = timezone.localdate()
@@ -22,10 +24,14 @@ def visit_list(request):
         search_parts = search.split()
 
         if len(search_parts) >= 1:
-            visits = visits.filter(visitor_card__card_color__icontains=search_parts[0])
+            visits = visits.filter(
+                visitor_card__card_color__icontains=search_parts[0]
+            )
 
         if len(search_parts) >= 2:
-            visits = visits.filter(visitor_card__card_number__icontains=search_parts[1])
+            visits = visits.filter(
+                visitor_card__card_number__icontains=search_parts[1]
+            )
 
     visitors = visitor.objects.all()
     employees = employee.objects.all()
@@ -43,6 +49,8 @@ def visit_list(request):
     })
 
 
+@login_required
+@permission_required("visits.change_visit", raise_exception=True)
 def visit_checkout(request, visit_id):
     visit_obj = get_object_or_404(visit, visit_id=visit_id)
 
@@ -59,11 +67,20 @@ def visit_checkout(request, visit_id):
     return redirect("visit_list")
 
 
-
+@login_required
+@permission_required("visits.add_visit", raise_exception=True)
 def visit_create(request):
     if request.method == "POST":
-        visitor_obj = get_object_or_404(visitor, visitor_id=request.POST.get("visitor"))
-        employee_obj = get_object_or_404(employee, employee_id=request.POST.get("employee"))
+
+        visitor_obj = get_object_or_404(
+            visitor,
+            visitor_id=request.POST.get("visitor")
+        )
+
+        employee_obj = get_object_or_404(
+            employee,
+            employee_id=request.POST.get("employee")
+        )
 
         card_color = request.POST.get("card_color")
         card_number = request.POST.get("card_number")
@@ -74,7 +91,10 @@ def visit_create(request):
         ).first()
 
         if selected_card is None:
-            messages.error(request, f"Card {card_color} {card_number} does not exist.")
+            messages.error(
+                request,
+                f"Card {card_color} {card_number} does not exist."
+            )
             return redirect("visit_list")
 
         card_in_use = visit.objects.filter(
@@ -83,7 +103,10 @@ def visit_create(request):
         ).exists()
 
         if card_in_use:
-            messages.error(request, f"Card {card_color} {card_number} is already in use.")
+            messages.error(
+                request,
+                f"Card {card_color} {card_number} is already in use."
+            )
             return redirect("visit_list")
 
         visit.objects.create(

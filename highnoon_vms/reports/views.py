@@ -1,16 +1,24 @@
+from datetime import datetime, timedelta
+
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.template.loader import get_template
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required, permission_required
+
 from xhtml2pdf import pisa
-from datetime import datetime, timedelta
+
 from visits.models import visit
 
 
+@login_required
+@permission_required("reports.view_reports", raise_exception=True)
 def report_page(request):
     return render(request, "reports/report_page.html")
 
 
+@login_required
+@permission_required("reports.download_reports", raise_exception=True)
 def download_report_pdf(request):
     report_type = request.GET.get("report_type")
 
@@ -39,14 +47,14 @@ def download_report_pdf(request):
         )
         report_title = f"Monthly Visit Report - {datetime(int(year), int(month), 1).strftime('%B %Y')}"
 
-    template = get_template("reports/pdf_report.html")
+    template = get_template("reports/pdf_reports.html")
 
     html = template.render({
         "visits": visits,
         "report_title": report_title,
         "published_date": timezone.localtime().strftime("%d %B %Y"),
         "published_time": timezone.localtime().strftime("%I:%M %p"),
-        "generated_by": "Admin",
+        "generated_by": request.user.username,
     })
 
     response = HttpResponse(content_type="application/pdf")

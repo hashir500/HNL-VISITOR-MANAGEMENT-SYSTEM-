@@ -23,9 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-r5@!tj@a%p=4-rmf2%tj0z7stxyk85(n)ma*g#!bl8+i=2rn4('
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+]
 
 
 # Application definition
@@ -121,6 +124,12 @@ TIME_ZONE = "Asia/Karachi"
 USE_I18N = True
 
 USE_TZ = True
+
+LOGIN_URL = "login"
+
+LOGIN_REDIRECT_URL = "dashboard_page"
+
+LOGOUT_REDIRECT_URL = "login"
 
 
 # Static files (CSS, JavaScript, Images)

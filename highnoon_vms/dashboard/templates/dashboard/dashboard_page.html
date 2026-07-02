@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+{% block page_heading %}Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="row g-3">
+
+  <div class="col-xl-3 col-md-6">
+    <div class="card h-100">
+      <div class="card-body p-3">
+        <p class="text-sm mb-1 font-weight-bold">Today's Visits</p>
+        <h4 class="font-weight-bolder mb-0">{{ today_visits_count }}</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="card h-100">
+      <div class="card-body p-3">
+        <p class="text-sm mb-1 font-weight-bold">Inside Now</p>
+        <h4 class="font-weight-bolder mb-0">{{ active_visits_count }}</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="card h-100">
+      <div class="card-body p-3">
+        <p class="text-sm mb-1 font-weight-bold">Available Cards</p>
+        <h4 class="font-weight-bolder mb-0">{{ available_cards_count }}</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="card h-100">
+      <div class="card-body p-3">
+        <p class="text-sm mb-1 font-weight-bold">Visitors</p>
+        <h4 class="font-weight-bolder mb-0">{{ total_visitors }}</h4>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="row mt-4">
+
+  <div class="col-lg-8 mb-lg-0 mb-4">
+    <div class="card h-100">
+      <div class="card-header pb-0">
+        <h6>Visits - Last 7 Days</h6>
+      </div>
+      <div class="card-body">
+        <canvas id="visitsChart" height="100"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header pb-0">
+        <h6>Card Usage</h6>
+      </div>
+      <div class="card-body">
+        <canvas id="cardUsageChart" height="100"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="row mt-4">
+
+  <div class="col-lg-6 mb-lg-0 mb-4">
+    <div class="card h-100">
+      <div class="card-header pb-0">
+        <h6>Recent Visits</h6>
+      </div>
+
+      <div class="card-body px-0 pt-0 pb-2">
+        <div class="table-responsive p-3">
+          <table class="table align-items-center mb-0">
+            <thead>
+              <tr>
+                <th>Visitor</th>
+                <th>Employee</th>
+                <th>Card</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for v in recent_visits %}
+              <tr>
+                <td>{{ v.visitor.visitor_name }}</td>
+                <td>{{ v.employee.employee_name }}</td>
+                <td>
+                  {% if v.visitor_card %}
+                    {{ v.visitor_card.card_color }} - {{ v.visitor_card.card_number }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>
+                  {% if v.status == "Checked In" %}
+                    <span class="badge bg-success">In</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Out</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4">No recent visits.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header pb-0">
+        <h6>Active Visitors</h6>
+      </div>
+
+      <div class="card-body px-0 pt-0 pb-2">
+        <div class="table-responsive p-3">
+          <table class="table align-items-center mb-0">
+            <thead>
+              <tr>
+                <th>Visitor</th>
+                <th>Card</th>
+                <th>In Time</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for v in active_visitors %}
+              <tr>
+                <td>{{ v.visitor.visitor_name }}</td>
+                <td>
+                  {% if v.visitor_card %}
+                    {{ v.visitor_card.card_color }} - {{ v.visitor_card.card_number }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>{{ v.check_in_time|date:"h:i A" }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="3">No active visitors.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="row mt-4">
+
+  <div class="col-lg-8 mb-lg-0 mb-4">
+    <div class="card h-100">
+      <div class="card-header pb-0">
+        <h6>Activity Timeline</h6>
+      </div>
+
+      <div class="card-body">
+        {% for v in recent_visits %}
+          <div class="d-flex mb-3">
+            <div class="me-3">
+              <span class="badge bg-primary">{{ v.check_in_time|date:"h:i A" }}</span>
+            </div>
+
+            <div>
+              <p class="mb-0 text-sm">
+                <strong>{{ v.visitor.visitor_name }}</strong>
+                visited
+                <strong>{{ v.employee.employee_name }}</strong>
+              </p>
+            </div>
+          </div>
+        {% empty %}
+          <p class="text-sm text-secondary mb-0">No activity.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header pb-0">
+        <h6>System Summary</h6>
+      </div>
+
+      <div class="card-body">
+        <div class="d-flex justify-content-between mb-3">
+          <span class="text-sm">Employees</span>
+          <strong>{{ total_employees }}</strong>
+        </div>
+
+        <div class="d-flex justify-content-between mb-3">
+          <span class="text-sm">Departments</span>
+          <strong>{{ total_departments }}</strong>
+        </div>
+
+        <div class="d-flex justify-content-between mb-3">
+          <span class="text-sm">Cards Used</span>
+          <strong>{{ cards_in_use_count }}</strong>
+        </div>
+
+        <div class="d-flex justify-content-between">
+          <span class="text-sm">Checked Out</span>
+          <strong>{{ checked_out_today_count }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const visitsLabels = {{ last_7_days_labels|safe }};
+  const visitsCounts = {{ last_7_days_counts|safe }};
+  const cardLabels = {{ card_color_labels|safe }};
+  const cardCounts = {{ card_color_counts|safe }};
+
+  new Chart(document.getElementById('visitsChart'), {
+    type: 'line',
+    data: {
+      labels: visitsLabels,
+      datasets: [{
+        label: 'Visits',
+        data: visitsCounts,
+        borderWidth: 3,
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { precision: 0 }
+        }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('cardUsageChart'), {
+    type: 'doughnut',
+    data: {
+      labels: cardLabels,
+      datasets: [{
+        data: cardCounts,
+        backgroundColor: [
+          '#dc2626',
+          '#2563eb',
+          '#16a34a'
+        ],
+        hoverBackgroundColor: [
+          '#b91c1c',
+          '#1d4ed8',
+          '#15803d'
+        ],
+        borderColor: '#ffffff',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '65%',
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

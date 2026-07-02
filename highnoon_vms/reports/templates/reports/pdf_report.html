@@ -8,60 +8,79 @@
       margin: 15mm 10mm 15mm 15mm;
     }
 
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: Arial, sans-serif;
       font-size: 8pt;
       color: #000;
+      margin: 0;
     }
 
     .report-box {
       border: 2px solid #555;
-      min-height: 260mm;
-      padding: 6px;
+      min-height: 267mm; /* 297mm page - 15mm top - 15mm bottom margins */
+      padding: 6px 8mm;
     }
 
-    .header {
-      position: relative;
-      height: 70px;
-      border-bottom: 2px solid #555;
+    /* ---------- Header: table-based layout (renders reliably across PDF engines,
+         unlike position:absolute which many HTML-to-PDF converters ignore) ---------- */
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
       margin-bottom: 12px;
     }
 
+    .header-table td {
+      border: none;
+      padding: 0;
+    }
+
+    .header-table .divider-row td {
+      border-bottom: 2px solid #555;
+      padding-bottom: 6px;
+    }
+
     .published {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 150px;
+      width: 45mm;
       font-size: 8pt;
+      line-height: 1.5;
       text-align: left;
-      line-height: 1.4;
+      vertical-align: top;
     }
 
-    .title-area {
+    .published .label {
+      font-weight: bold; /* Arial 8pt Bold */
+    }
+
+    .title-cell {
       text-align: center;
-      padding-top: 4px;
+      vertical-align: middle;
     }
 
-    .company {
+    .company-name {
       font-size: 12pt;
       font-weight: bold;
-      text-transform: uppercase;
+      text-transform: uppercase; /* Arial 12pt Bold ALL CAPS */
     }
 
     .report-title {
       font-size: 15pt;
-      font-weight: bold;
-      margin-top: 8px;
+      font-weight: bold; /* Arial 15pt Bold Upper Caps (title case, not forced uppercase) */
+      margin-top: 6px;
     }
 
-    .page-no {
-      position: absolute;
-      right: 0;
-      bottom: 2px;
+    .page-cell {
+      width: 35mm;
       font-size: 8pt;
-      font-weight: bold;
+      font-weight: bold; /* Arial 8pt Bold */
+      text-align: right;
+      vertical-align: bottom;
     }
 
+    /* ---------- Table ---------- */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -83,21 +102,30 @@
 </head>
 
 <body>
-  <div class="header">
-  <div class="published">
-    <strong>Published</strong><br>
-    Date&nbsp;&nbsp;: {{ published_date }}<br>
-    At&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ published_time }}<br>
-    By&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ generated_by }}
-  </div>
+  <div class="report-box">
 
-  <div class="title-area">
-    <div class="company">HIGHNOON LABORATORIES LIMITED</div>
-    <div class="report-title">{{ report_title }}</div>
-  </div>
+    <table class="header-table">
+      <tr class="divider-row">
+        <!-- Published info: top-left -->
+        <td class="published">
+          <span class="label">Published</span><br>
+          <span class="label">Date</span>&nbsp;&nbsp;: {{ published_date }}<br>
+          <span class="label">At</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ published_time }}<br>
+          <span class="label">By</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ generated_by }}
+        </td>
 
-  <div class="page-no">Page 1 of 1</div>
-</div>
+        <!-- Company name (replaces the logo image) + report title: centered -->
+        <td class="title-cell">
+          <div class="company-name">Highnoon Laboratories Limited</div>
+          <div class="report-title">{{ report_title }}</div>
+        </td>
+
+        <!-- Page number: top-right -->
+        <td class="page-cell">Page {{ current_page|default:1 }} of {{ total_pages|default:1 }}</td>
+      </tr>
+    </table>
+
+    <!-- Visitor table -->
     <table>
       <thead>
         <tr>

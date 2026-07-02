@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Access Denied{% endblock %}
+{% block breadcrumb %}Access Denied{% endblock %}
+{% block page_heading %}Access Denied{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body text-center py-5">
+    <h3 class="text-danger mb-3">Access Denied</h3>
+    <p class="text-secondary mb-4">
+      You do not have permission to access this page.
+    </p>
+    <a href="{% url 'login' %}" class="btn btn-primary">
+      Go Back
+    </a>
+  </div>
+</div>
+{% endblock %}

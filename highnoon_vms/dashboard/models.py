@@ -1,3 +1,9 @@
 from django.db import models
 
-# Create your models here.
+
+class DashboardPermission(models.Model):
+    class Meta:
+        managed = False
+        permissions = [
+            ("view_dashboard", "Can view dashboard"),
+        ]
