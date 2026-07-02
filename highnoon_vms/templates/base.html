@@ -511,15 +511,7 @@
   </li>
   {% endif %}
 
-  {% if perms.system_settings.view_systemsettings or perms.system_setting.view_systemsettings %}
-  <li class="nav-item">
-    <a class="nav-link {% if request.resolver_match.url_name == 'system_settings_page' %}active{% endif %}"
-       href="{% url 'system_settings_page' %}">
-      <i class="fa-solid fa-gear"></i>
-      <span class="nav-link-text">System Settings</span>
-    </a>
-  </li>
-  {% endif %}
+  
 
 </ul>
     </div>
