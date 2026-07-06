@@ -123,7 +123,6 @@
 
     .sidenav .nav-link-text {
       font-size: 16px;
-      font-wei;
       margin-left: 14px !important;
       text-align: left !important;
     }
@@ -510,6 +509,16 @@
     </a>
   </li>
   {% endif %}
+
+  {% if perms.reports.view_reports %}
+<li class="nav-item">
+  <a class="nav-link"
+     href="https://mehmaan.highnoon.com.pk/admin/login/?next=/admin/">
+    <i class="fa-solid fa-shield-halved"></i>
+    <span class="nav-link-text">Admin</span>
+  </a>
+</li>
+{% endif %}
 
   
 
