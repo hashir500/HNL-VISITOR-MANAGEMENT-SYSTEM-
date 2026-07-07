@@ -16,30 +16,9 @@ from django.contrib.auth.decorators import login_required, permission_required
 def dashboard_page(request):
     today = timezone.localdate()
 
-<<<<<<< HEAD
     today_visits = visit.objects.filter(check_in_time__date=today)
     active_visits = visit.objects.filter(status="Checked In")
     checked_out_today = today_visits.filter(status="Checked Out")
-=======
-    start_of_day = timezone.make_aware(
-        timezone.datetime.combine(today, timezone.datetime.min.time())
-    )
-
-    end_of_day = timezone.make_aware(
-        timezone.datetime.combine(today, timezone.datetime.max.time())
-    )
-
-    today_visits = visit.objects.filter(
-        check_in_time__range=(start_of_day, end_of_day)
-    )
-
-    active_visits = visit.objects.filter(status="Checked In")
-
-    checked_out_today = visit.objects.filter(
-        check_out_time__range=(start_of_day, end_of_day),
-        status="Checked Out"
-    )
->>>>>>> 4e3f11a (user creation and enhanced ui)
 
     total_visitors = visitor.objects.count()
     total_employees = employee.objects.count()

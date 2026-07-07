@@ -26,8 +26,4 @@ urlpatterns = [
     path("", include("dashboard.urls")),
     path("", include("accounts.urls")),
     path("", include("system_settings.urls")),
-<<<<<<< HEAD
-=======
-    path("users/", include("users.urls")),
->>>>>>> 4e3f11a (user creation and enhanced ui)
 ]
