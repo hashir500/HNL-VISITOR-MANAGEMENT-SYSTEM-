@@ -6,41 +6,41 @@
 
 {% block content %}
 
-<div class="card">
+<div class="card mb-4">
   <div class="card-header">
     <h6 class="mb-0">Generate Report</h6>
   </div>
 
   <div class="card-body">
-    <form method="GET" action="{% url 'download_report_pdf' %}">
+    <form method="GET" action="{% url 'report_page' %}">
       <div class="row">
 
         <div class="col-md-4 mb-3">
           <label class="form-label">Report Type</label>
           <select name="report_type" id="reportType" class="form-control" required>
             <option value="">Select Report Type</option>
-            <option value="daily">Daily Report</option>
-            <option value="weekly">Weekly Report</option>
-            <option value="monthly">Monthly Report</option>
+            <option value="daily" {% if selected_report_type == "daily" %}selected{% endif %}>Daily Report</option>
+            <option value="weekly" {% if selected_report_type == "weekly" %}selected{% endif %}>Weekly Report</option>
+            <option value="monthly" {% if selected_report_type == "monthly" %}selected{% endif %}>Monthly Report</option>
           </select>
         </div>
 
         <div class="col-md-4 mb-3 report-field" id="dailyField" style="display:none;">
           <label class="form-label">Select Date</label>
-          <input type="date" name="date" class="form-control">
+          <input type="date" name="date" class="form-control" value="{{ selected_date }}">
         </div>
 
         <div class="col-md-4 mb-3 report-field" id="weeklyField" style="display:none;">
           <label class="form-label">Select Week Start Date</label>
-          <input type="date" name="week_start" class="form-control">
+          <input type="date" name="week_start" class="form-control" value="{{ selected_week_start }}">
         </div>
 
         <div class="col-md-4 mb-3 report-field" id="monthlyField" style="display:none;">
           <label class="form-label">Select Month</label>
-          <input type="month" name="month" class="form-control">
+          <input type="month" name="month" class="form-control" value="{{ selected_month }}">
         </div>
 
-        <div class="col-md-0 mb-30 d-flex align-items-end">
+        <div class="col-md-12 d-flex justify-content-end">
           <button type="submit" class="btn btn-primary btn-sm py-2 px-4 mb-0">
             Generate Report
           </button>
@@ -50,6 +50,87 @@
     </form>
   </div>
 </div>
+
+{% if report_generated %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>
+      <h6 class="mb-0">{{ report_title }}</h6>
+      <p class="text-sm text-secondary mb-0">
+        Published: {{ published_date }} at {{ published_time }} | By: {{ generated_by }}
+      </p>
+    </div>
+
+    {% if perms.reports.download_reports %}
+    <a href="{% url 'download_report_pdf' %}?report_type={{ selected_report_type }}&date={{ selected_date }}&week_start={{ selected_week_start }}&month={{ selected_month }}"
+       class="btn btn-primary btn-sm mb-0">
+      <i class="fa-solid fa-download me-1"></i>
+      Download PDF
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="card-body px-0 pt-0 pb-2">
+    <div class="table-responsive p-3">
+      <table class="table align-items-center mb-0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Visitor</th>
+            <th>Employee</th>
+            <th>Department</th>
+            <th>Card</th>
+            <th>Purpose</th>
+            <th>Check In</th>
+            <th>Check Out</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for v in visits %}
+          <tr>
+            <td>{{ v.visit_id }}</td>
+            <td>{{ v.visitor.visitor_name }}</td>
+            <td>{{ v.employee.employee_name }}</td>
+            <td>{{ v.employee.employee_department.department_name }}</td>
+            <td>
+              {% if v.visitor_card %}
+                {{ v.visitor_card.card_color }} - {{ v.visitor_card.card_number }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>{{ v.visit_purpose }}</td>
+            <td>{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
+            <td>
+              {% if v.check_out_time %}
+                {{ v.check_out_time|date:"d M Y, h:i A" }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if v.status == "Checked In" %}
+                <span class="badge bg-success">Checked In</span>
+              {% else %}
+                <span class="badge bg-secondary">Checked Out</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center text-muted">No records found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endif %}
 
 {% endblock %}
 
@@ -67,21 +148,24 @@
       monthlyField.style.display = "none";
     }
 
-    reportType.addEventListener("change", function () {
+    function showSelectedField() {
       hideAllFields();
 
-      if (this.value === "daily") {
+      if (reportType.value === "daily") {
         dailyField.style.display = "block";
       }
 
-      if (this.value === "weekly") {
+      if (reportType.value === "weekly") {
         weeklyField.style.display = "block";
       }
 
-      if (this.value === "monthly") {
+      if (reportType.value === "monthly") {
         monthlyField.style.display = "block";
       }
-    });
+    }
+
+    reportType.addEventListener("change", showSelectedField);
+    showSelectedField();
   });
 </script>
 {% endblock %}

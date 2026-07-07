@@ -411,6 +411,249 @@
       border: none !important;
     }
 
+    .sidenav {
+      overflow-x: hidden !important;
+    }
+
+    .sidenav .navbar-collapse {
+      overflow: visible !important;
+      max-height: none !important;
+    }
+
+    .sidenav::-webkit-scrollbar {
+      display: none;
+    }
+
+
+    /* Professional Sidebar Folder Navigation */
+    #sidenav-main,
+    .sidenav {
+      height: 100vh !important;
+      overflow: hidden !important;
+    }
+
+    #sidenav-collapse-main {
+      width: 100% !important;
+      max-width: 100% !important;
+      height: calc(100vh - 145px) !important;
+      max-height: calc(100vh - 145px) !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      padding-bottom: 28px !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+
+    #sidenav-collapse-main::-webkit-scrollbar,
+    .sidenav::-webkit-scrollbar,
+    .sidenav .navbar-collapse::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+
+    .sidenav .navbar-nav,
+    .sidenav .navbar-nav ul,
+    .admin-submenu {
+      list-style: none !important;
+      margin: 0 !important;
+    }
+
+  
+
+    .admin-folder {
+      margin-bottom: 12px !important;
+    }
+
+    .sidebar-folder-toggle {
+      border: 0 !important;
+      outline: 0 !important;
+      cursor: pointer;
+      background: transparent !important;
+      appearance: none;
+    }
+
+    .sidebar-folder-toggle:hover,
+    .sidebar-folder-toggle.is-open {
+      background: rgba(255, 255, 255, 0.15) !important;
+      color: #ffffff !important;
+    }
+
+    .sidebar-folder-toggle .folder-chevron {
+      margin-left: auto !important;
+      margin-right: 0 !important;
+      width: auto !important;
+      min-width: auto !important;
+      font-size: 12px !important;
+      transition: transform .22s ease;
+    }
+
+    .sidebar-folder-toggle.is-open .folder-chevron {
+      transform: rotate(90deg);
+    }
+
+    .sidebar-folder-toggle.is-open .folder-icon::before {
+      content: "\f07c";
+    }
+
+    .admin-submenu-wrap {
+      max-height: 0 !important;
+      overflow: hidden !important;
+      transition: max-height .25s ease, opacity .18s ease;
+      opacity: 0;
+    }
+
+    .admin-submenu-wrap.is-open {
+      max-height: 520px !important;
+      opacity: 1;
+      overflow: visible !important;
+    }
+
+    .admin-submenu {
+      padding-left: 38px !important;
+      padding-right: 18px !important;
+      padding-top: 10px !important;
+      padding-bottom: 8px !important;
+      border: none !important;
+    }
+
+    .admin-submenu,
+    .admin-submenu-wrap,
+    .admin-submenu .nav-item,
+    .admin-submenu .nav-link {
+      border-left: none !important;
+      background-image: none !important;
+    }
+
+    .admin-submenu::before,
+    .admin-submenu::after,
+    .admin-submenu-wrap::before,
+    .admin-submenu-wrap::after,
+    .admin-submenu .nav-item::before,
+    .admin-submenu .nav-item::after,
+    .admin-submenu .nav-link::before,
+    .admin-submenu .nav-link::after {
+      display: none !important;
+      content: none !important;
+      border: none !important;
+      background: none !important;
+    }
+
+    .admin-submenu .nav-item {
+      margin-bottom: 8px !important;
+    }
+
+    .admin-submenu .nav-link {
+      min-height: 42px;
+      padding: 11px 16px !important;
+      border-radius: 11px !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      color: rgba(255, 255, 255, 0.94) !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .admin-submenu .nav-link:hover {
+      background: rgba(255, 255, 255, 0.13) !important;
+      color: #ffffff !important;
+      transform: translateX(2px) !important;
+    }
+
+    .admin-submenu .nav-link.active {
+      background: #ffffff !important;
+      color: var(--hn-orange) !important;
+      font-weight: 800 !important;
+      box-shadow: 0 8px 18px rgba(0,0,0,.10) !important;
+      transform: none !important;
+    }
+
+    .admin-submenu .nav-link .nav-link-text {
+      margin-left: 0 !important;
+      font-size: 15px !important;
+    }
+
+
+    /* Professional icon action buttons */
+    .icon-action {
+      width: 34px;
+      height: 34px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: -4px;
+      transition: all 0.2s ease;
+      color: #344767;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .icon-action:hover {
+      background: rgba(242, 99, 34, 0.12);
+      color: var(--hn-orange);
+    }
+
+    .icon-delete:hover {
+      background: rgba(185, 28, 28, 0.12);
+      color: #b91c1c;
+    }
+
+    /* Professional top user menu */
+    .top-user-menu {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      border: 1px solid #edf0f4;
+      border-radius: 14px;
+      padding: 8px 12px;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    }
+
+    .top-user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: rgba(242, 99, 34, 0.12);
+      color: var(--hn-orange);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .top-user-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #344767;
+      max-width: 180px;
+      display: inline-block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .top-logout-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      color: #b91c1c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      text-decoration: none !important;
+    }
+
+    .top-logout-icon:hover {
+      background: rgba(185, 28, 28, 0.12);
+      color: #b91c1c;
+    }
+
   </style>
 
   {% block extra_css %}{% endblock %}
@@ -440,6 +683,7 @@
     <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
       <ul class="navbar-nav">
 
+<<<<<<< HEAD
   {% if perms.dashboard.view_dashboard %}
   <li class="nav-item">
     <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_page' %}active{% endif %}"
@@ -509,6 +753,113 @@
     </a>
   </li>
   {% endif %}
+=======
+        {% if perms.dashboard.view_dashboard %}
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_page' %}active{% endif %}"
+             href="{% url 'dashboard_page' %}">
+            <i class="fa-solid fa-chart-line"></i>
+            <span class="nav-link-text">Dashboard</span>
+          </a>
+        </li>
+        {% endif %}
+
+        {% if perms.employees.view_department or perms.employees.view_employee or perms.visitors.view_visitor or perms.visitors.view_visitor_card or perms.users.view_users or request.user.is_staff %}
+        <li class="nav-item admin-folder">
+          <button type="button"
+                  class="nav-link sidebar-folder-toggle {% if request.resolver_match.url_name == 'department_list' or request.resolver_match.url_name == 'employee_list' or request.resolver_match.url_name == 'visitor_list' or request.resolver_match.url_name == 'visitor_card_list' or request.resolver_match.url_name == 'user_list' %}is-open{% endif %}"
+                  data-target="administratorMenu"
+                  aria-expanded="{% if request.resolver_match.url_name == 'department_list' or request.resolver_match.url_name == 'employee_list' or request.resolver_match.url_name == 'visitor_list' or request.resolver_match.url_name == 'visitor_card_list' or request.resolver_match.url_name == 'user_list' %}true{% else %}false{% endif %}">
+            <i class="fa-solid fa-folder folder-icon"></i>
+            <span class="nav-link-text">Administrator</span>
+            <i class="fa-solid fa-chevron-right folder-chevron"></i>
+          </button>
+
+          <div id="administratorMenu"
+               class="admin-submenu-wrap {% if request.resolver_match.url_name == 'department_list' or request.resolver_match.url_name == 'employee_list' or request.resolver_match.url_name == 'visitor_list' or request.resolver_match.url_name == 'visitor_card_list' or request.resolver_match.url_name == 'user_list' %}is-open{% endif %}">
+            <ul class="admin-submenu">
+
+              {% if perms.employees.view_department %}
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'department_list' %}active{% endif %}"
+                   href="{% url 'department_list' %}">
+                  <span class="nav-link-text">Department</span>
+                </a>
+              </li>
+              {% endif %}
+
+              {% if perms.employees.view_employee %}
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'employee_list' %}active{% endif %}"
+                   href="{% url 'employee_list' %}">
+                  <span class="nav-link-text">Employee</span>
+                </a>
+              </li>
+              {% endif %}
+
+              {% if perms.visitors.view_visitor %}
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'visitor_list' %}active{% endif %}"
+                   href="{% url 'visitor_list' %}">
+                  <span class="nav-link-text">Visitor</span>
+                </a>
+              </li>
+              {% endif %}
+
+              {% if perms.visitors.view_visitor_card %}
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'visitor_card_list' %}active{% endif %}"
+                   href="{% url 'visitor_card_list' %}">
+                  <span class="nav-link-text">Visitor Card</span>
+                </a>
+              </li>
+              {% endif %}
+
+              {% if request.user.is_staff %}
+              <li class="nav-item">
+                <a class="nav-link"
+                   href="https://mehmaan.highnoon.com.pk/admin/login/?next=/admin/">
+                  <span class="nav-link-text">Admin</span>
+                </a>
+              </li>
+              {% endif %}
+
+              {% if perms.users.view_users %}
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}"
+                   href="{% url 'user_list' %}">
+                  <span class="nav-link-text">Users</span>
+                </a>
+              </li>
+              {% endif %}
+
+            </ul>
+          </div>
+        </li>
+        {% endif %}
+
+        <div class="sidebar-divider-soft"></div>
+
+        {% if perms.visits.view_visit %}
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'visit_list' %}active{% endif %}"
+             href="{% url 'visit_list' %}">
+            <i class="far fa-calendar-check"></i>
+            <span class="nav-link-text">Visits</span>
+          </a>
+        </li>
+        {% endif %}
+
+        {% if perms.reports.view_reports %}
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'report_page' %}active{% endif %}"
+             href="{% url 'report_page' %}">
+            <i class="fa-solid fa-file-lines"></i>
+            <span class="nav-link-text">Reports</span>
+          </a>
+        </li>
+        {% endif %}
+>>>>>>> 4e3f11a (user creation and enhanced ui)
 
   {% if perms.reports.view_reports %}
 <li class="nav-item">
@@ -561,6 +912,7 @@
 
         <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
           <div class="ms-md-auto pe-md-3 d-flex align-items-center">
+<<<<<<< HEAD
             <span class="text-sm text-secondary me-3">
               {{ request.user.username }}
             </span>
@@ -568,6 +920,21 @@
             <a href="{% url 'logout' %}" class="btn btn-danger btn-sm mb-0 py-2 px-3">
               Logout
             </a>
+=======
+            <div class="top-user-menu">
+              <div class="top-user-avatar">
+                <i class="fa-solid fa-user"></i>
+              </div>
+
+              <div class="top-user-info">
+                <span class="top-user-name">{{ request.user.username }}</span>
+              </div>
+
+              <a href="{% url 'logout' %}" class="top-logout-icon" title="Logout">
+                <i class="fa-solid fa-right-from-bracket"></i>
+              </a>
+            </div>
+>>>>>>> 4e3f11a (user creation and enhanced ui)
           </div>
 
           <ul class="navbar-nav justify-content-end">
@@ -611,6 +978,31 @@
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<<<<<<< HEAD
+=======
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll(".sidebar-folder-toggle").forEach(function (toggle) {
+        const targetId = toggle.getAttribute("data-target");
+        const target = document.getElementById(targetId);
+
+        if (!target) return;
+
+        const shouldOpen = toggle.getAttribute("aria-expanded") === "true";
+
+        toggle.classList.toggle("is-open", shouldOpen);
+        target.classList.toggle("is-open", shouldOpen);
+
+        toggle.addEventListener("click", function () {
+          const isOpen = target.classList.toggle("is-open");
+          toggle.classList.toggle("is-open", isOpen);
+          toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        });
+      });
+    });
+  </script>
+>>>>>>> 4e3f11a (user creation and enhanced ui)
 
   {% block extra_js %}{% endblock %}
 

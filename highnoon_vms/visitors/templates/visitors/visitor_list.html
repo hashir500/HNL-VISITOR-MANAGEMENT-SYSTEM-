@@ -38,13 +38,27 @@
             <td>{{ v.visitor_phone }}</td>
             <td>{{ v.visitor_address|default:"-" }}</td>
             <td>
-              <button type="button" class="btn btn-warning btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#editVisitorModal{{ v.visitor_id }}">
-                Edit
-              </button>
+              <button
+    class="icon-action icon-edit"
+    type="button"
+    data-bs-toggle="modal"
+    data-bs-target="#editVisitorModal{{ v.visitor_id }}"
+    title="Edit">
 
-              <button type="button" class="btn btn-danger btn-sm py-2 px-4 mb-0" data-bs-toggle="modal" data-bs-target="#deleteVisitorModal{{ v.visitor_id }}">
-                Delete
-              </button>
+    <i class="fa-solid fa-pen"></i>
+
+</button>
+
+<button
+    class="icon-action icon-delete"
+    type="button"
+    data-bs-toggle="modal"
+    data-bs-target="#deleteVisitorModal{{ v.visitor_id }}"
+    title="Delete">
+
+    <i class="fa-solid fa-trash"></i>
+
+</button>
             </td>
           </tr>
 

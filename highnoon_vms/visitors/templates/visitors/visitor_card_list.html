@@ -36,13 +36,27 @@
             <td>{{ card.card_number }}</td>
             <td>{{ card.card_access_level }}</td>
             <td>
-              <button type="button" class="btn btn-warning btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#editCardModal{{ card.card_id }}">
-                Edit
-              </button>
+                            <button
+    class="icon-action icon-edit"
+    type="button"
+    data-bs-toggle="modal"
+    data-bs-target="#editCardModal{{ card.card_id }}"
+    title="Edit">
 
-              <button type="button" class="btn btn-danger btn-sm py-2 px-4 mb-0" data-bs-toggle="modal" data-bs-target="#deleteCardModal{{ card.card_id }}">
-                Delete
-              </button>
+    <i class="fa-solid fa-pen"></i>
+
+</button>
+
+<button
+    class="icon-action icon-delete"
+    type="button"
+    data-bs-toggle="modal"
+    data-bs-target="#deleteCardModal{{ card.card_id }}"
+    title="Delete">
+
+    <i class="fa-solid fa-trash"></i>
+
+</button>
 
             </td>
           </tr>
