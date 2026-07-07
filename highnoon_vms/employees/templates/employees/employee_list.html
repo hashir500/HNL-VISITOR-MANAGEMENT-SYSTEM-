@@ -40,14 +40,30 @@
             <td>{{ emp.employee_designation }}</td>
             <td>{{ emp.employee_department }}</td>
             <td>
-              <button type="button" class="btn btn-warning btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#editEmployeeModal{{ emp.employee_id }}">
-                Edit
-              </button>
 
-              <button type="button" class="btn btn-danger btn-sm py-2 px-4 mb-0" data-bs-toggle="modal" data-bs-target="#deleteEmployeeModal{{ emp.employee_id }}">
-                Delete
-              </button>
-            </td>
+<button
+    class="icon-action icon-edit"
+    type="button"
+    data-bs-toggle="modal"
+    data-bs-target="#editEmployeeModal{{ emp.employee_id }}"
+    title="Edit">
+
+    <i class="fa-solid fa-pen"></i>
+
+</button>
+
+<button
+    class="icon-action icon-delete"
+    type="button"
+    data-bs-toggle="modal"
+    data-bs-target="#deleteEmployeeModal{{ emp.employee_id }}"
+    title="Delete">
+
+    <i class="fa-solid fa-trash"></i>
+
+</button>
+
+</td>
           </tr>
 
           <div class="modal fade" id="editEmployeeModal{{ emp.employee_id }}" tabindex="-1" aria-hidden="true">
