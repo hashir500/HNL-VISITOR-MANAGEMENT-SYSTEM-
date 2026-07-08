@@ -82,3 +82,41 @@ def branch_delete(request, pk):
         branch.delete()
 
     return redirect("branch_list")
+
+
+# division views
+def division_list(request):
+    divisions = sys_div_master.objects.all().order_by("div_code")
+
+    return render(request, "masters/division_list.html", {
+        "divisions": divisions,
+    })
+
+
+def division_create(request):
+    if request.method == "POST":
+        form = DivisionMasterForm(request.POST)
+        if form.is_valid():
+            form.save()
+
+    return redirect("division_list")
+
+
+def division_update(request, pk):
+    division = get_object_or_404(sys_div_master, pk=pk)
+
+    if request.method == "POST":
+        form = DivisionMasterForm(request.POST, instance=division)
+        if form.is_valid():
+            form.save()
+
+    return redirect("division_list")
+
+
+def division_delete(request, pk):
+    division = get_object_or_404(sys_div_master, pk=pk)
+
+    if request.method == "POST":
+        division.delete()
+
+    return redirect("division_list")

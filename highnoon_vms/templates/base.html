@@ -158,7 +158,7 @@
               {% if perms.masters.view_sys_div_master %}
               <li class="nav-item">
                 <a class="nav-link {% if request.resolver_match.url_name == 'division_list' %}active{% endif %}"
-                   href="#">
+                   href="{% url 'division_list'%}">
                   <span class="nav-link-text">Division</span>
                 </a>
               </li>
