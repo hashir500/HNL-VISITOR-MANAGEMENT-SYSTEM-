@@ -149,7 +149,7 @@
               {% if perms.masters.view_sys_bra_master %}
               <li class="nav-item">
                 <a class="nav-link {% if request.resolver_match.url_name == 'branch_list' %}active{% endif %}"
-                   href="#">
+                   href="{% url 'branch_list'%}">
                   <span class="nav-link-text">Branch</span>
                 </a>
               </li>
