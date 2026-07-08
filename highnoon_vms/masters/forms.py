@@ -4,6 +4,8 @@ from .models import sys_bra_master
 from .models import sys_div_master
 from .models import sys_dep_master
 from .models import sys_emp_master
+from .models import sys_pur_master
+
 
 # company form
 class CompanyMasterForm(forms.ModelForm):
@@ -46,3 +48,9 @@ class EmployeeMasterForm(forms.ModelForm):
             "emp_pbx",
             "emp_active",
         ]
+
+# purpose forms
+class PurposeMasterForm(forms.ModelForm):
+    class Meta:
+        model = sys_pur_master
+        fields = ["pur_id", "pur_purpose", "pur_active"]

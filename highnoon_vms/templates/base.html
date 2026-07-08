@@ -187,7 +187,7 @@
               {% if perms.masters.view_sys_pur_master %}
               <li class="nav-item">
                 <a class="nav-link {% if request.resolver_match.url_name == 'purpose_list' %}active{% endif %}"
-                   href="#">
+                   href="{%url 'purpose_list' %}">
                   <span class="nav-link-text">Purpose</span>
                 </a>
               </li>

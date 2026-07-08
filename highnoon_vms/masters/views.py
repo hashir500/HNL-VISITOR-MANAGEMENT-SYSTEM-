@@ -19,6 +19,8 @@ from .models import sys_dep_master, sys_div_master
 from .forms import DepartmentMasterForm
 from .models import sys_emp_master
 from .forms import EmployeeMasterForm
+from .models import sys_pur_master
+from .forms import PurposeMasterForm
 
 # company views
 def company_list(request):
@@ -523,3 +525,47 @@ def employee_import_process(request):
         return redirect("employee_master_list")
 
     return redirect("employee_master_list")
+
+# purpose views
+def purpose_list(request):
+    purposes = sys_pur_master.objects.all().order_by("pur_id")
+
+    return render(request, "masters/purpose_list.html", {
+        "purposes": purposes,
+    })
+
+
+def purpose_create(request):
+    if request.method == "POST":
+        form = PurposeMasterForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Purpose added successfully.")
+        else:
+            messages.error(request, "Purpose could not be added.")
+
+    return redirect("purpose_list")
+
+
+def purpose_update(request, pk):
+    purpose = get_object_or_404(sys_pur_master, pk=pk)
+
+    if request.method == "POST":
+        form = PurposeMasterForm(request.POST, instance=purpose)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Purpose updated successfully.")
+        else:
+            messages.error(request, "Purpose could not be updated.")
+
+    return redirect("purpose_list")
+
+
+def purpose_delete(request, pk):
+    purpose = get_object_or_404(sys_pur_master, pk=pk)
+
+    if request.method == "POST":
+        purpose.delete()
+        messages.success(request, "Purpose deleted successfully.")
+
+    return redirect("purpose_list")
