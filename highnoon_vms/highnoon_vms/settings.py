@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "system_settings",
     "reports",
     "users",
+    "masters",
 ]
 
 
