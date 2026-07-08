@@ -16,4 +16,12 @@ urlpatterns = [
     path("divisions/create/", views.division_create, name="division_create"),
     path("divisions/update/<int:pk>/", views.division_update, name="division_update"),
     path("divisions/delete/<int:pk>/", views.division_delete, name="division_delete"),
+
+    path("departments/", views.department_master_list, name="department_master_list"),
+    path("departments/create/", views.department_master_create, name="department_master_create"),
+    path("departments/update/<int:pk>/", views.department_master_update, name="department_master_update"),
+    path("departments/delete/<int:pk>/", views.department_master_delete, name="department_master_delete"),
+    
+    path("departments/import/upload/", views.department_import_upload, name="department_import_upload"),
+    path("departments/import/process/", views.department_import_process, name="department_import_process"),
 ]

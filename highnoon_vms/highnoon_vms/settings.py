@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.microsoft",
     'accounts',
     'dashboard',
-    'employees',
     'visitors',
     'visits',
     "system_settings",
@@ -166,6 +165,9 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 load_dotenv()
 

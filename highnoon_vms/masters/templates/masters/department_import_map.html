@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Map Department Columns{% endblock %}
+{% block breadcrumb %}Department Import{% endblock %}
+{% block page_heading %}Map Department Columns{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <h6 class="mb-0">Map Excel Columns</h6>
+  </div>
+
+  <div class="card-body">
+    <form method="POST" action="{% url 'department_import_process' %}">
+      {% csrf_token %}
+
+      {% for field, label in db_fields %}
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <label class="form-label">{{ label }}</label>
+        </div>
+
+        <div class="col-md-8">
+          <select name="{{ field }}" class="form-control" {% if field != "dep_active" %}required{% endif %}>
+            <option value="">Select Excel Column</option>
+            {% for col in excel_columns %}
+              <option value="{{ col }}">{{ col }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      {% endfor %}
+
+      <div class="text-end">
+        <a href="{% url 'department_master_list' %}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Import Data</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

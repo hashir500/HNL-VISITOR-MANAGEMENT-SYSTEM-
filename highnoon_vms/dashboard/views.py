@@ -7,7 +7,7 @@ from django.db.models import Count
 
 from visits.models import visit
 from visitors.models import visitor, visitor_card
-from employees.models import employee, department
+from masters.models import sys_emp_master,sys_dep_master
 from django.contrib.auth.decorators import login_required, permission_required
 
 
@@ -36,8 +36,8 @@ def dashboard_page(request):
     )
 
     total_visitors = visitor.objects.count()
-    total_employees = employee.objects.count()
-    total_departments = department.objects.count()
+    total_employees = sys_emp_master.objects.count()
+    total_departments = sys_dep_master.objects.count()
 
     available_cards = visitor_card.objects.filter(is_available=True).count()
     cards_in_use = visitor_card.objects.filter(is_available=False).count()

@@ -1,13 +1,13 @@
 from django.db import models
 from visitors.models import visitor, visitor_card
-from employees.models import employee
+from masters.models import sys_emp_master
 
 
 class visit(models.Model):
     visit_id = models.AutoField(primary_key=True)
 
     visitor = models.ForeignKey(visitor, on_delete=models.CASCADE, null=True, blank=True)
-    employee = models.ForeignKey(employee, on_delete=models.SET_NULL, null=True, blank=True)
+    employee = models.ForeignKey(sys_emp_master, on_delete=models.SET_NULL, null=True, blank=True)
 
     visitor_card = models.ForeignKey(
         visitor_card,

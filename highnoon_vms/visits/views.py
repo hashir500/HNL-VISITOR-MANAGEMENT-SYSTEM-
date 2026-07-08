@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 
 from .models import visit
 from visitors.models import visitor, visitor_card
-from employees.models import employee
+from masters.models import sys_emp_master
 
 
 @login_required
@@ -15,8 +15,16 @@ def visit_list(request):
     search = request.GET.get("search", "")
     today = timezone.localdate()
 
+    start_of_day = timezone.make_aware(
+    timezone.datetime.combine(today, timezone.datetime.min.time())
+    )
+
+    end_of_day = timezone.make_aware(
+    timezone.datetime.combine(today, timezone.datetime.max.time())
+    )
+
     visits = visit.objects.filter(
-        Q(check_in_time__date=today) |
+        Q(check_in_time__range=(start_of_day, end_of_day)) |
         Q(status="Checked In")
     ).order_by("-check_in_time")
 
@@ -78,7 +86,7 @@ def visit_create(request):
         )
 
         employee_obj = get_object_or_404(
-            employee,
+            sys_emp_master,
             employee_id=request.POST.get("employee")
         )
 
