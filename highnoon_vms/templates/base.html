@@ -683,77 +683,6 @@
     <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
       <ul class="navbar-nav">
 
-<<<<<<< HEAD
-  {% if perms.dashboard.view_dashboard %}
-  <li class="nav-item">
-    <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_page' %}active{% endif %}"
-       href="{% url 'dashboard_page' %}">
-      <i class="fa-solid fa-chart-line"></i>
-      <span class="nav-link-text">Dashboard</span>
-    </a>
-  </li>
-  {% endif %}
-
-  {% if perms.employees.view_department %}
-  <li class="nav-item">
-    <a class="nav-link {% if request.resolver_match.url_name == 'department_list' %}active{% endif %}"
-       href="{% url 'department_list' %}">
-      <i class="far fa-folder"></i>
-      <span class="nav-link-text">Departments</span>
-    </a>
-  </li>
-  {% endif %}
-
-  {% if perms.employees.view_employee %}
-  <li class="nav-item">
-    <a class="nav-link {% if request.resolver_match.url_name == 'employee_list' %}active{% endif %}"
-       href="{% url 'employee_list' %}">
-      <i class="far fa-user"></i>
-      <span class="nav-link-text">Employees</span>
-    </a>
-  </li>
-  {% endif %}
-
-  {% if perms.visitors.view_visitor %}
-  <li class="nav-item">
-    <a class="nav-link {% if request.resolver_match.url_name == 'visitor_list' %}active{% endif %}"
-       href="{% url 'visitor_list' %}">
-      <i class="fas fa-users"></i>
-      <span class="nav-link-text">Visitors</span>
-    </a>
-  </li>
-  {% endif %}
-
-  {% if perms.visitors.view_visitor_card %}
-  <li class="nav-item">
-    <a class="nav-link {% if request.resolver_match.url_name == 'visitor_card_list' %}active{% endif %}"
-       href="{% url 'visitor_card_list' %}">
-      <i class="far fa-address-card"></i>
-      <span class="nav-link-text">Visitor Cards</span>
-    </a>
-  </li>
-  {% endif %}
-
-  {% if perms.visits.view_visit %}
-  <li class="nav-item">
-    <a class="nav-link {% if request.resolver_match.url_name == 'visit_list' %}active{% endif %}"
-       href="{% url 'visit_list' %}">
-      <i class="far fa-calendar-check"></i>
-      <span class="nav-link-text">Visits</span>
-    </a>
-  </li>
-  {% endif %}
-
-  {% if perms.reports.view_reports %}
-  <li class="nav-item">
-    <a class="nav-link {% if request.resolver_match.url_name == 'report_page' %}active{% endif %}"
-       href="{% url 'report_page' %}">
-      <i class="fa-solid fa-file-lines"></i>
-      <span class="nav-link-text">Reports</span>
-    </a>
-  </li>
-  {% endif %}
-=======
         {% if perms.dashboard.view_dashboard %}
         <li class="nav-item">
           <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_page' %}active{% endif %}"
@@ -859,21 +788,8 @@
           </a>
         </li>
         {% endif %}
->>>>>>> 4e3f11a (user creation and enhanced ui)
 
-  {% if perms.reports.view_reports %}
-<li class="nav-item">
-  <a class="nav-link"
-     href="https://mehmaan.highnoon.com.pk/admin/login/?next=/admin/">
-    <i class="fa-solid fa-shield-halved"></i>
-    <span class="nav-link-text">Admin</span>
-  </a>
-</li>
-{% endif %}
-
-  
-
-</ul>
+      </ul>
     </div>
   </aside>
 
@@ -912,15 +828,6 @@
 
         <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
           <div class="ms-md-auto pe-md-3 d-flex align-items-center">
-<<<<<<< HEAD
-            <span class="text-sm text-secondary me-3">
-              {{ request.user.username }}
-            </span>
-
-            <a href="{% url 'logout' %}" class="btn btn-danger btn-sm mb-0 py-2 px-3">
-              Logout
-            </a>
-=======
             <div class="top-user-menu">
               <div class="top-user-avatar">
                 <i class="fa-solid fa-user"></i>
@@ -934,7 +841,6 @@
                 <i class="fa-solid fa-right-from-bracket"></i>
               </a>
             </div>
->>>>>>> 4e3f11a (user creation and enhanced ui)
           </div>
 
           <ul class="navbar-nav justify-content-end">
@@ -978,8 +884,6 @@
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<<<<<<< HEAD
-=======
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
@@ -1002,7 +906,6 @@
       });
     });
   </script>
->>>>>>> 4e3f11a (user creation and enhanced ui)
 
   {% block extra_js %}{% endblock %}
 

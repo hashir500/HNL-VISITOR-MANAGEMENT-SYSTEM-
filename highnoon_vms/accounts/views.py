@@ -1,11 +1,3 @@
-<<<<<<< HEAD
-from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
-from django.shortcuts import render, redirect
-
-
-def redirect_after_login(user):
-=======
 import requests
 
 from django.contrib import messages
@@ -20,7 +12,6 @@ def redirect_after_login(user):
     if not user.groups.exists() and not user.is_superuser:
         return redirect("access_pending")
 
->>>>>>> 4e3f11a (user creation and enhanced ui)
     if user.has_perm("dashboard.view_dashboard"):
         return redirect("dashboard_page")
 
@@ -33,11 +24,7 @@ def redirect_after_login(user):
     if user.has_perm("reports.view_reports"):
         return redirect("report_page")
 
-<<<<<<< HEAD
-    return redirect("logout")
-=======
     return redirect("access_pending")
->>>>>>> 4e3f11a (user creation and enhanced ui)
 
 
 def login_page(request):
@@ -45,11 +32,6 @@ def login_page(request):
         return redirect_after_login(request.user)
 
     if request.method == "POST":
-<<<<<<< HEAD
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-
-=======
         username = (request.POST.get("username") or "").strip().lower()
         password = request.POST.get("password")
 
@@ -66,7 +48,6 @@ def login_page(request):
             )
             return render(request, "accounts/login.html")
 
->>>>>>> 4e3f11a (user creation and enhanced ui)
         user = authenticate(
             request,
             username=username,
@@ -84,9 +65,6 @@ def login_page(request):
 
 def logout_user(request):
     logout(request)
-<<<<<<< HEAD
-    return redirect("login")
-=======
     return redirect("login")
 
 
@@ -151,4 +129,3 @@ def microsoft_callback(request):
 
 def access_pending(request):
     return render(request, "accounts/access_pending.html")
->>>>>>> 4e3f11a (user creation and enhanced ui)

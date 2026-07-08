@@ -11,19 +11,7 @@ from xhtml2pdf import pisa
 from visits.models import visit
 
 
-<<<<<<< HEAD
-@login_required
-@permission_required("reports.view_reports", raise_exception=True)
-def report_page(request):
-    return render(request, "reports/report_page.html")
-
-
-@login_required
-@permission_required("reports.download_reports", raise_exception=True)
-def download_report_pdf(request):
-=======
 def get_filtered_report(request):
->>>>>>> 4e3f11a (user creation and enhanced ui)
     report_type = request.GET.get("report_type")
 
     visits = visit.objects.all().order_by("-check_in_time")
@@ -62,8 +50,6 @@ def get_filtered_report(request):
         selected_month = request.GET.get("month")
         year, month = selected_month.split("-")
 
-<<<<<<< HEAD
-=======
         year = int(year)
         month = int(month)
 
@@ -121,7 +107,6 @@ def report_page(request):
 def download_report_pdf(request):
     visits, report_title = get_filtered_report(request)
 
->>>>>>> 4e3f11a (user creation and enhanced ui)
     template = get_template("reports/pdf_reports.html")
 
     html = template.render({
