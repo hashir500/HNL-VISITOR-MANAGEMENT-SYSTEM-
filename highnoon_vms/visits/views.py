@@ -42,7 +42,7 @@ def visit_list(request):
             )
 
     visitors = visitor.objects.all()
-    employees = employee.objects.all()
+    employees = sys_emp_master.objects.all()
     cards = visitor_card.objects.all()
 
     return render(request, "visits/visit_list.html", {
