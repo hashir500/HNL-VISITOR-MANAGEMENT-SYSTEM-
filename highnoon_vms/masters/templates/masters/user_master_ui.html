@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+
+  <div class="card">
+    <div class="card-header pb-0">
+      <h5 class="mb-0">User Master</h5>
+      <p class="text-sm mb-0">Create or update system user details</p>
+    </div>
+
+    <div class="card-body">
+
+      <form method="POST" action="#">
+       {% csrf_token %}
+
+        <div style="max-height: 70vh; overflow-y: auto; padding-right: 10px;">
+
+          <!-- GENERAL SECTION -->
+          <h6 class="text-uppercase text-secondary text-xs font-weight-bolder mb-3">
+            General
+          </h6>
+
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_employee" id="is_employee">
+                <label class="form-check-label" for="is_employee">
+                  Employee
+                </label>
+              </div>
+            </div>
+
+            <div class="col-md-4 mb-3 d-none" id="employeeIdWrapper">
+                <label>Employee ID</label>
+            <input type="text" name="employee_id" id="employee_id" class="form-control">
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label>First Name</label>
+             <input type="text" name="first_name" id="first_name" class="form-control">
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label>Last Name</label>
+              <input type="text" name="last_name" id="last_name" class="form-control">
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label>Designation</label>
+             <input type="text" name="designation" id="designation" class="form-control">
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label>Department</label>
+             <select name="department" id="department" class="form-control select2">
+                <option value="">Select Department</option>
+                {% for dept in departments %}
+                <option value="{{ dept.dep_code }}">
+                {{ dept.dep_code }} - {{ dept.dep_name }}
+                </option>
+                {% endfor %}
+             </select>
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label>Mobile</label>
+              <input type="text" name="mobile" id="mobile" class="form-control">
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label>Email</label>
+              <input type="email" name="email" id="email" class="form-control">
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label>Phone</label>
+             <input type="text" name="phone" id="phone" class="form-control">
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- AUTHENTICATION SECTION -->
+          <h6 class="text-uppercase text-secondary text-xs font-weight-bolder mb-3">
+            Authentication
+          </h6>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>Login ID</label>
+             <input type="email" name="login_id" id="login_id" class="form-control" readonly>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label>Type</label>
+              <select name="auth_type" id="auth_type" class="form-control" required>
+                <option value="">Select Type</option>
+                <option value="SSO">SSO</option>
+                <option value="LOCAL_DB">Local DB</option>
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3" id="passwordWrapper">
+                <label>Password</label>
+                <input type="password" name="password" id="password" class="form-control">
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label>Access Group</label>
+              <select name="access_group" id="access_group" class="form-control">
+                <option value="">Select Access Group</option>
+                    {% for group in access_groups %}
+                    <option value="{{ group.id }}">{{ group.name }}</option>
+                     {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- ASSOCIATION SECTION -->
+          <h6 class="text-uppercase text-secondary text-xs font-weight-bolder mb-3">
+            Association
+          </h6>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>Branch</label>
+              <select name="branch" class="form-control">
+                <option value="">Select Branch</option>
+                {% for branch in branches %}
+                  <option value="{{ branch.pk }}">{{ branch }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label>Company</label>
+              <select name="company" class="form-control">
+                <option value="">Select Company</option>
+                {% for company in companies %}
+                  <option value="{{ company.pk }}">{{ company }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="mt-4 d-flex justify-content-end gap-2">
+          <a href="{% url 'user_master_ui' %}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Save User</button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const employeeCheckbox = document.getElementById("is_employee");
+    const employeeIdWrapper = document.getElementById("employeeIdWrapper");
+    const employeeIdInput = document.getElementById("employee_id");
+
+    employeeCheckbox.addEventListener("change", function () {
+        if (this.checked) {
+            employeeIdWrapper.classList.remove("d-none");
+            employeeIdInput.setAttribute("required", "required");
+        } else {
+            employeeIdWrapper.classList.add("d-none");
+            employeeIdInput.removeAttribute("required");
+            employeeIdInput.value = "";
+        }
+    });
+
+    employeeIdInput.addEventListener("blur", function () {
+        const empId = this.value.trim();
+
+        if (!empId) return;
+
+        fetch(`/masters/users/fetch-employee/${empId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById("first_name").value = data.first_name || "";
+                    document.getElementById("last_name").value = data.last_name || "";
+                    document.getElementById("designation").value = data.designation || "";
+                    document.getElementById("mobile").value = data.mobile || "";
+                    document.getElementById("email").value = data.email || "";
+                    document.getElementById("phone").value = data.phone || "";
+                    document.getElementById("login_id").value = data.email || "";
+                    document.getElementById("department").value = data.department || "";
+                    document.getElementById("login_id").value = data.email || "";
+                    document.getElementById("email").value = data.email || "";
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                alert("Employee details could not be fetched.");
+            });
+    });
+});
+</script>
+
+<script>
+document.getElementById("auth_type").addEventListener("change", function () {
+    const passwordWrapper = document.getElementById("passwordWrapper");
+    const passwordInput = document.getElementById("password");
+
+    if (this.value === "SSO") {
+        passwordWrapper.classList.add("d-none");
+        passwordInput.removeAttribute("required");
+        passwordInput.value = "";
+    } else {
+        passwordWrapper.classList.remove("d-none");
+        passwordInput.setAttribute("required", "required");
+    }
+});
+</script>
+{% endblock %}

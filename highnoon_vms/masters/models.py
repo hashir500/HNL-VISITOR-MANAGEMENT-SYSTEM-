@@ -84,3 +84,4 @@ class sys_usr_system(models.Model):
 
     def __str__(self):
         return self.usr_name
+    

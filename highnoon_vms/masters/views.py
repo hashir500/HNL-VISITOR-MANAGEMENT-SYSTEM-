@@ -7,6 +7,7 @@ from django.conf import settings
 import os
 import uuid
 from openpyxl import load_workbook
+from django.contrib.auth.models import Group
 
 
 from .models import sys_cmp_master
@@ -21,6 +22,9 @@ from .models import sys_emp_master
 from .forms import EmployeeMasterForm
 from .models import sys_pur_master
 from .forms import PurposeMasterForm
+from django.http import JsonResponse
+from .models import sys_emp_master
+
 
 # company views
 def company_list(request):
@@ -569,3 +573,48 @@ def purpose_delete(request, pk):
         messages.success(request, "Purpose deleted successfully.")
 
     return redirect("purpose_list")
+
+# user views
+from django.shortcuts import render
+
+def user_master_ui(request):
+    return render(request, "masters/user_master_ui.html")
+
+
+
+def fetch_employee_details(request, emp_pno):
+    employee = sys_emp_master.objects.filter(emp_pno=emp_pno).first()
+
+    if not employee:
+        return JsonResponse({
+            "success": False,
+            "message": "Employee not found."
+        })
+
+    full_name = employee.emp_name or ""
+
+    name_parts = full_name.strip().split(" ", 1)
+
+    first_name = name_parts[0] if len(name_parts) > 0 else ""
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+    return JsonResponse({
+        "success": True,
+        "first_name": first_name,
+        "last_name": last_name,
+        "designation": employee.emp_designation or "",
+        "department": employee.emp_dep_code.dep_code if employee.emp_dep_code else "",
+        "mobile": employee.emp_mobile or "",
+        "email": employee.emp_email or "",
+        "phone": employee.emp_phone or "",
+})
+
+
+def user_master_ui(request):
+    departments = sys_dep_master.objects.all()
+    access_groups = Group.objects.all()
+
+    return render(request, "masters/user_master_ui.html", {
+        "departments": departments,
+        "access_groups": access_groups,
+    })

@@ -35,4 +35,12 @@ urlpatterns = [
     path("purposes/create/", views.purpose_create, name="purpose_create"),
     path("purposes/update/<int:pk>/", views.purpose_update, name="purpose_update"),
     path("purposes/delete/<int:pk>/", views.purpose_delete, name="purpose_delete"),
+
+   
+    path("users/", views.user_master_ui, name="user_master_ui"),
+    path(
+    "users/fetch-employee/<str:emp_pno>/",
+    views.fetch_employee_details,
+    name="fetch_employee_details"
+),
 ]

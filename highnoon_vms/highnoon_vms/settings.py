@@ -54,7 +54,6 @@ INSTALLED_APPS = [
     'visits',
     "system_settings",
     "reports",
-    "users",
     "masters",
 ]
 
