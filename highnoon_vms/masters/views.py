@@ -8,8 +8,11 @@ import os
 import uuid
 from openpyxl import load_workbook
 from django.contrib.auth.models import Group
+from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
 
 
+from .models import sys_usr_system
 from .models import sys_cmp_master
 from .forms import CompanyMasterForm
 from .models import sys_bra_master
@@ -575,11 +578,6 @@ def purpose_delete(request, pk):
     return redirect("purpose_list")
 
 # user views
-from django.shortcuts import render
-
-def user_master_ui(request):
-    return render(request, "masters/user_master_ui.html")
-
 
 
 def fetch_employee_details(request, emp_pno):
@@ -592,7 +590,6 @@ def fetch_employee_details(request, emp_pno):
         })
 
     full_name = employee.emp_name or ""
-
     name_parts = full_name.strip().split(" ", 1)
 
     first_name = name_parts[0] if len(name_parts) > 0 else ""
@@ -604,17 +601,183 @@ def fetch_employee_details(request, emp_pno):
         "last_name": last_name,
         "designation": employee.emp_designation or "",
         "department": employee.emp_dep_code.dep_code if employee.emp_dep_code else "",
+        "branch": employee.emp_bra_code.bra_code if employee.emp_bra_code else "",
+        "company": employee.emp_cmp.cmp_code if employee.emp_cmp else "",
         "mobile": employee.emp_mobile or "",
         "email": employee.emp_email or "",
         "phone": employee.emp_phone or "",
-})
+    })
 
 
-def user_master_ui(request):
-    departments = sys_dep_master.objects.all()
-    access_groups = Group.objects.all()
+def sync_django_auth_user(user_obj, first_name, last_name, raw_password=None):
+    django_user, created = User.objects.get_or_create(
+        username=user_obj.usr_loginID,
+        defaults={
+            "email": user_obj.usr_email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "is_active": True,
+        }
+    )
 
-    return render(request, "masters/user_master_ui.html", {
+    django_user.email = user_obj.usr_email
+    django_user.first_name = first_name
+    django_user.last_name = last_name
+    django_user.is_active = True
+
+    if user_obj.usr_auth == "LOCAL_DB":
+        if raw_password:
+            django_user.set_password(raw_password)
+    else:
+        django_user.set_unusable_password()
+
+    django_user.groups.clear()
+
+    if user_obj.usr_access_group:
+        group = Group.objects.filter(id=user_obj.usr_access_group).first()
+        if group:
+            django_user.groups.add(group)
+
+    django_user.save()
+
+
+def user_master_list(request):
+    users = sys_usr_system.objects.all().order_by("-id")
+
+    departments = sys_dep_master.objects.all().order_by("dep_code")
+    branches = sys_bra_master.objects.all().order_by("bra_code")
+    companies = sys_cmp_master.objects.all().order_by("cmp_code")
+    access_groups = Group.objects.all().order_by("name")
+
+    return render(request, "masters/user_master_list.html", {
+        "users": users,
         "departments": departments,
+        "branches": branches,
+        "companies": companies,
         "access_groups": access_groups,
     })
+
+
+def user_master_create(request):
+    departments = sys_dep_master.objects.all().order_by("dep_code")
+    branches = sys_bra_master.objects.all().order_by("bra_code")
+    companies = sys_cmp_master.objects.all().order_by("cmp_code")
+    access_groups = Group.objects.all().order_by("name")
+
+    if request.method == "POST":
+        auth_type = request.POST.get("auth_type")
+        password = request.POST.get("password")
+
+        first_name = request.POST.get("first_name", "").strip()
+        last_name = request.POST.get("last_name", "").strip()
+        full_name = f"{first_name} {last_name}".strip()
+
+        department = get_object_or_404(sys_dep_master, dep_code=request.POST.get("department"))
+        branch = get_object_or_404(sys_bra_master, bra_code=request.POST.get("branch"))
+        company = get_object_or_404(sys_cmp_master, cmp_code=request.POST.get("company"))
+
+        user = sys_usr_system(
+            usr_pno=request.POST.get("employee_id") or request.POST.get("login_id"),
+            usr_name=full_name,
+            usr_designation=request.POST.get("designation"),
+            usr_dep_code=department,
+            usr_mobile=request.POST.get("mobile"),
+            usr_email=request.POST.get("email"),
+            usr_phone=request.POST.get("phone"),
+            usr_loginID=request.POST.get("login_id"),
+            usr_auth=auth_type,
+            usr_access_group=request.POST.get("access_group"),
+            usr_bra_code=branch,
+            usr_company=company,
+        )
+
+        if auth_type == "LOCAL_DB" and password:
+            user.usr_password = make_password(password)
+
+        if auth_type == "SSO":
+            user.usr_password = None
+
+        user.save()
+        sync_django_auth_user(user, first_name, last_name, password)
+
+        messages.success(request, "User created successfully.")
+        return redirect("user_master_list")
+
+    return render(request, "masters/user_master_form.html", {
+        "departments": departments,
+        "branches": branches,
+        "companies": companies,
+        "access_groups": access_groups,
+        "user_obj": None,
+    })
+
+
+def user_master_update(request, pk):
+    user_obj = get_object_or_404(sys_usr_system, pk=pk)
+
+    departments = sys_dep_master.objects.all().order_by("dep_code")
+    branches = sys_bra_master.objects.all().order_by("bra_code")
+    companies = sys_cmp_master.objects.all().order_by("cmp_code")
+    access_groups = Group.objects.all().order_by("name")
+
+    if request.method == "POST":
+        auth_type = request.POST.get("auth_type")
+        password = request.POST.get("password")
+
+        first_name = request.POST.get("first_name", "").strip()
+        last_name = request.POST.get("last_name", "").strip()
+        full_name = f"{first_name} {last_name}".strip()
+
+        department = get_object_or_404(sys_dep_master, dep_code=request.POST.get("department"))
+        branch = get_object_or_404(sys_bra_master, bra_code=request.POST.get("branch"))
+        company = get_object_or_404(sys_cmp_master, cmp_code=request.POST.get("company"))
+
+        user_obj.usr_pno = request.POST.get("employee_id") or request.POST.get("login_id")
+        user_obj.usr_name = full_name
+        user_obj.usr_designation = request.POST.get("designation")
+        user_obj.usr_dep_code = department
+        user_obj.usr_mobile = request.POST.get("mobile")
+        user_obj.usr_email = request.POST.get("email")
+        user_obj.usr_phone = request.POST.get("phone")
+        user_obj.usr_loginID = request.POST.get("login_id")
+        user_obj.usr_auth = auth_type
+        user_obj.usr_access_group = request.POST.get("access_group")
+        user_obj.usr_bra_code = branch
+        user_obj.usr_company = company
+
+        if auth_type == "LOCAL_DB" and password:
+            user_obj.usr_password = make_password(password)
+
+        if auth_type == "SSO":
+            user_obj.usr_password = None
+
+        user_obj.save()
+        sync_django_auth_user(user_obj, first_name, last_name, password)
+
+        messages.success(request, "User updated successfully.")
+        return redirect("user_master_list")
+
+    full_name = user_obj.usr_name or ""
+    name_parts = full_name.strip().split(" ", 1)
+
+    user_obj.first_name_display = name_parts[0] if len(name_parts) > 0 else ""
+    user_obj.last_name_display = name_parts[1] if len(name_parts) > 1 else ""
+
+    return render(request, "masters/user_master_form.html", {
+        "departments": departments,
+        "branches": branches,
+        "companies": companies,
+        "access_groups": access_groups,
+        "user_obj": user_obj,
+    })
+
+
+def user_master_delete(request, pk):
+    user_obj = get_object_or_404(sys_usr_system, pk=pk)
+
+    if request.method == "POST":
+        User.objects.filter(username=user_obj.usr_loginID).delete()
+        user_obj.delete()
+        messages.success(request, "User deleted successfully.")
+
+    return redirect("user_master_list")

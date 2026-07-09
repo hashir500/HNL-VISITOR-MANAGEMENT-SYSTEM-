@@ -36,11 +36,10 @@ urlpatterns = [
     path("purposes/update/<int:pk>/", views.purpose_update, name="purpose_update"),
     path("purposes/delete/<int:pk>/", views.purpose_delete, name="purpose_delete"),
 
-   
-    path("users/", views.user_master_ui, name="user_master_ui"),
-    path(
-    "users/fetch-employee/<str:emp_pno>/",
-    views.fetch_employee_details,
-    name="fetch_employee_details"
-),
+    path("users/", views.user_master_list, name="user_master_list"),
+    path("users/add/", views.user_master_create, name="user_master_create"),
+    path("users/<int:pk>/edit/", views.user_master_update, name="user_master_update"),
+    path("users/<int:pk>/delete/", views.user_master_delete, name="user_master_delete"),
+    path("users/fetch-employee/<str:emp_pno>/", views.fetch_employee_details, name="fetch_employee_details"),
+    
 ]

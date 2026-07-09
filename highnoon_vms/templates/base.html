@@ -126,16 +126,16 @@
         {% if perms.masters.view_sys_cmp_master or perms.masters.view_sys_bra_master or perms.masters.view_sys_div_master or perms.masters.view_sys_dep_master or perms.masters.view_sys_emp_master or perms.masters.view_sys_pur_master or perms.masters.view_sys_usr_master %}
         <li class="nav-item admin-folder">
           <button type="button"
-                  class="nav-link sidebar-folder-toggle {% if request.resolver_match.url_name == 'company_list' or request.resolver_match.url_name == 'branch_list' or request.resolver_match.url_name == 'division_list' or request.resolver_match.url_name == 'department_master_list' or request.resolver_match.url_name == 'employee_master_list' or request.resolver_match.url_name == 'purpose_list' or request.resolver_match.url_name == 'user_master_ui' %}is-open{% endif %}"
+                  class="nav-link sidebar-folder-toggle {% if request.resolver_match.url_name == 'company_list' or request.resolver_match.url_name == 'branch_list' or request.resolver_match.url_name == 'division_list' or request.resolver_match.url_name == 'department_master_list' or request.resolver_match.url_name == 'employee_master_list' or request.resolver_match.url_name == 'purpose_list' or request.resolver_match.url_name == 'user_master_list' %}is-open{% endif %}"
                   data-target="mastersMenu"
-                  aria-expanded="{% if request.resolver_match.url_name == 'company_list' or request.resolver_match.url_name == 'branch_list' or request.resolver_match.url_name == 'division_list' or request.resolver_match.url_name == 'department_master_list' or request.resolver_match.url_name == 'employee_master_list' or request.resolver_match.url_name == 'purpose_list' or request.resolver_match.url_name == 'user_master_ui' %}true{% else %}false{% endif %}">
+                  aria-expanded="{% if request.resolver_match.url_name == 'company_list' or request.resolver_match.url_name == 'branch_list' or request.resolver_match.url_name == 'division_list' or request.resolver_match.url_name == 'department_master_list' or request.resolver_match.url_name == 'employee_master_list' or request.resolver_match.url_name == 'purpose_list' or request.resolver_match.url_name == 'user_master_list' %}true{% else %}false{% endif %}">
             <i class="fa-solid fa-folder-tree folder-icon"></i>
             <span class="nav-link-text">Masters</span>
             <i class="fa-solid fa-chevron-right folder-chevron"></i>
           </button>
 
           <div id="mastersMenu"
-               class="admin-submenu-wrap {% if request.resolver_match.url_name == 'company_list' or request.resolver_match.url_name == 'branch_list' or request.resolver_match.url_name == 'division_list' or request.resolver_match.url_name == 'department_master_list' or request.resolver_match.url_name == 'employee_master_list' or request.resolver_match.url_name == 'purpose_list' or request.resolver_match.url_name == 'user_master_ui' %}is-open{% endif %}">
+               class="admin-submenu-wrap {% if request.resolver_match.url_name == 'company_list' or request.resolver_match.url_name == 'branch_list' or request.resolver_match.url_name == 'division_list' or request.resolver_match.url_name == 'department_master_list' or request.resolver_match.url_name == 'employee_master_list' or request.resolver_match.url_name == 'purpose_list' or request.resolver_match.url_name == 'user_master_list' %}is-open{% endif %}">
             <ul class="admin-submenu">
 
               {% if perms.masters.view_sys_cmp_master %}
@@ -195,12 +195,12 @@
               {% endif %}
 
               {% if perms.users.view_users %}
-              <li class="nav-item">
-               <a class="nav-link {% if request.resolver_match.url_name == 'user_master_ui' %}active{% endif %}"
-                  href="{% url 'user_master_ui' %}">
-                <span class="nav-link-text">Users</span>
+               <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'user_master_list' or request.resolver_match.url_name == 'user_master_create' or request.resolver_match.url_name == 'user_master_update' %}active{% endif %}"
+                  href="{% url 'user_master_list' %}">
+                  <span class="nav-link-text">Users</span>
                 </a>
-              </li>
+               </li>
               {% endif %}
 
             </ul>
@@ -350,6 +350,18 @@
 
   {% block extra_js %}{% endblock %}
 
+<script>
+$(document).ready(function () {
+    $('#department').select2({
+        placeholder: "Search Department by Code or Name",
+        allowClear: true,
+        width: "100%"
+    });
+});
+</script>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 
 </body>

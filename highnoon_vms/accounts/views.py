@@ -2,9 +2,10 @@ import requests
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.shortcuts import render, redirect
 
+from masters.models import sys_usr_system
 from .microsoft import build_msal_app, get_auth_url, SCOPES
 
 
@@ -35,13 +36,15 @@ def login_page(request):
         username = (request.POST.get("username") or "").strip().lower()
         password = request.POST.get("password")
 
-        try:
-            user_obj = User.objects.get(username=username)
-        except User.DoesNotExist:
+        sys_user = sys_usr_system.objects.filter(
+            usr_loginID__iexact=username
+        ).first()
+
+        if not sys_user:
             messages.error(request, "Invalid username or password.")
             return render(request, "accounts/login.html")
 
-        if hasattr(user_obj, "profile") and user_obj.profile.account_type == "m365":
+        if (sys_user.usr_auth or "").upper() == "SSO":
             messages.error(
                 request,
                 "This account uses Microsoft 365. Please click 'Sign in with Microsoft 365'."
@@ -104,27 +107,49 @@ def microsoft_callback(request):
 
     email = email.strip().lower()
 
-    try:
-        user = User.objects.get(username=email)
-    except User.DoesNotExist:
+    sys_user = sys_usr_system.objects.filter(
+        usr_loginID__iexact=email,
+        usr_auth__iexact="SSO"
+    ).first()
+
+    if not sys_user:
         return redirect("access_pending")
 
-    if not hasattr(user, "profile"):
-        return redirect("access_pending")
+    name_parts = (sys_user.usr_name or "").strip().split(" ", 1)
+    first_name = name_parts[0] if len(name_parts) > 0 else ""
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
 
-    if user.profile.account_type != "m365":
-        return redirect("access_pending")
+    django_user, created = User.objects.get_or_create(
+        username=sys_user.usr_loginID,
+        defaults={
+            "email": sys_user.usr_email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "is_active": True,
+        }
+    )
 
-    if not user.groups.exists() and not user.is_superuser:
-        return redirect("access_pending")
+    django_user.email = sys_user.usr_email
+    django_user.first_name = first_name
+    django_user.last_name = last_name
+    django_user.is_active = True
+    django_user.set_unusable_password()
+    django_user.save()
+
+    django_user.groups.clear()
+
+    if sys_user.usr_access_group:
+        group = Group.objects.filter(id=sys_user.usr_access_group).first()
+        if group:
+            django_user.groups.add(group)
 
     login(
         request,
-        user,
+        django_user,
         backend="django.contrib.auth.backends.ModelBackend",
     )
 
-    return redirect_after_login(user)
+    return redirect_after_login(django_user)
 
 
 def access_pending(request):

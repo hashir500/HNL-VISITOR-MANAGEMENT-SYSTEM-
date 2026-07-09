@@ -1,0 +1,121 @@
+<div class="user-form-fields">
+
+  <h6 class="text-uppercase text-secondary text-xs font-weight-bolder mb-3">General</h6>
+
+  <div class="row">
+    <div class="col-md-12 mb-3">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_employee" id="is_employee">
+        <label class="form-check-label" for="is_employee">Employee</label>
+      </div>
+    </div>
+
+    <div class="col-md-4 mb-3 d-none" id="employeeIdWrapper">
+      <label>Employee ID</label>
+      <input type="text" name="employee_id" id="employee_id" class="form-control">
+    </div>
+
+    <div class="col-md-4 mb-3">
+      <label>First Name</label>
+      <input type="text" name="first_name" id="first_name" class="form-control" required>
+    </div>
+
+    <div class="col-md-4 mb-3">
+      <label>Last Name</label>
+      <input type="text" name="last_name" id="last_name" class="form-control">
+    </div>
+
+    <div class="col-md-4 mb-3">
+      <label>Designation</label>
+      <input type="text" name="designation" id="designation" class="form-control">
+    </div>
+
+    <div class="col-md-4 mb-3">
+      <label>Department</label>
+      <select name="department" id="department" class="form-control select2" required>
+        <option value="">Select Department</option>
+        {% for dept in departments %}
+          <option value="{{ dept.dep_code }}">{{ dept.dep_code }} - {{ dept.dep_desc }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-4 mb-3">
+      <label>Mobile</label>
+      <input type="text" name="mobile" id="mobile" class="form-control">
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <label>Email</label>
+      <input type="email" name="email" id="email" class="form-control" required>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <label>Phone</label>
+      <input type="text" name="phone" id="phone" class="form-control">
+    </div>
+  </div>
+
+  <hr>
+
+  <h6 class="text-uppercase text-secondary text-xs font-weight-bolder mb-3">Authentication</h6>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label>Login ID</label>
+      <input type="email" name="login_id" id="login_id" class="form-control" readonly required>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <label>Type</label>
+      <select name="auth_type" id="auth_type" class="form-control" required>
+        <option value="">Select Type</option>
+        <option value="SSO">SSO</option>
+        <option value="LOCAL_DB">Local DB</option>
+      </select>
+    </div>
+
+    <div class="col-md-6 mb-3" id="passwordWrapper">
+      <label>Password</label>
+      <input type="password" name="password" id="password" class="form-control">
+      <small class="text-muted d-none" id="passwordHelp">Leave blank to keep existing password.</small>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <label>Access Group</label>
+      <select name="access_group" id="access_group" class="form-control" required>
+        <option value="">Select Access Group</option>
+        {% for group in access_groups %}
+          <option value="{{ group.id }}">{{ group.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <hr>
+
+  <h6 class="text-uppercase text-secondary text-xs font-weight-bolder mb-3">Association</h6>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label>Branch</label>
+      <select name="branch" id="branch" class="form-control select2" required>
+        <option value="">Select Branch</option>
+        {% for branch in branches %}
+          <option value="{{ branch.bra_code }}">{{ branch.bra_code }} - {{ branch.bra_desc }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <label>Company</label>
+      <select name="company" id="company" class="form-control select2" required>
+        <option value="">Select Company</option>
+        {% for company in companies %}
+          <option value="{{ company.cmp_code }}">{{ company.cmp_code }} - {{ company.cmp_desc }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+</div>
