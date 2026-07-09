@@ -19,25 +19,25 @@
 
   <div class="card-body px-0 pt-0 pb-2">
     <div class="table-responsive">
-         <form method="GET" class="px-3 pb-3">
-            <div class="d-flex align-items-center gap-2">
-              <input type="text"
-                name="search"
-                class="form-control"
-                placeholder="Search card e.g. Red 001"
-                value="{{ search }}"
-                style="max-width: 420px;">
+      <form method="GET" class="px-3 pb-3">
+        <div class="d-flex align-items-center gap-2">
+          <input type="text"
+                 name="search"
+                 class="form-control"
+                 placeholder="Search card e.g. Red 001"
+                 value="{{ search }}"
+                 style="max-width: 420px;">
 
-                  <button type="submit" class="btn btn-primary btn-sm py-2 px-4 mb-0">
-                    Search
-                  </button>
+          <button type="submit" class="btn btn-primary btn-sm py-2 px-4 mb-0">
+            Search
+          </button>
 
-                  <a href="{% url 'visit_list' %}" class="btn btn-secondary btn-sm py-2 px-4 mb-0">
-                    Reset
-                  </a>
-              </div>
-          </form>
-          
+          <a href="{% url 'visit_list' %}" class="btn btn-secondary btn-sm py-2 px-4 mb-0">
+            Reset
+          </a>
+        </div>
+      </form>
+
       <table class="table table-hover align-middle text-nowrap mb-0">
         <thead>
           <tr>
@@ -59,8 +59,8 @@
           <tr>
             <td>{{ v.visit_id }}</td>
             <td>{{ v.visitor.visitor_name }}</td>
-            <td>{{ v.employee.employee_name }}</td>
-            <td>{{ v.employee.employee_department.department_name }}</td>
+            <td>{{ v.employee.emp_name }}</td>
+            <td>{{ v.employee.emp_dep_code }}</td>
 
             <td>
               {% if v.visitor_card %}
@@ -153,11 +153,11 @@
               <label class="form-label">Employee To Visit</label>
 
               <select name="employee" class="form-control searchable-select" required>
-                <option value="">Search employee by name or phone</option>
+                <option value="">Search employee by PNO, name, or phone</option>
 
                 {% for emp in employees %}
-                  <option value="{{ emp.employee_id }}">
-                    {{ emp.employee_name }} - {{ emp.employee_phone }} - {{ emp.employee_department.department_name }}
+                  <option value="{{ emp.pk }}">
+                    {{ emp.emp_pno }} - {{ emp.emp_name }} - {{ emp.emp_phone }} - {{ emp.emp_dep_code }}
                   </option>
                 {% endfor %}
               </select>
@@ -172,15 +172,28 @@
                 <option value="Green">Green - Cargo / Empty Area</option>
               </select>
             </div>
-            
+
             <div class="col-md-6 mb-3">
               <label class="form-label">Card Number</label>
               <input type="text" name="card_number" class="form-control" placeholder="Example: 001" required>
             </div>
-            
+
             <div class="col-md-6 mb-3">
               <label class="form-label">Purpose</label>
-              <input type="text" name="visit_purpose" class="form-control" required>
+              <select name="purpose" id="visitPurposeSelect" class="form-control searchable-select" required>
+                <option value="">Select Purpose</option>
+
+                {% for purpose in purposes %}
+                  <option value="{{ purpose.pur_id }}">
+                    {{ purpose.pur_purpose }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3 d-none" id="otherPurposeWrapper">
+              <label class="form-label">Write Purpose</label>
+              <input type="text" name="other_purpose" id="otherPurposeInput" class="form-control" placeholder="Enter purpose">
             </div>
 
           </div>
@@ -208,6 +221,18 @@
         width: '100%',
         placeholder: 'Search here'
       });
+    });
+
+    $('#visitPurposeSelect').on('change', function () {
+      const selectedText = $('#visitPurposeSelect option:selected').text().trim().toLowerCase();
+
+      if (selectedText === 'other' || selectedText === 'others') {
+        $('#otherPurposeWrapper').removeClass('d-none');
+        $('#otherPurposeInput').attr('required', true);
+      } else {
+        $('#otherPurposeWrapper').addClass('d-none');
+        $('#otherPurposeInput').removeAttr('required').val('');
+      }
     });
   });
 

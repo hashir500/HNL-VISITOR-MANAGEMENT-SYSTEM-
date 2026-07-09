@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 
 from .models import visit
 from visitors.models import visitor, visitor_card
-from masters.models import sys_emp_master
+from masters.models import sys_emp_master, sys_pur_master
 
 
 @login_required
@@ -16,11 +16,11 @@ def visit_list(request):
     today = timezone.localdate()
 
     start_of_day = timezone.make_aware(
-    timezone.datetime.combine(today, timezone.datetime.min.time())
+        timezone.datetime.combine(today, timezone.datetime.min.time())
     )
 
     end_of_day = timezone.make_aware(
-    timezone.datetime.combine(today, timezone.datetime.max.time())
+        timezone.datetime.combine(today, timezone.datetime.max.time())
     )
 
     visits = visit.objects.filter(
@@ -41,15 +41,17 @@ def visit_list(request):
                 visitor_card__card_number__icontains=search_parts[1]
             )
 
-    visitors = visitor.objects.all()
-    employees = sys_emp_master.objects.all()
+    visitors = visitor.objects.all().order_by("visitor_name")
+    employees = sys_emp_master.objects.all().order_by("emp_name")
     cards = visitor_card.objects.all()
+    purposes = sys_pur_master.objects.filter(pur_active=True).order_by("pur_purpose")
 
     return render(request, "visits/visit_list.html", {
         "visits": visits,
         "visitors": visitors,
         "employees": employees,
         "cards": cards,
+        "purposes": purposes,
         "search": search,
         "today": today,
         "selected_visitor_id": request.GET.get("visitor_id"),
@@ -71,6 +73,7 @@ def visit_checkout(request, visit_id):
             visit_obj.visitor_card.save()
 
         visit_obj.save()
+        messages.success(request, "Visitor checked out successfully.")
 
     return redirect("visit_list")
 
@@ -87,7 +90,7 @@ def visit_create(request):
 
         employee_obj = get_object_or_404(
             sys_emp_master,
-            employee_id=request.POST.get("employee")
+            pk=request.POST.get("employee")
         )
 
         card_color = request.POST.get("card_color")
@@ -117,11 +120,25 @@ def visit_create(request):
             )
             return redirect("visit_list")
 
+        purpose_obj = get_object_or_404(
+            sys_pur_master,
+            pur_id=request.POST.get("purpose")
+        )
+
+        if purpose_obj.pur_purpose.strip().lower() in ["other", "others"]:
+            visit_purpose = request.POST.get("other_purpose", "").strip()
+
+            if not visit_purpose:
+                messages.error(request, "Please write the purpose.")
+                return redirect("visit_list")
+        else:
+            visit_purpose = purpose_obj.pur_purpose
+
         visit.objects.create(
             visitor=visitor_obj,
             employee=employee_obj,
             visitor_card=selected_card,
-            visit_purpose=request.POST.get("visit_purpose"),
+            visit_purpose=visit_purpose,
         )
 
         selected_card.is_available = False
