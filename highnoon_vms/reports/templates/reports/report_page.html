@@ -80,7 +80,7 @@
             <th>Visitor</th>
             <th>Employee</th>
             <th>Department</th>
-            <th>Card</th>
+            <th>Card No</th>
             <th>Purpose</th>
             <th>Check In</th>
             <th>Check Out</th>
@@ -93,17 +93,20 @@
           <tr>
             <td>{{ v.visit_id }}</td>
             <td>{{ v.visitor.visitor_name }}</td>
-            <td>{{ v.employee.employee_name }}</td>
-            <td>{{ v.employee.employee_department.department_name }}</td>
+            <td>{{ v.employee.emp_name }}</td>
+            <td>{{ v.employee.emp_dep_code }}</td>
+
             <td>
               {% if v.visitor_card %}
-                {{ v.visitor_card.card_color }} - {{ v.visitor_card.card_number }}
+                {{ v.visitor_card.CRD_No }}
               {% else %}
                 -
               {% endif %}
             </td>
+
             <td>{{ v.visit_purpose }}</td>
             <td>{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
+
             <td>
               {% if v.check_out_time %}
                 {{ v.check_out_time|date:"d M Y, h:i A" }}
@@ -111,6 +114,7 @@
                 -
               {% endif %}
             </td>
+
             <td>
               {% if v.status == "Checked In" %}
                 <span class="badge bg-success">Checked In</span>
@@ -119,6 +123,7 @@
               {% endif %}
             </td>
           </tr>
+
           {% empty %}
           <tr>
             <td colspan="9" class="text-center text-muted">No records found.</td>
@@ -136,36 +141,81 @@
 
 {% block extra_js %}
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
+
     const reportType = document.getElementById("reportType");
+
     const dailyField = document.getElementById("dailyField");
     const weeklyField = document.getElementById("weeklyField");
     const monthlyField = document.getElementById("monthlyField");
 
+    const dailyInput = document.querySelector('input[name="date"]');
+    const weeklyInput = document.querySelector('input[name="week_start"]');
+    const monthlyInput = document.querySelector('input[name="month"]');
+
     function hideAllFields() {
-      dailyField.style.display = "none";
-      weeklyField.style.display = "none";
-      monthlyField.style.display = "none";
+        dailyField.style.display = "none";
+        weeklyField.style.display = "none";
+        monthlyField.style.display = "none";
+    }
+
+    function setDefaults() {
+
+        const today = new Date();
+
+        // ---------- Daily ----------
+        if (!dailyInput.value) {
+            dailyInput.value = today.toISOString().split("T")[0];
+        }
+
+        // ---------- Weekly ----------
+        if (!weeklyInput.value) {
+
+            let monday = new Date(today);
+
+            // Monday = first day of week
+            let day = monday.getDay();
+
+            let diff = day === 0 ? -6 : 1 - day;
+
+            monday.setDate(monday.getDate() + diff);
+
+            weeklyInput.value = monday.toISOString().split("T")[0];
+        }
+
+        // ---------- Monthly ----------
+        if (!monthlyInput.value) {
+
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, "0");
+
+            monthlyInput.value = `${year}-${month}`;
+        }
     }
 
     function showSelectedField() {
-      hideAllFields();
 
-      if (reportType.value === "daily") {
-        dailyField.style.display = "block";
-      }
+        hideAllFields();
 
-      if (reportType.value === "weekly") {
-        weeklyField.style.display = "block";
-      }
+        if (reportType.value === "daily") {
+            dailyField.style.display = "block";
+        }
 
-      if (reportType.value === "monthly") {
-        monthlyField.style.display = "block";
-      }
+        if (reportType.value === "weekly") {
+            weeklyField.style.display = "block";
+        }
+
+        if (reportType.value === "monthly") {
+            monthlyField.style.display = "block";
+        }
     }
 
+    setDefaults();
+
     reportType.addEventListener("change", showSelectedField);
+
     showSelectedField();
-  });
+
+});
 </script>
 {% endblock %}

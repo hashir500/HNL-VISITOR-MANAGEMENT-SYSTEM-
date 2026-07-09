@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
+from django.urls import reverse
 
 from .models import visitor_card, visitor
 
@@ -8,7 +9,7 @@ from .models import visitor_card, visitor
 @login_required
 @permission_required("visitors.view_visitor_card", raise_exception=True)
 def visitor_card_list(request):
-    cards = visitor_card.objects.all()
+    cards = visitor_card.objects.all().order_by("CRD_No")
 
     return render(request, "visitors/visitor_card_list.html", {
         "cards": cards,
@@ -19,11 +20,21 @@ def visitor_card_list(request):
 @permission_required("visitors.add_visitor_card", raise_exception=True)
 def visitor_card_create(request):
     if request.method == "POST":
+        crd_no = request.POST.get("CRD_No", "").strip()
+        crd_desc = request.POST.get("CRD_Desc", "").strip()
+        crd_active = True if request.POST.get("CRD_Active") else False
+
+        if visitor_card.objects.filter(CRD_No__iexact=crd_no).exists():
+            messages.error(request, f"Card number {crd_no} already exists.")
+            return redirect("visitor_card_list")
+
         visitor_card.objects.create(
-            card_color=request.POST["card_color"],
-            card_number=request.POST["card_number"],
-            card_access_level=request.POST["card_access_level"],
+            CRD_No=crd_no,
+            CRD_Desc=crd_desc,
+            CRD_Active=crd_active,
         )
+
+        messages.success(request, "Visitor card created successfully.")
 
     return redirect("visitor_card_list")
 
@@ -34,10 +45,20 @@ def visitor_card_update(request, pk):
     card = get_object_or_404(visitor_card, pk=pk)
 
     if request.method == "POST":
-        card.card_color = request.POST["card_color"]
-        card.card_number = request.POST["card_number"]
-        card.card_access_level = request.POST["card_access_level"]
+        crd_no = request.POST.get("CRD_No", "").strip()
+        crd_desc = request.POST.get("CRD_Desc", "").strip()
+        crd_active = True if request.POST.get("CRD_Active") else False
+
+        if visitor_card.objects.filter(CRD_No__iexact=crd_no).exclude(pk=pk).exists():
+            messages.error(request, f"Card number {crd_no} already exists.")
+            return redirect("visitor_card_list")
+
+        card.CRD_No = crd_no
+        card.CRD_Desc = crd_desc
+        card.CRD_Active = crd_active
         card.save()
+
+        messages.success(request, "Visitor card updated successfully.")
 
     return redirect("visitor_card_list")
 
@@ -49,10 +70,11 @@ def visitor_card_delete(request, pk):
 
     if request.method == "POST":
         card.delete()
+        messages.success(request, "Visitor card deleted successfully.")
 
     return redirect("visitor_card_list")
 
-
+# visitor views
 @login_required
 @permission_required("visitors.view_visitor", raise_exception=True)
 def visitor_list(request):

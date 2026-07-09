@@ -21,52 +21,42 @@
         <thead>
           <tr>
             <th>ID</th>
-            <th>Card Color</th>
-            <th>Card Number</th>
-            <th>Access Level</th>
-            <th>Actions</th>
+            <th>Card No</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
           </tr>
         </thead>
 
         <tbody>
           {% for card in cards %}
           <tr>
-            <td>{{ card.card_id }}</td>
-            <td>{{ card.card_color }}</td>
-            <td>{{ card.card_number }}</td>
-            <td>{{ card.card_access_level }}</td>
+            <td>{{ card.id }}</td>
+            <td>{{ card.CRD_No }}</td>
+            <td>{{ card.CRD_Desc }}</td>
             <td>
-                            <button
-    class="icon-action icon-edit"
-    type="button"
-    data-bs-toggle="modal"
-    data-bs-target="#editCardModal{{ card.card_id }}"
-    title="Edit">
+              {% if card.CRD_Active %}
+                <span class="badge bg-success">Active</span>
+              {% else %}
+                <span class="badge bg-danger">Inactive</span>
+              {% endif %}
+            </td>
 
-    <i class="fa-solid fa-pen"></i>
+            <td class="text-end">
+              <button class="icon-action icon-edit" type="button" data-bs-toggle="modal" data-bs-target="#editCardModal{{ card.id }}" title="Edit">
+                <i class="fa-solid fa-pen"></i>
+              </button>
 
-</button>
-
-<button
-    class="icon-action icon-delete"
-    type="button"
-    data-bs-toggle="modal"
-    data-bs-target="#deleteCardModal{{ card.card_id }}"
-    title="Delete">
-
-    <i class="fa-solid fa-trash"></i>
-
-</button>
-
+              <button class="icon-action icon-delete" type="button" data-bs-toggle="modal" data-bs-target="#deleteCardModal{{ card.id }}" title="Delete">
+                <i class="fa-solid fa-trash"></i>
+              </button>
             </td>
           </tr>
 
-          <!-- Edit Modal -->
-          <div class="modal fade" id="editCardModal{{ card.card_id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal fade" id="editCardModal{{ card.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content">
-
-                <form method="POST" action="{% url 'visitor_card_update' card.card_id %}">
+                <form method="POST" action="{% url 'visitor_card_update' card.id %}">
                   {% csrf_token %}
 
                   <div class="modal-header">
@@ -76,18 +66,18 @@
 
                   <div class="modal-body">
                     <div class="mb-3">
-                      <label class="form-label">Card Color</label>
-                      <input type="text" name="card_color" class="form-control" value="{{ card.card_color }}" required>
+                      <label class="form-label">Card No</label>
+                      <input type="text" name="CRD_No" class="form-control" value="{{ card.CRD_No }}" required>
                     </div>
 
                     <div class="mb-3">
-                      <label class="form-label">Card Number</label>
-                      <input type="text" name="card_number" class="form-control" placeholder="Example: 005" required>
+                      <label class="form-label">Description</label>
+                      <input type="text" name="CRD_Desc" class="form-control" value="{{ card.CRD_Desc }}" required>
                     </div>
 
-                    <div class="mb-3">
-                      <label class="form-label">Access Level</label>
-                      <input type="text" name="card_access_level" class="form-control" value="{{ card.card_access_level }}" required>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" name="CRD_Active" {% if card.CRD_Active %}checked{% endif %}>
+                      <label class="form-check-label">Active</label>
                     </div>
                   </div>
 
@@ -96,17 +86,14 @@
                     <button type="submit" class="btn btn-primary btn-sm">Update Card</button>
                   </div>
                 </form>
-
               </div>
             </div>
           </div>
 
-          <!-- Delete Modal -->
-          <div class="modal fade" id="deleteCardModal{{ card.card_id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal fade" id="deleteCardModal{{ card.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content">
-
-                <form method="POST" action="{% url 'visitor_card_delete' card.card_id %}">
+                <form method="POST" action="{% url 'visitor_card_delete' card.id %}">
                   {% csrf_token %}
 
                   <div class="modal-header">
@@ -115,7 +102,7 @@
                   </div>
 
                   <div class="modal-body">
-                    Are you sure you want to delete <strong>{{ card.card_color }}</strong> card?
+                    Are you sure you want to delete <strong>{{ card.CRD_No }} - {{ card.CRD_Desc }}</strong>?
                   </div>
 
                   <div class="modal-footer">
@@ -123,14 +110,13 @@
                     <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                   </div>
                 </form>
-
               </div>
             </div>
           </div>
 
           {% empty %}
           <tr>
-            <td colspan="4">No visitor cards found.</td>
+            <td colspan="5" class="text-center text-muted">No visitor cards found.</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -139,11 +125,9 @@
   </div>
 </div>
 
-<!-- Add Modal -->
 <div class="modal fade" id="addCardModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-
       <form method="POST" action="{% url 'visitor_card_create' %}">
         {% csrf_token %}
 
@@ -154,18 +138,18 @@
 
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label">Card Color</label>
-            <input type="text" name="card_color" class="form-control" placeholder="Example: Red" required>
-          </div>
-
-         <div class="mb-3">
-            <label class="form-label">Card Number</label>
-            <input type="text" name="card_number" class="form-control" placeholder="Example: 005" required>
+            <label class="form-label">Card No</label>
+            <input type="text" name="CRD_No" class="form-control" placeholder="Example: 001" required>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Access Level</label>
-            <input type="text" name="card_access_level" class="form-control" placeholder="Example: Head Office Access" required>
+            <label class="form-label">Description</label>
+            <input type="text" name="CRD_Desc" class="form-control" placeholder="Example: Head Office Access" required>
+          </div>
+
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="CRD_Active" checked>
+            <label class="form-check-label">Active</label>
           </div>
         </div>
 
@@ -174,7 +158,6 @@
           <button type="submit" class="btn btn-primary btn-sm">Save Card</button>
         </div>
       </form>
-
     </div>
   </div>
 </div>

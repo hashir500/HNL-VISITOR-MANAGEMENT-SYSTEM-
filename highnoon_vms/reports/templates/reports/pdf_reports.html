@@ -21,12 +21,10 @@
 
     .report-box {
       border: 2px solid #555;
-      min-height: 267mm; /* 297mm page - 15mm top - 15mm bottom margins */
+      min-height: 267mm;
       padding: 6px 8mm;
     }
 
-    /* ---------- Header: table-based layout (renders reliably across PDF engines,
-         unlike position:absolute which many HTML-to-PDF converters ignore) ---------- */
     .header-table {
       width: 100%;
       border-collapse: collapse;
@@ -53,10 +51,10 @@
     }
 
     .published .label {
-      font-weight: bold; /* Arial 8pt Bold */
+      font-weight: bold;
     }
 
-   .title-cell {
+    .title-cell {
       text-align: center;
       vertical-align: middle;
       padding: 6px 20px;
@@ -65,12 +63,12 @@
     .company-name {
       font-size: 12pt;
       font-weight: bold;
-      text-transform: uppercase; /* Arial 12pt Bold ALL CAPS */
+      text-transform: uppercase;
     }
 
     .report-title {
       font-size: 15pt;
-      font-weight: bold; /* Arial 15pt Bold Upper Caps (title case, not forced uppercase) */
+      font-weight: bold;
       margin-top: 6px;
     }
 
@@ -83,7 +81,6 @@
       padding-right: 6px;
     }
 
-    /* ---------- Table ---------- */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -109,7 +106,6 @@
 
     <table class="header-table">
       <tr class="divider-row">
-        <!-- Published info: top-left -->
         <td class="published">
           <span class="label">Published</span><br>
           <span class="label">Date</span>&nbsp;&nbsp;: {{ published_date }}<br>
@@ -117,18 +113,17 @@
           <span class="label">By</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ generated_by }}
         </td>
 
-        <!-- Company name (replaces the logo image) + report title: centered -->
         <td class="title-cell">
           <div class="company-name">Highnoon Laboratories Limited</div>
           <div class="report-title">{{ report_title }}</div>
         </td>
 
-        <!-- Page number: top-right -->
-        <td class="page-cell">Page {{ current_page|default:1 }} of {{ total_pages|default:1 }}</td>
+        <td class="page-cell">
+          Page {{ current_page|default:1 }} of {{ total_pages|default:1 }}
+        </td>
       </tr>
     </table>
 
-    <!-- Visitor table -->
     <table>
       <thead>
         <tr>
@@ -136,7 +131,7 @@
           <th>Visitor</th>
           <th>Employee</th>
           <th>Department</th>
-          <th>Card</th>
+          <th>Card No</th>
           <th>Purpose</th>
           <th>Check In</th>
           <th>Check Out</th>
@@ -149,11 +144,20 @@
         <tr>
           <td>{{ v.visit_id }}</td>
           <td>{{ v.visitor.visitor_name }}</td>
-          <td>{{ v.employee.employee_name }}</td>
-          <td>{{ v.employee.employee_department.department_name }}</td>
-          <td>{{ v.visitor_card.card_color }} - {{ v.visitor_card.card_number }}</td>
+          <td>{{ v.employee.emp_name }}</td>
+          <td>{{ v.employee.emp_dep_code }}</td>
+
+          <td>
+            {% if v.visitor_card %}
+              {{ v.visitor_card.CRD_No }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+
           <td>{{ v.visit_purpose }}</td>
           <td>{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
+
           <td>
             {% if v.check_out_time %}
               {{ v.check_out_time|date:"d M Y, h:i A" }}
@@ -161,8 +165,10 @@
               -
             {% endif %}
           </td>
+
           <td>{{ v.status }}</td>
         </tr>
+
         {% empty %}
         <tr>
           <td colspan="9">No records found.</td>

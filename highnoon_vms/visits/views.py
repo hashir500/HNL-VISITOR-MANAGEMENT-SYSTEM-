@@ -29,22 +29,16 @@ def visit_list(request):
     ).order_by("-check_in_time")
 
     if search:
-        search_parts = search.split()
-
-        if len(search_parts) >= 1:
-            visits = visits.filter(
-                visitor_card__card_color__icontains=search_parts[0]
-            )
-
-        if len(search_parts) >= 2:
-            visits = visits.filter(
-                visitor_card__card_number__icontains=search_parts[1]
-            )
+        visits = visits.filter(
+            visitor_card__CRD_No__icontains=search
+        )
 
     visitors = visitor.objects.all().order_by("visitor_name")
     employees = sys_emp_master.objects.all().order_by("emp_name")
-    cards = visitor_card.objects.all()
-    purposes = sys_pur_master.objects.filter(pur_active=True).order_by("pur_purpose")
+    cards = visitor_card.objects.filter(CRD_Active=True).order_by("CRD_No")
+    purposes = sys_pur_master.objects.filter(
+        pur_active=True
+    ).order_by("pur_purpose")
 
     return render(request, "visits/visit_list.html", {
         "visits": visits,
@@ -69,10 +63,11 @@ def visit_checkout(request, visit_id):
         visit_obj.status = "Checked Out"
 
         if visit_obj.visitor_card:
-            visit_obj.visitor_card.is_available = True
+            visit_obj.visitor_card.CRD_Active = True
             visit_obj.visitor_card.save()
 
         visit_obj.save()
+
         messages.success(request, "Visitor checked out successfully.")
 
     return redirect("visit_list")
@@ -81,6 +76,7 @@ def visit_checkout(request, visit_id):
 @login_required
 @permission_required("visits.add_visit", raise_exception=True)
 def visit_create(request):
+
     if request.method == "POST":
 
         visitor_obj = get_object_or_404(
@@ -93,18 +89,15 @@ def visit_create(request):
             pk=request.POST.get("employee")
         )
 
-        card_color = request.POST.get("card_color")
-        card_number = request.POST.get("card_number")
+        selected_card = get_object_or_404(
+            visitor_card,
+            id=request.POST.get("visitor_card")
+        )
 
-        selected_card = visitor_card.objects.filter(
-            card_color=card_color,
-            card_number=card_number
-        ).first()
-
-        if selected_card is None:
+        if not selected_card.CRD_Active:
             messages.error(
                 request,
-                f"Card {card_color} {card_number} does not exist."
+                f"Card {selected_card.CRD_No} is currently unavailable."
             )
             return redirect("visit_list")
 
@@ -116,7 +109,7 @@ def visit_create(request):
         if card_in_use:
             messages.error(
                 request,
-                f"Card {card_color} {card_number} is already in use."
+                f"Card {selected_card.CRD_No} is already in use."
             )
             return redirect("visit_list")
 
@@ -125,12 +118,20 @@ def visit_create(request):
             pur_id=request.POST.get("purpose")
         )
 
-        if purpose_obj.pur_purpose.strip().lower() in ["other", "others"]:
-            visit_purpose = request.POST.get("other_purpose", "").strip()
+        if purpose_obj.pur_purpose.lower() in ["other", "others"]:
+
+            visit_purpose = request.POST.get(
+                "other_purpose",
+                ""
+            ).strip()
 
             if not visit_purpose:
-                messages.error(request, "Please write the purpose.")
+                messages.error(
+                    request,
+                    "Please specify the purpose."
+                )
                 return redirect("visit_list")
+
         else:
             visit_purpose = purpose_obj.pur_purpose
 
@@ -141,7 +142,7 @@ def visit_create(request):
             visit_purpose=visit_purpose,
         )
 
-        selected_card.is_available = False
+        selected_card.CRD_Active = False
         selected_card.save()
 
         messages.success(request, "Visit created successfully.")

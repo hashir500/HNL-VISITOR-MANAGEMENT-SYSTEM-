@@ -67,15 +67,7 @@
     <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
       <ul class="navbar-nav">
 
-        {% if perms.dashboard.view_dashboard %}
-        <li class="nav-item">
-          <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_page' %}active{% endif %}"
-             href="{% url 'dashboard_page' %}">
-            <i class="fa-solid fa-chart-line"></i>
-            <span class="nav-link-text">Dashboard</span>
-          </a>
-        </li>
-        {% endif %}
+        
 
         {% if perms.visitors.view_visitor or perms.visitors.view_visitor_card or request.user.is_staff %}
         <li class="nav-item admin-folder">
@@ -209,6 +201,16 @@
         {% endif %}
 
         <div class="sidebar-divider-soft"></div>
+
+        {% if perms.dashboard.view_dashboard %}
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_page' %}active{% endif %}"
+             href="{% url 'dashboard_page' %}">
+            <i class="fa-solid fa-chart-line"></i>
+            <span class="nav-link-text">Dashboard</span>
+          </a>
+        </li>
+        {% endif %}
 
         {% if perms.visits.view_visit %}
         <li class="nav-item">

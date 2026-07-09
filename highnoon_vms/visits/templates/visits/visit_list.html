@@ -24,7 +24,7 @@
           <input type="text"
                  name="search"
                  class="form-control"
-                 placeholder="Search card e.g. Red 001"
+                 placeholder="Search card no e.g. 001"
                  value="{{ search }}"
                  style="max-width: 420px;">
 
@@ -45,7 +45,7 @@
             <th>Visitor</th>
             <th>Employee</th>
             <th>Department</th>
-            <th>Card</th>
+            <th>Card No</th>
             <th>Purpose</th>
             <th>Check In</th>
             <th>Check Out</th>
@@ -64,7 +64,7 @@
 
             <td>
               {% if v.visitor_card %}
-                {{ v.visitor_card.card_color }} - {{ v.visitor_card.card_number }}
+                {{ v.visitor_card.CRD_No }}
               {% else %}
                 -
               {% endif %}
@@ -164,18 +164,17 @@
             </div>
 
             <div class="col-md-6 mb-3">
-              <label class="form-label">Card Type</label>
-              <select name="card_color" class="form-control" required>
-                <option value="">Select Card Type</option>
-                <option value="Red">Red - Head Office</option>
-                <option value="Blue">Blue - Production Area</option>
-                <option value="Green">Green - Cargo / Empty Area</option>
-              </select>
-            </div>
+              <label class="form-label">Visitor Card</label>
 
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Card Number</label>
-              <input type="text" name="card_number" class="form-control" placeholder="Example: 001" required>
+              <select name="visitor_card" class="form-control searchable-select" required>
+                <option value="">Select Card No</option>
+
+                {% for card in cards %}
+                  <option value="{{ card.id }}">
+                    {{ card.CRD_No }}
+                  </option>
+                {% endfor %}
+              </select>
             </div>
 
             <div class="col-md-6 mb-3">
