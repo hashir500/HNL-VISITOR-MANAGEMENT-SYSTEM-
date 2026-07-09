@@ -1,14 +1,13 @@
-from collections import defaultdict
 from datetime import timedelta
 
 from django.shortcuts import render
 from django.utils import timezone
 from django.db.models import Count
+from django.contrib.auth.decorators import login_required, permission_required
 
 from visits.models import visit
 from visitors.models import visitor, visitor_card
-from masters.models import sys_emp_master,sys_dep_master
-from django.contrib.auth.decorators import login_required, permission_required
+from masters.models import sys_emp_master, sys_dep_master
 
 
 @login_required
@@ -39,8 +38,8 @@ def dashboard_page(request):
     total_employees = sys_emp_master.objects.count()
     total_departments = sys_dep_master.objects.count()
 
-    available_cards = visitor_card.objects.filter(is_available=True).count()
-    cards_in_use = visitor_card.objects.filter(is_available=False).count()
+    total_cards = visitor_card.objects.count()
+    available_cards = visitor_card.objects.filter(CRD_Active=True).count()
 
     recent_visits = visit.objects.all().order_by("-check_in_time")[:5]
     active_visitors = active_visits.order_by("-check_in_time")[:5]
@@ -50,44 +49,51 @@ def dashboard_page(request):
 
     for i in range(6, -1, -1):
         day = today - timedelta(days=i)
+
         last_7_days_labels.append(day.strftime("%d %b"))
+
         last_7_days_counts.append(
             visit.objects.filter(check_in_time__date=day).count()
         )
 
-    usage = defaultdict(int)
-
-    card_usage = (
+    department_usage = (
         visit.objects
-        .filter(visitor_card__isnull=False)
-        .values("visitor_card__card_color")
+        .filter(employee__isnull=False)
+        .values("employee__emp_dep_code__dep_desc")
         .annotate(total=Count("visit_id"))
+        .order_by("-total")[:5]
     )
 
-    for item in card_usage:
-        usage[item["visitor_card__card_color"]] = item["total"]
+    department_labels = [
+        item["employee__emp_dep_code__dep_desc"] or "Unknown"
+        for item in department_usage
+    ]
 
-    card_color_labels = ["Red", "Blue", "Green"]
-    card_color_counts = [
-        usage["Red"],
-        usage["Blue"],
-        usage["Green"],
+    department_counts = [
+        item["total"]
+        for item in department_usage
     ]
 
     return render(request, "dashboard/dashboard_page.html", {
         "today_visits_count": today_visits.count(),
         "active_visits_count": active_visits.count(),
         "checked_out_today_count": checked_out_today.count(),
+
         "available_cards_count": available_cards,
-        "cards_in_use_count": cards_in_use,
+        "total_cards_count": total_cards,
+
         "total_visitors": total_visitors,
         "total_employees": total_employees,
         "total_departments": total_departments,
+
         "recent_visits": recent_visits,
         "active_visitors": active_visitors,
+
         "today": today,
+
         "last_7_days_labels": last_7_days_labels,
         "last_7_days_counts": last_7_days_counts,
-        "card_color_labels": card_color_labels,
-        "card_color_counts": card_color_counts,
+
+        "department_labels": department_labels,
+        "department_counts": department_counts,
     })

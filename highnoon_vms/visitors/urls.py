@@ -8,6 +8,9 @@ urlpatterns = [
     path("cards/create/", views.visitor_card_create, name="visitor_card_create"),
     path("cards/update/<int:pk>/", views.visitor_card_update, name="visitor_card_update"),
     path("cards/delete/<int:pk>/", views.visitor_card_delete, name="visitor_card_delete"),
+    path("visitor-cards/import/upload/", views.visitor_card_import_upload, name="visitor_card_import_upload"),
+    path("visitor-cards/import/process/", views.visitor_card_import_process, name="visitor_card_import_process"),
+    path("visitor-cards/delete-all/", views.visitor_card_delete_all, name="visitor_card_delete_all"),
 
 # visitor urls
     path("visitors/", views.visitor_list, name="visitor_list"),

@@ -62,10 +62,10 @@
   <div class="col-lg-4">
     <div class="card h-100">
       <div class="card-header pb-0">
-        <h6>Card Usage</h6>
+        <h6>Visits by Department</h6>
       </div>
       <div class="card-body">
-        <canvas id="cardUsageChart" height="100"></canvas>
+        <canvas id="departmentChart" height="100"></canvas>
       </div>
     </div>
   </div>
@@ -87,7 +87,7 @@
               <tr>
                 <th>Visitor</th>
                 <th>Employee</th>
-                <th>Card</th>
+                <th>Card No</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -96,10 +96,10 @@
               {% for v in recent_visits %}
               <tr>
                 <td>{{ v.visitor.visitor_name }}</td>
-                <td>{{ v.employee.employee_name }}</td>
+                <td>{{ v.employee.emp_name }}</td>
                 <td>
                   {% if v.visitor_card %}
-                    {{ v.visitor_card.card_color }} - {{ v.visitor_card.card_number }}
+                    {{ v.visitor_card.CRD_No }}
                   {% else %}
                     -
                   {% endif %}
@@ -137,7 +137,7 @@
             <thead>
               <tr>
                 <th>Visitor</th>
-                <th>Card</th>
+                <th>Card No</th>
                 <th>In Time</th>
               </tr>
             </thead>
@@ -148,7 +148,7 @@
                 <td>{{ v.visitor.visitor_name }}</td>
                 <td>
                   {% if v.visitor_card %}
-                    {{ v.visitor_card.card_color }} - {{ v.visitor_card.card_number }}
+                    {{ v.visitor_card.CRD_No }}
                   {% else %}
                     -
                   {% endif %}
@@ -189,7 +189,7 @@
               <p class="mb-0 text-sm">
                 <strong>{{ v.visitor.visitor_name }}</strong>
                 visited
-                <strong>{{ v.employee.employee_name }}</strong>
+                <strong>{{ v.employee.emp_name }}</strong>
               </p>
             </div>
           </div>
@@ -218,12 +218,12 @@
         </div>
 
         <div class="d-flex justify-content-between mb-3">
-          <span class="text-sm">Cards Used</span>
-          <strong>{{ cards_in_use_count }}</strong>
+          <span class="text-sm">Total Cards</span>
+          <strong>{{ total_cards_count }}</strong>
         </div>
 
         <div class="d-flex justify-content-between">
-          <span class="text-sm">Checked Out</span>
+          <span class="text-sm">Checked Out Today</span>
           <strong>{{ checked_out_today_count }}</strong>
         </div>
       </div>
@@ -238,8 +238,8 @@
 <script>
   const visitsLabels = {{ last_7_days_labels|safe }};
   const visitsCounts = {{ last_7_days_counts|safe }};
-  const cardLabels = {{ card_color_labels|safe }};
-  const cardCounts = {{ card_color_counts|safe }};
+  const departmentLabels = {{ department_labels|safe }};
+  const departmentCounts = {{ department_counts|safe }};
 
   new Chart(document.getElementById('visitsChart'), {
     type: 'line',
@@ -267,35 +267,39 @@
     }
   });
 
-  new Chart(document.getElementById('cardUsageChart'), {
-    type: 'doughnut',
+
+// Generate one unique color per department
+const backgroundColors = departmentLabels.map((_, index) => {
+    const hue = (index * 360 / departmentLabels.length) % 360;
+    return `hsl(${hue}, 70%, 55%)`;
+});
+
+const hoverColors = departmentLabels.map((_, index) => {
+    const hue = (index * 360 / departmentLabels.length) % 360;
+    return `hsl(${hue}, 70%, 45%)`;
+});
+
+new Chart(document.getElementById("departmentChart"), {
+    type: "doughnut",
     data: {
-      labels: cardLabels,
-      datasets: [{
-        data: cardCounts,
-        backgroundColor: [
-          '#dc2626',
-          '#2563eb',
-          '#16a34a'
-        ],
-        hoverBackgroundColor: [
-          '#b91c1c',
-          '#1d4ed8',
-          '#15803d'
-        ],
-        borderColor: '#ffffff',
-        borderWidth: 2
-      }]
+        labels: departmentLabels,
+        datasets: [{
+            data: departmentCounts,
+            backgroundColor: backgroundColors,
+            hoverBackgroundColor: hoverColors,
+            borderColor: "#fff",
+            borderWidth: 2
+        }]
     },
     options: {
-      responsive: true,
-      cutout: '65%',
-      plugins: {
-        legend: {
-          position: 'bottom'
+        responsive: true,
+        cutout: "65%",
+        plugins: {
+            legend: {
+                position: "bottom"
+            }
         }
-      }
     }
-  });
+});
 </script>
 {% endblock %}
