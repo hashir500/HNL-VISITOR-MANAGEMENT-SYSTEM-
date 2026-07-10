@@ -11,6 +11,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
+from django.db.models import Q
 
 from .access import employees_visible_to_user
 from .models import sys_usr_system
@@ -332,21 +333,42 @@ def department_delete_all(request):
 
 # employee views 
 def employee_master_list(request):
-    employees = employees_visible_to_user(
-    request.user
-).order_by("id")
+    search = (request.GET.get("search") or "").strip()
 
-    companies = sys_cmp_master.objects.filter(cmp_active=True).order_by("cmp_desc")
-    branches = sys_bra_master.objects.filter(bra_active=True).order_by("bra_desc")
-    departments = sys_dep_master.objects.filter(dep_active=True).order_by("dep_desc")
+    employees = (
+        employees_visible_to_user(request.user)
+        .select_related(
+            "emp_cmp",
+            "emp_bra_code",
+            "emp_dep_code",
+        )
+        .order_by("emp_pno")
+    )
+
+    if search:
+        employees = employees.filter(
+            Q(emp_pno__icontains=search)
+            | Q(emp_name__icontains=search)
+            | Q(emp_designation__icontains=search)
+            | Q(emp_email__icontains=search)
+            | Q(emp_mobile__icontains=search)
+            | Q(emp_phone__icontains=search)
+            | Q(emp_cmp__cmp_desc__icontains=search)
+            | Q(emp_bra_code__bra_desc__icontains=search)
+            | Q(emp_dep_code__dep_desc__icontains=search)
+        )
+
+    companies = sys_cmp_master.objects.all().order_by("cmp_code")
+    branches = sys_bra_master.objects.all().order_by("bra_code")
+    departments = sys_dep_master.objects.all().order_by("dep_code")
 
     return render(request, "masters/employee_list.html", {
         "employees": employees,
         "companies": companies,
         "branches": branches,
         "departments": departments,
+        "search": search,
     })
-
 
 def employee_master_create(request):
     if request.method == "POST":
