@@ -963,3 +963,72 @@ body {
     height: 32px;
   }
 }
+
+/* Mobile navbar: align account controls and hamburger */
+@media (max-width: 767.98px) {
+  .navbar-main .container-fluid {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 8px;
+  }
+
+  .navbar-main nav[aria-label="breadcrumb"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: calc(100% - 125px);
+  }
+
+  #navbar {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    gap: 6px;
+    margin: 0 0 0 auto !important;
+  }
+
+  #navbar .ms-md-auto {
+    margin-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  #navbar .navbar-nav {
+    flex-direction: row !important;
+    align-items: center !important;
+    margin: 0 !important;
+  }
+
+  #navbar .nav-item.d-xl-none {
+    padding-left: 0 !important;
+  }
+
+  .top-user-menu {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 5px 6px !important;
+    margin: 0 !important;
+    border-radius: 11px !important;
+  }
+
+  .top-user-avatar,
+  .top-logout-icon {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+  }
+
+  .top-user-info {
+    display: none !important;
+  }
+
+  #iconNavbarSidenav {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px;
+    height: 32px;
+    padding: 0 !important;
+  }
+}
