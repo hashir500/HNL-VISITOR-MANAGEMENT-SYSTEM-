@@ -23,6 +23,7 @@ urlpatterns = [
     path("departments/delete/<int:pk>/", views.department_master_delete, name="department_master_delete"),
     path("departments/import/upload/", views.department_import_upload, name="department_import_upload"),
     path("departments/import/process/", views.department_import_process, name="department_import_process"),
+    path("departments/delete-all/",views.department_delete_all,name="department_delete_all"),
 
     path("employees/", views.employee_master_list, name="employee_master_list"),
     path("employees/create/", views.employee_master_create, name="employee_master_create"),
@@ -30,6 +31,7 @@ urlpatterns = [
     path("employees/delete/<int:pk>/", views.employee_master_delete, name="employee_master_delete"),
     path("employees/import/upload/", views.employee_import_upload, name="employee_import_upload"),
     path("employees/import/process/", views.employee_import_process, name="employee_import_process"),
+    path("employees/delete-all/",views.employee_delete_all,name="employee_delete_all"),
 
     path("purposes/", views.purpose_list, name="purpose_list"),
     path("purposes/create/", views.purpose_create, name="purpose_create"),

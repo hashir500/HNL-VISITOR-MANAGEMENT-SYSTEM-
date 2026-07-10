@@ -315,6 +315,20 @@ def department_import_process(request):
     return redirect("department_master_list")
 
 
+
+def department_delete_all(request):
+    if request.method == "POST":
+        deleted = sys_dep_master.objects.count()
+        sys_dep_master.objects.all().delete()
+
+        messages.success(
+            request,
+            f"{deleted} departments deleted successfully."
+        )
+
+    return redirect("department_master_list")
+
+
 # employee views 
 def employee_master_list(request):
     employees = (
@@ -530,6 +544,20 @@ def employee_import_process(request):
         )
 
         return redirect("employee_master_list")
+
+    return redirect("employee_master_list")
+
+
+def employee_delete_all(request):
+    if request.method == "POST":
+        deleted = sys_emp_master.objects.count()
+
+        sys_emp_master.objects.all().delete()
+
+        messages.success(
+            request,
+            f"{deleted} employees deleted successfully."
+        )
 
     return redirect("employee_master_list")
 
