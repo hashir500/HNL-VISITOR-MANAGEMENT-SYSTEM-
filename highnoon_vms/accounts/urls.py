@@ -7,4 +7,6 @@ urlpatterns = [
     path("microsoft_sso/login/", views.microsoft_login, name="microsoft_login"),
     path("microsoft_sso/callback/", views.microsoft_callback, name="microsoft_callback"),
     path("access-pending/", views.access_pending, name="access_pending"),
+    path("login-transition/",views.login_transition,name="login_transition",
+),
 ]

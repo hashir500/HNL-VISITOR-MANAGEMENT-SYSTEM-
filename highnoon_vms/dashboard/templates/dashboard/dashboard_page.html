@@ -5,6 +5,7 @@
 {% block page_heading %}Dashboard{% endblock %}
 
 {% block content %}
+<div class="dashboard-enter">
 
 <div class="row g-3">
 
@@ -302,4 +303,51 @@ new Chart(document.getElementById("departmentChart"), {
     }
 });
 </script>
+
+<style>
+  .dashboard-enter {
+    animation: dashboardFadeIn 0.65s ease both;
+  }
+
+  .dashboard-enter .card {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: dashboardCardEnter 0.55s ease forwards;
+  }
+
+  .dashboard-enter .card:nth-child(2) {
+    animation-delay: 0.08s;
+  }
+
+  .dashboard-enter .card:nth-child(3) {
+    animation-delay: 0.16s;
+  }
+
+  @keyframes dashboardFadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes dashboardCardEnter {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dashboard-enter,
+    .dashboard-enter .card {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+</style>
+</div>
 {% endblock %}
