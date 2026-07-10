@@ -71,7 +71,12 @@ class sys_usr_system(models.Model):
     usr_pno = models.CharField(max_length=50, unique=True)
     usr_name = models.CharField(max_length=150)
     usr_designation = models.CharField(max_length=150)
-    usr_dep_code = models.ForeignKey(sys_dep_master, on_delete=models.CASCADE)
+
+    usr_dep_code = models.ForeignKey(
+        sys_dep_master,
+        on_delete=models.PROTECT,
+    )
+
     usr_mobile = models.CharField(max_length=20, blank=True, null=True)
     usr_phone = models.CharField(max_length=20, blank=True, null=True)
     usr_email = models.EmailField(unique=True)
@@ -79,8 +84,22 @@ class sys_usr_system(models.Model):
     usr_loginID = models.CharField(max_length=100, unique=True)
     usr_password = models.CharField(max_length=255, blank=True, null=True)
     usr_access_group = models.CharField(max_length=100)
-    usr_company = models.ForeignKey(sys_cmp_master, on_delete=models.CASCADE)
-    usr_bra_code = models.ForeignKey(sys_bra_master, on_delete=models.CASCADE)
+
+    # NULL means All Companies
+    usr_company = models.ForeignKey(
+        sys_cmp_master,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+    )
+
+    # NULL means All Branches
+    usr_bra_code = models.ForeignKey(
+        sys_bra_master,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+    )
 
     def __str__(self):
         return self.usr_name

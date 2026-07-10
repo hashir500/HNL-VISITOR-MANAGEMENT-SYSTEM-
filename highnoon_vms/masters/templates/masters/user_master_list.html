@@ -33,6 +33,8 @@
             <th>Department</th>
             <th>Auth</th>
             <th>Access Group</th>
+            <th>Branch</th>
+            <th>Company</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>
@@ -47,6 +49,21 @@
             <td>{{ user.usr_dep_code }}</td>
             <td>{{ user.usr_auth }}</td>
             <td>{{ user.usr_access_group }}</td>
+            <td>
+              {% if user.usr_bra_code %}
+                {{ user.usr_bra_code }}
+              {% else %}
+              All Branches
+              {% endif %}
+            </td>
+
+            <td>
+            {% if user.usr_company %}
+              {{ user.usr_company }}
+            {% else %}
+              All Companies
+            {% endif %}
+            </td>
 
             <td class="text-end">
               <button class="icon-action icon-edit" type="button" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}" title="Edit">
@@ -162,26 +179,42 @@
 
                       <div class="col-md-6 mb-3">
                         <label class="form-label">Branch</label>
-                        <select name="branch" id="branch_{{ user.id }}" class="form-control select2-modal">
-                          <option value="">Select Branch</option>
-                          {% for branch in branches %}
-                            <option value="{{ branch.bra_code }}" {% if user.usr_bra_code.bra_code == branch.bra_code %}selected{% endif %}>
-                              {{ branch.bra_code }} - {{ branch.bra_desc }}
-                            </option>
-                          {% endfor %}
-                        </select>
+                        <select name="branch"
+                            id="branch_{{ user.id }}"
+                            class="form-control select2-modal">
+
+                          <option value="ALL"
+    {% if not user.usr_bra_code %}selected{% endif %}>
+    All Branches
+  </option>
+
+  {% for branch in branches %}
+    <option value="{{ branch.bra_code }}"
+      {% if user.usr_bra_code and user.usr_bra_code.bra_code == branch.bra_code %}selected{% endif %}>
+      {{ branch.bra_code }} - {{ branch.bra_desc }}
+    </option>
+  {% endfor %}
+</select>
                       </div>
 
                       <div class="col-md-6 mb-3">
                         <label class="form-label">Company</label>
-                        <select name="company" id="company_{{ user.id }}" class="form-control select2-modal">
-                          <option value="">Select Company</option>
-                          {% for company in companies %}
-                            <option value="{{ company.cmp_code }}" {% if user.usr_company.cmp_code == company.cmp_code %}selected{% endif %}>
-                              {{ company.cmp_code }} - {{ company.cmp_desc }}
-                            </option>
-                          {% endfor %}
-                        </select>
+                        <select name="company"
+        id="company_{{ user.id }}"
+        class="form-control select2-modal">
+
+  <option value="ALL"
+    {% if not user.usr_company %}selected{% endif %}>
+    All Companies
+  </option>
+
+  {% for company in companies %}
+    <option value="{{ company.cmp_code }}"
+      {% if user.usr_company and user.usr_company.cmp_code == company.cmp_code %}selected{% endif %}>
+      {{ company.cmp_code }} - {{ company.cmp_desc }}
+    </option>
+  {% endfor %}
+</select>
                       </div>
 
                     </div>
@@ -223,7 +256,7 @@
 
           {% empty %}
           <tr>
-            <td colspan="8" class="text-center text-muted">No users found.</td>
+            <td colspan="10" class="text-center text-muted">No users found.</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -330,22 +363,34 @@
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Branch</label>
-              <select name="branch" id="branch_add" class="form-control select2-modal">
-                <option value="">Select Branch</option>
-                {% for branch in branches %}
-                  <option value="{{ branch.bra_code }}">{{ branch.bra_code }} - {{ branch.bra_desc }}</option>
-                {% endfor %}
-              </select>
+              <select name="branch"
+        id="branch_add"
+        class="form-control select2-modal">
+
+  <option value="ALL">All Branches</option>
+
+  {% for branch in branches %}
+    <option value="{{ branch.bra_code }}">
+      {{ branch.bra_code }} - {{ branch.bra_desc }}
+    </option>
+  {% endfor %}
+</select>
             </div>
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Company</label>
-              <select name="company" id="company_add" class="form-control select2-modal">
-                <option value="">Select Company</option>
-                {% for company in companies %}
-                  <option value="{{ company.cmp_code }}">{{ company.cmp_code }} - {{ company.cmp_desc }}</option>
-                {% endfor %}
-              </select>
+             <select name="company"
+        id="company_add"
+        class="form-control select2-modal">
+
+  <option value="ALL">All Companies</option>
+
+  {% for company in companies %}
+    <option value="{{ company.cmp_code }}">
+      {{ company.cmp_code }} - {{ company.cmp_desc }}
+    </option>
+  {% endfor %}
+</select>
             </div>
 
           </div>
@@ -434,8 +479,8 @@ function fetchEmployee(empId, target) {
         $("#login_id_" + target).val(data.email || "");
 
         $("#department_" + target).val(data.department || "").trigger("change");
-        $("#branch_" + target).val(data.branch || "").trigger("change");
-        $("#company_" + target).val(data.company || "").trigger("change");
+        $("#branch_" + target).val(data.branch || "ALL").trigger("change");
+        $("#company_" + target).val(data.company || "ALL").trigger("change");
       } else {
         alert(data.message);
       }

@@ -10,8 +10,9 @@ from openpyxl import load_workbook
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
+from django.db import transaction
 
-
+from .access import employees_visible_to_user
 from .models import sys_usr_system
 from .models import sys_cmp_master
 from .forms import CompanyMasterForm
@@ -331,12 +332,9 @@ def department_delete_all(request):
 
 # employee views 
 def employee_master_list(request):
-    employees = (
-        sys_emp_master.objects
-        .select_related("emp_cmp", "emp_bra_code", "emp_dep_code")
-        .all()
-        .order_by("id")
-    )
+    employees = employees_visible_to_user(
+    request.user
+).order_by("id")
 
     companies = sys_cmp_master.objects.filter(cmp_active=True).order_by("cmp_desc")
     branches = sys_bra_master.objects.filter(bra_active=True).order_by("bra_desc")
@@ -363,7 +361,10 @@ def employee_master_create(request):
 
 
 def employee_master_update(request, pk):
-    employee = get_object_or_404(sys_emp_master, pk=pk)
+    employee = get_object_or_404(
+    employees_visible_to_user(request.user),
+    pk=pk,
+)
 
     if request.method == "POST":
         form = EmployeeMasterForm(request.POST, instance=employee)
@@ -377,7 +378,10 @@ def employee_master_update(request, pk):
 
 
 def employee_master_delete(request, pk):
-    employee = get_object_or_404(sys_emp_master, pk=pk)
+    employee = get_object_or_404(
+    employees_visible_to_user(request.user),
+    pk=pk,
+)
 
     if request.method == "POST":
         employee.delete()
@@ -608,19 +612,31 @@ def purpose_delete(request, pk):
 # user views
 
 
+
+
+
 def fetch_employee_details(request, emp_pno):
-    employee = sys_emp_master.objects.filter(emp_pno=emp_pno).first()
+    employee = (
+        sys_emp_master.objects
+        .select_related(
+            "emp_dep_code",
+            "emp_bra_code",
+            "emp_cmp",
+        )
+        .filter(emp_pno=emp_pno)
+        .first()
+    )
 
     if not employee:
         return JsonResponse({
             "success": False,
-            "message": "Employee not found."
+            "message": "Employee not found.",
         })
 
-    full_name = employee.emp_name or ""
-    name_parts = full_name.strip().split(" ", 1)
+    full_name = (employee.emp_name or "").strip()
+    name_parts = full_name.split(" ", 1)
 
-    first_name = name_parts[0] if len(name_parts) > 0 else ""
+    first_name = name_parts[0] if name_parts else ""
     last_name = name_parts[1] if len(name_parts) > 1 else ""
 
     return JsonResponse({
@@ -628,184 +644,432 @@ def fetch_employee_details(request, emp_pno):
         "first_name": first_name,
         "last_name": last_name,
         "designation": employee.emp_designation or "",
-        "department": employee.emp_dep_code.dep_code if employee.emp_dep_code else "",
-        "branch": employee.emp_bra_code.bra_code if employee.emp_bra_code else "",
-        "company": employee.emp_cmp.cmp_code if employee.emp_cmp else "",
+        "department": (
+            employee.emp_dep_code.dep_code
+            if employee.emp_dep_code
+            else ""
+        ),
+        "branch": (
+            employee.emp_bra_code.bra_code
+            if employee.emp_bra_code
+            else "ALL"
+        ),
+        "company": (
+            employee.emp_cmp.cmp_code
+            if employee.emp_cmp
+            else "ALL"
+        ),
         "mobile": employee.emp_mobile or "",
         "email": employee.emp_email or "",
         "phone": employee.emp_phone or "",
     })
 
 
-def sync_django_auth_user(user_obj, first_name, last_name, raw_password=None):
-    django_user, created = User.objects.get_or_create(
-        username=user_obj.usr_loginID,
-        defaults={
-            "email": user_obj.usr_email,
-            "first_name": first_name,
-            "last_name": last_name,
-            "is_active": True,
-        }
+def get_optional_company(company_code):
+    """
+    Returns None when All Companies is selected.
+    Otherwise, returns the selected company object.
+    """
+    company_code = (company_code or "").strip()
+
+    if not company_code or company_code.upper() == "ALL":
+        return None
+
+    return get_object_or_404(
+        sys_cmp_master,
+        cmp_code=company_code,
     )
 
-    django_user.email = user_obj.usr_email
+
+def get_optional_branch(branch_code):
+    """
+    Returns None when All Branches is selected.
+    Otherwise, returns the selected branch object.
+    """
+    branch_code = (branch_code or "").strip()
+
+    if not branch_code or branch_code.upper() == "ALL":
+        return None
+
+    return get_object_or_404(
+        sys_bra_master,
+        bra_code=branch_code,
+    )
+
+
+def sync_django_auth_user(
+    user_obj,
+    first_name,
+    last_name,
+    raw_password=None,
+    old_login_id=None,
+):
+    """
+    Creates or updates the corresponding Django authentication user.
+
+    old_login_id is used during edit so the existing auth_user username
+    can be renamed instead of creating an unnecessary duplicate.
+    """
+    login_id = (user_obj.usr_loginID or "").strip().lower()
+
+    django_user = None
+
+    if old_login_id:
+        django_user = User.objects.filter(
+            username__iexact=old_login_id
+        ).first()
+
+    if django_user is None:
+        django_user = User.objects.filter(
+            username__iexact=login_id
+        ).first()
+
+    if django_user is None:
+        django_user = User(username=login_id)
+
+    django_user.username = login_id
+    django_user.email = (user_obj.usr_email or "").strip().lower()
     django_user.first_name = first_name
     django_user.last_name = last_name
     django_user.is_active = True
 
-    if user_obj.usr_auth == "LOCAL_DB":
+    if (user_obj.usr_auth or "").upper() == "LOCAL_DB":
         if raw_password:
             django_user.set_password(raw_password)
+        elif not django_user.pk:
+            django_user.set_unusable_password()
     else:
         django_user.set_unusable_password()
+
+    django_user.save()
 
     django_user.groups.clear()
 
     if user_obj.usr_access_group:
-        group = Group.objects.filter(id=user_obj.usr_access_group).first()
+        group = Group.objects.filter(
+            id=user_obj.usr_access_group
+        ).first()
+
         if group:
             django_user.groups.add(group)
 
-    django_user.save()
+    return django_user
+
+
+def get_user_master_context():
+    return {
+        "departments": sys_dep_master.objects.all().order_by("dep_code"),
+        "branches": sys_bra_master.objects.all().order_by("bra_code"),
+        "companies": sys_cmp_master.objects.all().order_by("cmp_code"),
+        "access_groups": Group.objects.all().order_by("name"),
+    }
 
 
 def user_master_list(request):
-    users = sys_usr_system.objects.all().order_by("-id")
+    users = (
+        sys_usr_system.objects
+        .select_related(
+            "usr_dep_code",
+            "usr_bra_code",
+            "usr_company",
+        )
+        .all()
+        .order_by("-id")
+    )
 
-    departments = sys_dep_master.objects.all().order_by("dep_code")
-    branches = sys_bra_master.objects.all().order_by("bra_code")
-    companies = sys_cmp_master.objects.all().order_by("cmp_code")
-    access_groups = Group.objects.all().order_by("name")
+    context = get_user_master_context()
+    context["users"] = users
 
-    return render(request, "masters/user_master_list.html", {
-        "users": users,
-        "departments": departments,
-        "branches": branches,
-        "companies": companies,
-        "access_groups": access_groups,
-    })
+    return render(
+        request,
+        "masters/user_master_list.html",
+        context,
+    )
 
 
+@transaction.atomic
 def user_master_create(request):
-    departments = sys_dep_master.objects.all().order_by("dep_code")
-    branches = sys_bra_master.objects.all().order_by("bra_code")
-    companies = sys_cmp_master.objects.all().order_by("cmp_code")
-    access_groups = Group.objects.all().order_by("name")
+    context = get_user_master_context()
+    context["user_obj"] = None
 
-    if request.method == "POST":
-        auth_type = request.POST.get("auth_type")
-        password = request.POST.get("password")
-
-        first_name = request.POST.get("first_name", "").strip()
-        last_name = request.POST.get("last_name", "").strip()
-        full_name = f"{first_name} {last_name}".strip()
-
-        department = get_object_or_404(sys_dep_master, dep_code=request.POST.get("department"))
-        branch = get_object_or_404(sys_bra_master, bra_code=request.POST.get("branch"))
-        company = get_object_or_404(sys_cmp_master, cmp_code=request.POST.get("company"))
-
-        user = sys_usr_system(
-            usr_pno=request.POST.get("employee_id") or request.POST.get("login_id"),
-            usr_name=full_name,
-            usr_designation=request.POST.get("designation"),
-            usr_dep_code=department,
-            usr_mobile=request.POST.get("mobile"),
-            usr_email=request.POST.get("email"),
-            usr_phone=request.POST.get("phone"),
-            usr_loginID=request.POST.get("login_id"),
-            usr_auth=auth_type,
-            usr_access_group=request.POST.get("access_group"),
-            usr_bra_code=branch,
-            usr_company=company,
+    if request.method != "POST":
+        return render(
+            request,
+            "masters/user_master_form.html",
+            context,
         )
 
-        if auth_type == "LOCAL_DB" and password:
-            user.usr_password = make_password(password)
+    auth_type = (request.POST.get("auth_type") or "").strip().upper()
+    password = request.POST.get("password")
 
-        if auth_type == "SSO":
-            user.usr_password = None
+    first_name = (request.POST.get("first_name") or "").strip()
+    last_name = (request.POST.get("last_name") or "").strip()
+    full_name = f"{first_name} {last_name}".strip()
 
-        user.save()
-        sync_django_auth_user(user, first_name, last_name, password)
+    login_id = (request.POST.get("login_id") or "").strip().lower()
+    email = (request.POST.get("email") or "").strip().lower()
 
-        messages.success(request, "User created successfully.")
+    employee_id = (request.POST.get("employee_id") or "").strip()
+
+    department_code = request.POST.get("department")
+    company_code = request.POST.get("company")
+    branch_code = request.POST.get("branch")
+
+    department = get_object_or_404(
+        sys_dep_master,
+        dep_code=department_code,
+    )
+
+    company = get_optional_company(company_code)
+    branch = get_optional_branch(branch_code)
+
+    if not login_id:
+        messages.error(request, "Login ID is required.")
         return redirect("user_master_list")
 
-    return render(request, "masters/user_master_form.html", {
-        "departments": departments,
-        "branches": branches,
-        "companies": companies,
-        "access_groups": access_groups,
-        "user_obj": None,
-    })
+    if not full_name:
+        messages.error(request, "User name is required.")
+        return redirect("user_master_list")
+
+    if auth_type not in ["SSO", "LOCAL_DB"]:
+        messages.error(request, "Please select a valid authentication type.")
+        return redirect("user_master_list")
+
+    if auth_type == "LOCAL_DB" and not password:
+        messages.error(
+            request,
+            "Password is required for a Local DB user.",
+        )
+        return redirect("user_master_list")
+
+    if sys_usr_system.objects.filter(
+        usr_loginID__iexact=login_id
+    ).exists():
+        messages.error(
+            request,
+            f"A user with Login ID {login_id} already exists.",
+        )
+        return redirect("user_master_list")
+
+    if sys_usr_system.objects.filter(
+        usr_email__iexact=email
+    ).exists():
+        messages.error(
+            request,
+            f"A user with email {email} already exists.",
+        )
+        return redirect("user_master_list")
+
+    # For non-employees, the Login ID is used as the unique PNO-style value.
+    usr_pno = employee_id or login_id
+
+    if sys_usr_system.objects.filter(usr_pno=usr_pno).exists():
+        messages.error(
+            request,
+            f"A user with PNO/identifier {usr_pno} already exists.",
+        )
+        return redirect("user_master_list")
+
+    user_obj = sys_usr_system(
+        usr_pno=usr_pno,
+        usr_name=full_name,
+        usr_designation=(request.POST.get("designation") or "").strip(),
+        usr_dep_code=department,
+        usr_mobile=(request.POST.get("mobile") or "").strip() or None,
+        usr_email=email,
+        usr_phone=(request.POST.get("phone") or "").strip() or None,
+        usr_loginID=login_id,
+        usr_auth=auth_type,
+        usr_access_group=request.POST.get("access_group") or "",
+        usr_bra_code=branch,
+        usr_company=company,
+    )
+
+    if auth_type == "LOCAL_DB":
+        user_obj.usr_password = make_password(password)
+    else:
+        user_obj.usr_password = None
+
+    user_obj.save()
+
+    sync_django_auth_user(
+        user_obj=user_obj,
+        first_name=first_name,
+        last_name=last_name,
+        raw_password=password,
+    )
+
+    messages.success(request, "User created successfully.")
+    return redirect("user_master_list")
 
 
+@transaction.atomic
 def user_master_update(request, pk):
-    user_obj = get_object_or_404(sys_usr_system, pk=pk)
+    user_obj = get_object_or_404(
+        sys_usr_system,
+        pk=pk,
+    )
 
-    departments = sys_dep_master.objects.all().order_by("dep_code")
-    branches = sys_bra_master.objects.all().order_by("bra_code")
-    companies = sys_cmp_master.objects.all().order_by("cmp_code")
-    access_groups = Group.objects.all().order_by("name")
+    context = get_user_master_context()
+    context["user_obj"] = user_obj
 
-    if request.method == "POST":
-        auth_type = request.POST.get("auth_type")
-        password = request.POST.get("password")
+    if request.method != "POST":
+        full_name = (user_obj.usr_name or "").strip()
+        name_parts = full_name.split(" ", 1)
 
-        first_name = request.POST.get("first_name", "").strip()
-        last_name = request.POST.get("last_name", "").strip()
-        full_name = f"{first_name} {last_name}".strip()
+        user_obj.first_name_display = (
+            name_parts[0] if name_parts else ""
+        )
+        user_obj.last_name_display = (
+            name_parts[1] if len(name_parts) > 1 else ""
+        )
 
-        department = get_object_or_404(sys_dep_master, dep_code=request.POST.get("department"))
-        branch = get_object_or_404(sys_bra_master, bra_code=request.POST.get("branch"))
-        company = get_object_or_404(sys_cmp_master, cmp_code=request.POST.get("company"))
+        return render(
+            request,
+            "masters/user_master_form.html",
+            context,
+        )
 
-        user_obj.usr_pno = request.POST.get("employee_id") or request.POST.get("login_id")
-        user_obj.usr_name = full_name
-        user_obj.usr_designation = request.POST.get("designation")
-        user_obj.usr_dep_code = department
-        user_obj.usr_mobile = request.POST.get("mobile")
-        user_obj.usr_email = request.POST.get("email")
-        user_obj.usr_phone = request.POST.get("phone")
-        user_obj.usr_loginID = request.POST.get("login_id")
-        user_obj.usr_auth = auth_type
-        user_obj.usr_access_group = request.POST.get("access_group")
-        user_obj.usr_bra_code = branch
-        user_obj.usr_company = company
+    old_login_id = user_obj.usr_loginID
 
-        if auth_type == "LOCAL_DB" and password:
-            user_obj.usr_password = make_password(password)
+    auth_type = (request.POST.get("auth_type") or "").strip().upper()
+    password = request.POST.get("password")
 
-        if auth_type == "SSO":
-            user_obj.usr_password = None
+    first_name = (request.POST.get("first_name") or "").strip()
+    last_name = (request.POST.get("last_name") or "").strip()
+    full_name = f"{first_name} {last_name}".strip()
 
-        user_obj.save()
-        sync_django_auth_user(user_obj, first_name, last_name, password)
+    login_id = (request.POST.get("login_id") or "").strip().lower()
+    email = (request.POST.get("email") or "").strip().lower()
 
-        messages.success(request, "User updated successfully.")
+    employee_id = (request.POST.get("employee_id") or "").strip()
+
+    department = get_object_or_404(
+        sys_dep_master,
+        dep_code=request.POST.get("department"),
+    )
+
+    company = get_optional_company(
+        request.POST.get("company")
+    )
+
+    branch = get_optional_branch(
+        request.POST.get("branch")
+    )
+
+    if not login_id:
+        messages.error(request, "Login ID is required.")
         return redirect("user_master_list")
 
-    full_name = user_obj.usr_name or ""
-    name_parts = full_name.strip().split(" ", 1)
+    if not full_name:
+        messages.error(request, "User name is required.")
+        return redirect("user_master_list")
 
-    user_obj.first_name_display = name_parts[0] if len(name_parts) > 0 else ""
-    user_obj.last_name_display = name_parts[1] if len(name_parts) > 1 else ""
+    if auth_type not in ["SSO", "LOCAL_DB"]:
+        messages.error(request, "Please select a valid authentication type.")
+        return redirect("user_master_list")
 
-    return render(request, "masters/user_master_form.html", {
-        "departments": departments,
-        "branches": branches,
-        "companies": companies,
-        "access_groups": access_groups,
-        "user_obj": user_obj,
-    })
+    duplicate_login = (
+        sys_usr_system.objects
+        .filter(usr_loginID__iexact=login_id)
+        .exclude(pk=user_obj.pk)
+        .exists()
+    )
+
+    if duplicate_login:
+        messages.error(
+            request,
+            f"A user with Login ID {login_id} already exists.",
+        )
+        return redirect("user_master_list")
+
+    duplicate_email = (
+        sys_usr_system.objects
+        .filter(usr_email__iexact=email)
+        .exclude(pk=user_obj.pk)
+        .exists()
+    )
+
+    if duplicate_email:
+        messages.error(
+            request,
+            f"A user with email {email} already exists.",
+        )
+        return redirect("user_master_list")
+
+    usr_pno = employee_id or login_id
+
+    duplicate_pno = (
+        sys_usr_system.objects
+        .filter(usr_pno=usr_pno)
+        .exclude(pk=user_obj.pk)
+        .exists()
+    )
+
+    if duplicate_pno:
+        messages.error(
+            request,
+            f"A user with PNO/identifier {usr_pno} already exists.",
+        )
+        return redirect("user_master_list")
+
+    user_obj.usr_pno = usr_pno
+    user_obj.usr_name = full_name
+    user_obj.usr_designation = (
+        request.POST.get("designation") or ""
+    ).strip()
+    user_obj.usr_dep_code = department
+    user_obj.usr_mobile = (
+        request.POST.get("mobile") or ""
+    ).strip() or None
+    user_obj.usr_email = email
+    user_obj.usr_phone = (
+        request.POST.get("phone") or ""
+    ).strip() or None
+    user_obj.usr_loginID = login_id
+    user_obj.usr_auth = auth_type
+    user_obj.usr_access_group = (
+        request.POST.get("access_group") or ""
+    )
+    user_obj.usr_bra_code = branch
+    user_obj.usr_company = company
+
+    if auth_type == "LOCAL_DB":
+        if password:
+            user_obj.usr_password = make_password(password)
+    else:
+        user_obj.usr_password = None
+
+    user_obj.save()
+
+    sync_django_auth_user(
+        user_obj=user_obj,
+        first_name=first_name,
+        last_name=last_name,
+        raw_password=password,
+        old_login_id=old_login_id,
+    )
+
+    messages.success(request, "User updated successfully.")
+    return redirect("user_master_list")
 
 
+@transaction.atomic
 def user_master_delete(request, pk):
-    user_obj = get_object_or_404(sys_usr_system, pk=pk)
+    user_obj = get_object_or_404(
+        sys_usr_system,
+        pk=pk,
+    )
 
     if request.method == "POST":
-        User.objects.filter(username=user_obj.usr_loginID).delete()
+        login_id = user_obj.usr_loginID
+
+        User.objects.filter(
+            username__iexact=login_id
+        ).delete()
+
         user_obj.delete()
+
         messages.success(request, "User deleted successfully.")
 
     return redirect("user_master_list")

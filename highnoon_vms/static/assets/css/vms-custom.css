@@ -620,3 +620,346 @@ body {
   background: rgba(255, 255, 255, 0.16);
   margin: 10px 20px 18px 20px;
 }
+/* =========================================================
+   RESPONSIVE OVERRIDES
+   Keep this section at the END of vms-custom.css
+========================================================= */
+
+body {
+  overflow-x: hidden;
+}
+
+.main-content,
+.card,
+.card-body,
+.row,
+[class*="col-"] {
+  min-width: 0;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto !important;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive .table {
+  min-width: 900px;
+  table-layout: auto !important;
+}
+
+.modal-dialog {
+  width: calc(100% - 2rem);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.modal-content {
+  max-height: calc(100vh - 2rem);
+}
+
+.modal-body {
+  overflow-y: auto;
+}
+
+.select2-container {
+  max-width: 100% !important;
+}
+
+@media (max-width: 1399.98px) and (min-width: 1200px) {
+  .sidenav,
+  #sidenav-main {
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+  }
+
+  .main-content {
+    width: calc(100% - 280px) !important;
+    margin-left: 280px !important;
+  }
+
+  .sidenav .navbar-brand .brand-text {
+    font-size: 34px !important;
+  }
+
+  .container-fluid.py-4 {
+    padding-right: 2rem !important;
+    padding-left: 2rem !important;
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .sidenav,
+  #sidenav-main {
+    width: 285px !important;
+    min-width: 285px !important;
+    max-width: 285px !important;
+    transform: translateX(-110%);
+    transition: transform .25s ease;
+    z-index: 1050;
+  }
+
+  body.g-sidenav-show.g-sidenav-pinned .sidenav,
+  body.g-sidenav-show.g-sidenav-pinned #sidenav-main {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  .navbar-main {
+    padding-top: 16px !important;
+  }
+
+  .navbar-main .container-fluid {
+    flex-wrap: nowrap;
+  }
+
+  #navbar {
+    display: flex !important;
+    flex-basis: auto;
+    align-items: center;
+    margin-top: 0 !important;
+  }
+
+  #navbar .ms-md-auto {
+    margin-left: auto !important;
+  }
+
+  .container-fluid.py-4 {
+    padding-right: 1.5rem !important;
+    padding-left: 1.5rem !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .navbar-main {
+    margin-right: 1rem !important;
+    margin-left: 1rem !important;
+  }
+
+  .font-weight-bolder {
+    font-size: 26px !important;
+  }
+
+  .card-header {
+    align-items: flex-start !important;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .card-header > div,
+  .card-header > .d-flex {
+    flex-wrap: wrap;
+  }
+
+  .modal-xl,
+  .modal-lg {
+    max-width: calc(100% - 2rem) !important;
+  }
+
+  canvas {
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .sidenav,
+  #sidenav-main {
+    width: 270px !important;
+    min-width: 270px !important;
+    max-width: 270px !important;
+  }
+
+  .sidenav .navbar-brand {
+    padding: 24px 22px !important;
+  }
+
+  .sidenav .navbar-brand .brand-text {
+    font-size: 30px !important;
+  }
+
+  .sidenav .navbar-nav {
+    padding: 0 12px !important;
+  }
+
+  .sidenav .nav-link {
+    padding: 13px 16px !important;
+  }
+
+  .admin-submenu {
+    padding-right: 10px !important;
+    padding-left: 28px !important;
+  }
+
+  .navbar-main {
+    margin-right: .75rem !important;
+    margin-left: .75rem !important;
+    padding-top: 12px !important;
+  }
+
+  .navbar-main .container-fluid {
+    padding-right: .5rem !important;
+    padding-left: .5rem !important;
+  }
+
+  .navbar-main nav[aria-label="breadcrumb"] {
+    min-width: 0;
+    max-width: calc(100% - 160px);
+  }
+
+  .breadcrumb {
+    margin-right: 0 !important;
+    white-space: normal;
+  }
+
+  .breadcrumb-item {
+    font-size: 11px !important;
+  }
+
+  .font-weight-bolder {
+    overflow: hidden;
+    font-size: 22px !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .top-user-menu {
+    max-width: 150px;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+
+  .top-user-avatar,
+  .top-logout-icon {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+  }
+
+  .top-user-name {
+    max-width: 62px;
+    font-size: 11px;
+  }
+
+  .container-fluid.py-4 {
+    padding: 1rem .75rem !important;
+  }
+
+  .card {
+    border-radius: 12px;
+  }
+
+  .card-header {
+    padding-right: 1rem !important;
+    padding-left: 1rem !important;
+  }
+
+  .table-responsive {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  .table-responsive .table {
+    min-width: 850px;
+  }
+
+  .table th,
+  .table td {
+    padding: .75rem .65rem !important;
+    font-size: 13px !important;
+  }
+
+  .modal-dialog,
+  .modal-lg,
+  .modal-xl {
+    width: calc(100% - 1rem) !important;
+    max-width: calc(100% - 1rem) !important;
+    margin: .5rem auto !important;
+  }
+
+  .modal-content {
+    max-height: calc(100vh - 1rem);
+    border-radius: 14px;
+  }
+
+  .modal-header,
+  .modal-footer {
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .modal-footer {
+    gap: .5rem;
+    flex-wrap: wrap;
+  }
+
+  .modal-footer .btn {
+    flex: 1 1 120px;
+    margin: 0 !important;
+  }
+
+  .modal-body .row > [class*="col-"] {
+    width: 100%;
+  }
+
+  .form-control,
+  .form-select,
+  .select2-container {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .d-flex.align-items-center.gap-2 {
+    flex-wrap: wrap;
+  }
+
+  form .d-flex.align-items-center.gap-2 .form-control {
+    max-width: none !important;
+    flex: 1 1 100%;
+  }
+
+  form .d-flex.align-items-center.gap-2 .btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .navbar-main nav[aria-label="breadcrumb"] {
+    max-width: calc(100% - 112px);
+  }
+
+  .top-user-info {
+    display: none;
+  }
+
+  .top-user-menu {
+    max-width: none;
+  }
+
+  .font-weight-bolder {
+    font-size: 20px !important;
+  }
+
+  .card-header h6 {
+    width: 100%;
+  }
+
+  .table-responsive .table {
+    min-width: 780px;
+  }
+
+  .icon-action {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+  }
+}

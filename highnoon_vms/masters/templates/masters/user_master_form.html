@@ -99,22 +99,36 @@
   <div class="row">
     <div class="col-md-6 mb-3">
       <label>Branch</label>
-      <select name="branch" id="branch" class="form-control select2" required>
-        <option value="">Select Branch</option>
-        {% for branch in branches %}
-          <option value="{{ branch.bra_code }}">{{ branch.bra_code }} - {{ branch.bra_desc }}</option>
-        {% endfor %}
-      </select>
+      <select name="branch" id="branch" class="form-control select2">
+  <option value="ALL"
+    {% if user_obj and not user_obj.usr_bra_code_id %}selected{% endif %}>
+    All Branches
+  </option>
+
+  {% for branch in branches %}
+    <option value="{{ branch.bra_code }}"
+      {% if user_obj and user_obj.usr_bra_code_id == branch.pk %}selected{% endif %}>
+      {{ branch.bra_code }} - {{ branch.bra_desc }}
+    </option>
+  {% endfor %}
+</select>
     </div>
 
     <div class="col-md-6 mb-3">
       <label>Company</label>
-      <select name="company" id="company" class="form-control select2" required>
-        <option value="">Select Company</option>
-        {% for company in companies %}
-          <option value="{{ company.cmp_code }}">{{ company.cmp_code }} - {{ company.cmp_desc }}</option>
-        {% endfor %}
-      </select>
+      <select name="company" id="company" class="form-control select2">
+  <option value="ALL"
+    {% if user_obj and not user_obj.usr_company_id %}selected{% endif %}>
+    All Companies
+  </option>
+
+  {% for company in companies %}
+    <option value="{{ company.cmp_code }}"
+      {% if user_obj and user_obj.usr_company_id == company.pk %}selected{% endif %}>
+      {{ company.cmp_code }} - {{ company.cmp_desc }}
+    </option>
+  {% endfor %}
+</select>
     </div>
   </div>
 
