@@ -6,35 +6,43 @@
 
 {% block content %}
 
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link
+  href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+  rel="stylesheet">
 
 <div class="card">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <h6 class="mb-0">User Master</h6>
 
-    <button type="button"
-          class="icon-action icon-add"
-          data-bs-toggle="modal"
-          data-bs-target="#addUserModal"
-          title="Add ">
-    <i class="fa-solid fa-plus"></i>
-  </button>
+  <div class="card-header d-flex justify-content-between align-items-center px-4 py-3">
+    <div>
+      <h6 class="mb-0">User Master</h6>
+      <p class="text-sm text-secondary mb-0">
+        Manage system users, access groups, and individual privileges
+      </p>
+    </div>
+
+    {% if perms.masters.add_sys_usr_system %}
+    <button
+      type="button"
+      class="icon-action icon-add"
+      data-bs-toggle="modal"
+      data-bs-target="#addUserModal"
+      title="Add User">
+      <i class="fa-solid fa-plus"></i>
+    </button>
+    {% endif %}
   </div>
 
   <div class="card-body px-0 pt-0 pb-2">
     <div class="table-responsive p-3">
-      <table class="table align-items-center mb-0">
+
+      <table class="table align-items-center mb-0 user-master-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Login ID</th>
-            <th>Name</th>
-            <th>PNO</th>
+            <th>User</th>
             <th>Department</th>
-            <th>Auth</th>
-            <th>Access Group</th>
-            <th>Branch</th>
-            <th>Company</th>
+            <th>Access</th>
+            <th>Company / Branch</th>
+            <th>Status</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>
@@ -42,213 +50,644 @@
         <tbody>
           {% for user in users %}
           <tr>
-            <td>{{ user.id }}</td>
-            <td>{{ user.usr_loginID }}</td>
-            <td>{{ user.usr_name }}</td>
-            <td>{{ user.usr_pno }}</td>
-            <td>{{ user.usr_dep_code }}</td>
-            <td>{{ user.usr_auth }}</td>
-            <td>{{ user.usr_access_group }}</td>
+
             <td>
-              {% if user.usr_bra_code %}
-                {{ user.usr_bra_code }}
+              <div class="d-flex align-items-center">
+                <div class="user-avatar me-3">
+                  {{ user.usr_name|first|upper }}
+                </div>
+
+                <div class="user-cell-content">
+                  <h6 class="mb-1 text-sm">{{ user.usr_name }}</h6>
+
+                  <p class="text-xs text-secondary mb-1 user-email">
+                    {{ user.usr_loginID }}
+                  </p>
+
+                  <span class="text-xs text-muted">
+                    PNO:
+                    {% if user.usr_pno %}
+                      {{ user.usr_pno }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </span>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              {% if user.usr_dep_code %}
+                <div class="compact-info">
+                  <strong>{{ user.usr_dep_code.dep_code }}</strong>
+                  <span>{{ user.usr_dep_code.dep_desc }}</span>
+                </div>
               {% else %}
-              All Branches
+                <span class="text-muted">-</span>
               {% endif %}
             </td>
 
             <td>
-            {% if user.usr_company %}
-              {{ user.usr_company }}
-            {% else %}
-              All Companies
-            {% endif %}
+              <div class="compact-info">
+                <strong>
+                  {% if user.usr_access_group %}
+                    {% for group in access_groups %}
+                      {% if user.usr_access_group == group.id|stringformat:"s" %}
+                        {{ group.name }}
+                      {% endif %}
+                    {% endfor %}
+                  {% else %}
+                    No Group
+                  {% endif %}
+                </strong>
+
+                <div class="mt-1">
+                  {% if user.usr_auth == "SSO" %}
+                    <span class="badge bg-info">SSO</span>
+                  {% else %}
+                    <span class="badge auth-local-badge">Local DB</span>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <div class="compact-info">
+                {% if user.usr_company %}
+                  <strong title="{{ user.usr_company.cmp_desc }}">
+                    {{ user.usr_company.cmp_code }}
+                  </strong>
+                  <span>{{ user.usr_company.cmp_desc }}</span>
+                {% else %}
+                  <strong>All Companies</strong>
+                {% endif %}
+
+                {% if user.usr_bra_code %}
+                  <span class="mt-1" title="{{ user.usr_bra_code.bra_desc }}">
+                    <i class="fa-solid fa-code-branch me-1"></i>
+                    {{ user.usr_bra_code.bra_code }} - {{ user.usr_bra_code.bra_desc }}
+                  </span>
+                {% else %}
+                  <span class="mt-1">
+                    <i class="fa-solid fa-code-branch me-1"></i>
+                    All Branches
+                  </span>
+                {% endif %}
+              </div>
+            </td>
+
+            <td>
+              <div class="status-column">
+                {% if user.usr_is_active %}
+                  <span class="badge bg-success">Active</span>
+                {% else %}
+                  <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+
+                <div class="privilege-icons mt-2">
+                  {% if user.usr_is_superuser %}
+                    <span
+                      class="privilege-badge privilege-superuser"
+                      title="Superuser">
+                      <i class="fa-solid fa-crown"></i>
+                    </span>
+                  {% elif user.usr_is_staff %}
+                    <span
+                      class="privilege-badge privilege-staff"
+                      title="Staff">
+                      <i class="fa-solid fa-user-shield"></i>
+                    </span>
+                  {% else %}
+                    <span
+                      class="privilege-badge privilege-standard"
+                      title="Standard User">
+                      <i class="fa-solid fa-user"></i>
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
             </td>
 
             <td class="text-end">
-              <button class="icon-action icon-edit" type="button" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}" title="Edit">
+              {% if perms.masters.change_sys_usr_system %}
+              <button
+                class="icon-action icon-edit"
+                type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#editUserModal{{ user.id }}"
+                title="Edit User">
                 <i class="fa-solid fa-pen"></i>
               </button>
+              {% endif %}
 
-              <button class="icon-action icon-delete" type="button" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id }}" title="Delete">
+              {% if perms.masters.delete_sys_usr_system %}
+              <button
+                class="icon-action icon-delete"
+                type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#deleteUserModal{{ user.id }}"
+                title="Delete User">
                 <i class="fa-solid fa-trash"></i>
               </button>
+              {% endif %}
             </td>
           </tr>
 
-          <!-- EDIT MODAL -->
-          <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-centered">
-              <div class="modal-content">
-                <form method="POST" action="{% url 'user_master_update' user.id %}">
+          <!-- =====================================================
+               EDIT USER MODAL
+          ====================================================== -->
+          <div
+            class="modal fade user-modal"
+            id="editUserModal{{ user.id }}"
+            tabindex="-1"
+            aria-hidden="true">
+
+            <div class="modal-dialog modal-xl user-modal-dialog">
+              <div class="modal-content user-modal-content">
+
+                <form
+                  method="POST"
+                  class="user-modal-form"
+                  action="{% url 'user_master_update' user.id %}">
+
                   {% csrf_token %}
 
                   <div class="modal-header">
-                    <h5 class="modal-title">Edit User</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <div>
+                      <h5 class="modal-title mb-1">Edit User</h5>
+                      <p class="text-sm text-secondary mb-0">
+                        Update user information and system access
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      class="btn-close"
+                      data-bs-dismiss="modal">
+                    </button>
                   </div>
 
-                  <div class="modal-body">
+                  <div class="modal-body user-modal-body">
+
+                    <!-- General -->
+                    <h6 class="section-heading">General</h6>
+
                     <div class="row">
 
                       <div class="col-md-12 mb-3">
                         <div class="form-check">
-                          <input class="form-check-input employee-check" type="checkbox" id="is_employee_edit_{{ user.id }}" data-target="{{ user.id }}" {% if user.usr_pno and user.usr_pno != user.usr_loginID %}checked{% endif %}>
-                          <label class="form-check-label">Employee</label>
+                          <input
+                            class="form-check-input employee-check"
+                            type="checkbox"
+                            id="is_employee_edit_{{ user.id }}"
+                            data-target="{{ user.id }}"
+                            {% if user.usr_pno and user.usr_pno != user.usr_loginID %}
+                              checked
+                            {% endif %}>
+
+                          <label
+                            class="form-check-label"
+                            for="is_employee_edit_{{ user.id }}">
+                            Employee
+                          </label>
                         </div>
                       </div>
 
-                      <div class="col-md-4 mb-3 employee-id-wrapper" id="employeeIdWrapper{{ user.id }}">
+                      <div
+                        class="col-md-4 mb-3 employee-id-wrapper"
+                        id="employeeIdWrapper{{ user.id }}">
+
                         <label class="form-label">Employee ID</label>
-                        <input type="text" name="employee_id" id="employee_id_{{ user.id }}" class="form-control employee-id-input" data-target="{{ user.id }}" value="{{ user.usr_pno }}">
+
+                        <input
+                          type="text"
+                          name="employee_id"
+                          id="employee_id_{{ user.id }}"
+                          class="form-control employee-id-input"
+                          data-target="{{ user.id }}"
+                          value="{{ user.usr_pno|default:'' }}">
                       </div>
 
                       <div class="col-md-4 mb-3">
                         <label class="form-label">First Name</label>
-                        <input type="text" name="first_name" id="first_name_{{ user.id }}" class="form-control" value="{{ user.usr_name|cut:' ' }}" required>
+
+                        <input
+                          type="text"
+                          name="first_name"
+                          id="first_name_{{ user.id }}"
+                          class="form-control"
+                          value="{{ user.usr_name|default:'' }}"
+                          required>
                       </div>
 
                       <div class="col-md-4 mb-3">
                         <label class="form-label">Last Name</label>
-                        <input type="text" name="last_name" id="last_name_{{ user.id }}" class="form-control">
+
+                        <input
+                          type="text"
+                          name="last_name"
+                          id="last_name_{{ user.id }}"
+                          class="form-control">
                       </div>
 
                       <div class="col-md-4 mb-3">
                         <label class="form-label">Designation</label>
-                        <input type="text" name="designation" id="designation_{{ user.id }}" class="form-control" value="{{ user.usr_designation }}">
+
+                        <input
+                          type="text"
+                          name="designation"
+                          id="designation_{{ user.id }}"
+                          class="form-control"
+                          value="{{ user.usr_designation|default:'' }}">
                       </div>
 
                       <div class="col-md-4 mb-3">
                         <label class="form-label">Department</label>
-                        <select name="department" id="department_{{ user.id }}" class="form-control select2-modal">
+
+                        <select
+                          name="department"
+                          id="department_{{ user.id }}"
+                          class="form-control select2-modal"
+                          required>
+
                           <option value="">Select Department</option>
+
                           {% for dept in departments %}
-                            <option value="{{ dept.dep_code }}" {% if user.usr_dep_code.dep_code == dept.dep_code %}selected{% endif %}>
-                              {{ dept.dep_code }} - {{ dept.dep_desc }}
-                            </option>
+                          <option
+                            value="{{ dept.dep_code }}"
+                            {% if user.usr_dep_code and user.usr_dep_code.dep_code == dept.dep_code %}
+                              selected
+                            {% endif %}>
+                            {{ dept.dep_code }} - {{ dept.dep_desc }}
+                          </option>
                           {% endfor %}
                         </select>
                       </div>
 
                       <div class="col-md-4 mb-3">
                         <label class="form-label">Mobile</label>
-                        <input type="text" name="mobile" id="mobile_{{ user.id }}" class="form-control" value="{{ user.usr_mobile }}">
+
+                        <input
+                          type="text"
+                          name="mobile"
+                          id="mobile_{{ user.id }}"
+                          class="form-control"
+                          value="{{ user.usr_mobile|default:'' }}">
                       </div>
 
                       <div class="col-md-6 mb-3">
                         <label class="form-label">Email</label>
-                        <input type="email" name="email" id="email_{{ user.id }}" class="form-control" value="{{ user.usr_email }}" required>
+
+                        <input
+                          type="email"
+                          name="email"
+                          id="email_{{ user.id }}"
+                          class="form-control"
+                          value="{{ user.usr_email|default:'' }}"
+                          required>
                       </div>
 
                       <div class="col-md-6 mb-3">
                         <label class="form-label">Phone</label>
-                        <input type="text" name="phone" id="phone_{{ user.id }}" class="form-control" value="{{ user.usr_phone }}">
+
+                        <input
+                          type="text"
+                          name="phone"
+                          id="phone_{{ user.id }}"
+                          class="form-control"
+                          value="{{ user.usr_phone|default:'' }}">
                       </div>
+
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Authentication -->
+                    <h6 class="section-heading">Authentication</h6>
+
+                    <div class="row">
 
                       <div class="col-md-6 mb-3">
                         <label class="form-label">Login ID</label>
-                        <input type="email" name="login_id" id="login_id_{{ user.id }}" class="form-control" value="{{ user.usr_loginID }}" readonly required>
+
+                        <input
+                          type="email"
+                          name="login_id"
+                          id="login_id_{{ user.id }}"
+                          class="form-control"
+                          value="{{ user.usr_loginID }}"
+                          readonly
+                          required>
                       </div>
 
                       <div class="col-md-6 mb-3">
-                        <label class="form-label">Type</label>
-                        <select name="auth_type" id="auth_type_{{ user.id }}" class="form-control auth-type">
+                        <label class="form-label">Authentication Type</label>
+
+                        <select
+                          name="auth_type"
+                          id="auth_type_{{ user.id }}"
+                          class="form-control auth-type"
+                          required>
+
                           <option value="">Select Type</option>
-                          <option value="SSO" {% if user.usr_auth == "SSO" %}selected{% endif %}>SSO</option>
-                          <option value="LOCAL_DB" {% if user.usr_auth == "LOCAL_DB" %}selected{% endif %}>Local DB</option>
+
+                          <option
+                            value="SSO"
+                            {% if user.usr_auth == "SSO" %}selected{% endif %}>
+                            SSO
+                          </option>
+
+                          <option
+                            value="LOCAL_DB"
+                            {% if user.usr_auth == "LOCAL_DB" %}selected{% endif %}>
+                            Local DB
+                          </option>
                         </select>
                       </div>
 
-                      <div class="col-md-6 mb-3 password-wrapper" id="passwordWrapper{{ user.id }}">
+                      <div
+                        class="col-md-6 mb-3 password-wrapper"
+                        id="passwordWrapper{{ user.id }}">
+
                         <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control">
-                        <small class="text-muted">Leave blank to keep existing password.</small>
+
+                        <input
+                          type="password"
+                          name="password"
+                          class="form-control">
+
+                        <small class="text-muted">
+                          Leave blank to keep the existing password.
+                        </small>
                       </div>
 
                       <div class="col-md-6 mb-3">
                         <label class="form-label">Access Group</label>
-                        <select name="access_group" class="form-control">
+
+                        <select
+                          name="access_group"
+                          class="form-control">
+
                           <option value="">Select Access Group</option>
+
                           {% for group in access_groups %}
-                            <option value="{{ group.id }}" {% if user.usr_access_group == group.id|stringformat:"s" %}selected{% endif %}>
-                              {{ group.name }}
-                            </option>
+                          <option
+                            value="{{ group.id }}"
+                            {% if user.usr_access_group == group.id|stringformat:"s" %}
+                              selected
+                            {% endif %}>
+                            {{ group.name }}
+                          </option>
+                          {% endfor %}
+                        </select>
+
+                        <small class="text-muted">
+                          Superusers may operate without an access group.
+                        </small>
+                      </div>
+
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Association -->
+                    <h6 class="section-heading">Association</h6>
+
+                    <div class="row">
+
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Branch</label>
+
+                        <select
+                          name="branch"
+                          id="branch_{{ user.id }}"
+                          class="form-control select2-modal">
+
+                          <option
+                            value="ALL"
+                            {% if not user.usr_bra_code %}selected{% endif %}>
+                            All Branches
+                          </option>
+
+                          {% for branch in branches %}
+                          <option
+                            value="{{ branch.bra_code }}"
+                            {% if user.usr_bra_code and user.usr_bra_code.bra_code == branch.bra_code %}
+                              selected
+                            {% endif %}>
+                            {{ branch.bra_code }} - {{ branch.bra_desc }}
+                          </option>
                           {% endfor %}
                         </select>
                       </div>
 
                       <div class="col-md-6 mb-3">
-                        <label class="form-label">Branch</label>
-                        <select name="branch"
-                            id="branch_{{ user.id }}"
-                            class="form-control select2-modal">
-
-                          <option value="ALL"
-    {% if not user.usr_bra_code %}selected{% endif %}>
-    All Branches
-  </option>
-
-  {% for branch in branches %}
-    <option value="{{ branch.bra_code }}"
-      {% if user.usr_bra_code and user.usr_bra_code.bra_code == branch.bra_code %}selected{% endif %}>
-      {{ branch.bra_code }} - {{ branch.bra_desc }}
-    </option>
-  {% endfor %}
-</select>
-                      </div>
-
-                      <div class="col-md-6 mb-3">
                         <label class="form-label">Company</label>
-                        <select name="company"
-        id="company_{{ user.id }}"
-        class="form-control select2-modal">
 
-  <option value="ALL"
-    {% if not user.usr_company %}selected{% endif %}>
-    All Companies
-  </option>
+                        <select
+                          name="company"
+                          id="company_{{ user.id }}"
+                          class="form-control select2-modal">
 
-  {% for company in companies %}
-    <option value="{{ company.cmp_code }}"
-      {% if user.usr_company and user.usr_company.cmp_code == company.cmp_code %}selected{% endif %}>
-      {{ company.cmp_code }} - {{ company.cmp_desc }}
-    </option>
-  {% endfor %}
-</select>
+                          <option
+                            value="ALL"
+                            {% if not user.usr_company %}selected{% endif %}>
+                            All Companies
+                          </option>
+
+                          {% for company in companies %}
+                          <option
+                            value="{{ company.cmp_code }}"
+                            {% if user.usr_company and user.usr_company.cmp_code == company.cmp_code %}
+                              selected
+                            {% endif %}>
+                            {{ company.cmp_code }} - {{ company.cmp_desc }}
+                          </option>
+                          {% endfor %}
+                        </select>
                       </div>
 
                     </div>
+
+                    <hr class="my-4">
+
+                    <!-- System Privileges -->
+                    <div class="system-privileges-section">
+
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="privilege-icon me-2">
+                          <i class="fa-solid fa-user-shield"></i>
+                        </div>
+
+                        <div>
+                          <h6 class="section-heading mb-1">
+                            System Privileges
+                          </h6>
+
+                          <p class="text-sm text-secondary mb-0">
+                            These privileges apply directly to this user
+                          </p>
+                          {% if not request.user.is_superuser %}
+                          <p class="text-xs text-warning mb-0 mt-1">
+                            Staff and Superuser can only be changed by a superuser.
+                          </p>
+                          {% endif %}
+                        </div>
+                      </div>
+
+                      <div class="row g-3">
+
+                        <div class="col-md-4">
+                          <div class="privilege-card">
+
+                            <div class="form-check form-switch mb-0">
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                name="is_active"
+                                id="is_active_{{ user.id }}"
+                                {% if user.usr_is_active %}checked{% endif %}>
+
+                              <label
+                                class="form-check-label"
+                                for="is_active_{{ user.id }}">
+                                Active User
+                              </label>
+                            </div>
+
+                            <small class="text-muted">
+                              Allows the user to sign in.
+                            </small>
+                          </div>
+                        </div>
+
+                        
+
+                        <div class="col-md-4">
+                          <div class="privilege-card">
+
+                            <div class="form-check form-switch mb-0">
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                name="is_staff"
+                                id="is_staff_{{ user.id }}"
+                                {% if user.usr_is_staff %}checked{% endif %}
+                                {% if not request.user.is_superuser %}disabled{% endif %}>
+
+                              <label
+                                class="form-check-label"
+                                for="is_staff_{{ user.id }}">
+                                Staff Status
+                              </label>
+                            </div>
+
+                            <small class="text-muted">
+                              Allows access to Django Admin.
+                            </small>
+                          </div>
+                        </div>
+
+                        <div class="col-md-4">
+                          <div class="privilege-card privilege-card-danger">
+
+                            <div class="form-check form-switch mb-0">
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                name="is_superuser"
+                                id="is_superuser_{{ user.id }}"
+                                {% if user.usr_is_superuser %}checked{% endif %}
+                                {% if not request.user.is_superuser %}disabled{% endif %}>
+
+                              <label
+                                class="form-check-label"
+                                for="is_superuser_{{ user.id }}">
+                                Superuser
+                              </label>
+                            </div>
+
+                            <small class="text-muted">
+                              Grants unrestricted system access.
+                            </small>
+                          </div>
+                        </div>
+
+                        
+
+                      </div>
+                    </div>
+
                   </div>
 
                   <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Update User</button>
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      data-bs-dismiss="modal">
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      class="btn btn-primary btn-sm">
+                      Update User
+                    </button>
                   </div>
+
                 </form>
               </div>
             </div>
           </div>
 
-          <!-- DELETE MODAL -->
-          <div class="modal fade" id="deleteUserModal{{ user.id }}" tabindex="-1" aria-hidden="true">
+          <!-- Delete Modal -->
+          <div
+            class="modal fade"
+            id="deleteUserModal{{ user.id }}"
+            tabindex="-1"
+            aria-hidden="true">
+
             <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content">
-                <form method="POST" action="{% url 'user_master_delete' user.id %}">
+
+                <form
+                  method="POST"
+                  action="{% url 'user_master_delete' user.id %}">
+
                   {% csrf_token %}
 
                   <div class="modal-header">
-                    <h5 class="modal-title text-danger">Delete User</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title text-danger">
+                      Delete User
+                    </h5>
+
+                    <button
+                      type="button"
+                      class="btn-close"
+                      data-bs-dismiss="modal">
+                    </button>
                   </div>
 
                   <div class="modal-body">
-                    Are you sure you want to delete <strong>{{ user.usr_name }}</strong>?
+                    Are you sure you want to delete
+                    <strong>{{ user.usr_name }}</strong>?
                   </div>
 
                   <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      data-bs-dismiss="modal">
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      class="btn btn-danger btn-sm">
+                      Delete
+                    </button>
                   </div>
+
                 </form>
               </div>
             </div>
@@ -256,158 +695,650 @@
 
           {% empty %}
           <tr>
-            <td colspan="10" class="text-center text-muted">No users found.</td>
+            <td colspan="6" class="text-center text-muted py-4">
+              No users found.
+            </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+
     </div>
   </div>
 </div>
 
-<!-- ADD MODAL -->
-<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content">
-      <form method="POST" action="{% url 'user_master_create' %}">
+<!-- =====================================================
+     ADD USER MODAL
+====================================================== -->
+<div
+  class="modal fade user-modal"
+  id="addUserModal"
+  tabindex="-1"
+  aria-hidden="true">
+
+  <div class="modal-dialog modal-xl user-modal-dialog">
+    <div class="modal-content user-modal-content">
+
+      <form
+        method="POST"
+        class="user-modal-form"
+        action="{% url 'user_master_create' %}">
+
         {% csrf_token %}
 
         <div class="modal-header">
-          <h5 class="modal-title">Add User</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <div>
+            <h5 class="modal-title mb-1">Add User</h5>
+            <p class="text-sm text-secondary mb-0">
+              Create a new VMS user
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal">
+          </button>
         </div>
 
-        <div class="modal-body">
+        <div class="modal-body user-modal-body">
+
+          <!-- General -->
+          <h6 class="section-heading">General</h6>
+
           <div class="row">
 
             <div class="col-md-12 mb-3">
               <div class="form-check">
-                <input class="form-check-input employee-check" type="checkbox" id="is_employee_add" data-target="add">
-                <label class="form-check-label">Employee</label>
+                <input
+                  class="form-check-input employee-check"
+                  type="checkbox"
+                  id="is_employee_add"
+                  data-target="add">
+
+                <label
+                  class="form-check-label"
+                  for="is_employee_add">
+                  Employee
+                </label>
               </div>
             </div>
 
-            <div class="col-md-4 mb-3 d-none employee-id-wrapper" id="employeeIdWrapperadd">
+            <div
+              class="col-md-4 mb-3 d-none employee-id-wrapper"
+              id="employeeIdWrapperadd">
+
               <label class="form-label">Employee ID</label>
-              <input type="text" name="employee_id" id="employee_id_add" class="form-control employee-id-input" data-target="add">
+
+              <input
+                type="text"
+                name="employee_id"
+                id="employee_id_add"
+                class="form-control employee-id-input"
+                data-target="add">
             </div>
 
             <div class="col-md-4 mb-3">
               <label class="form-label">First Name</label>
-              <input type="text" name="first_name" id="first_name_add" class="form-control" required>
+
+              <input
+                type="text"
+                name="first_name"
+                id="first_name_add"
+                class="form-control"
+                required>
             </div>
 
             <div class="col-md-4 mb-3">
               <label class="form-label">Last Name</label>
-              <input type="text" name="last_name" id="last_name_add" class="form-control">
+
+              <input
+                type="text"
+                name="last_name"
+                id="last_name_add"
+                class="form-control">
             </div>
 
             <div class="col-md-4 mb-3">
               <label class="form-label">Designation</label>
-              <input type="text" name="designation" id="designation_add" class="form-control">
+
+              <input
+                type="text"
+                name="designation"
+                id="designation_add"
+                class="form-control">
             </div>
 
             <div class="col-md-4 mb-3">
               <label class="form-label">Department</label>
-              <select name="department" id="department_add" class="form-control select2-modal">
+
+              <select
+                name="department"
+                id="department_add"
+                class="form-control select2-modal"
+                required>
+
                 <option value="">Select Department</option>
+
                 {% for dept in departments %}
-                  <option value="{{ dept.dep_code }}">{{ dept.dep_code }} - {{ dept.dep_desc }}</option>
+                <option value="{{ dept.dep_code }}">
+                  {{ dept.dep_code }} - {{ dept.dep_desc }}
+                </option>
                 {% endfor %}
               </select>
             </div>
 
             <div class="col-md-4 mb-3">
               <label class="form-label">Mobile</label>
-              <input type="text" name="mobile" id="mobile_add" class="form-control">
+
+              <input
+                type="text"
+                name="mobile"
+                id="mobile_add"
+                class="form-control">
             </div>
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Email</label>
-              <input type="email" name="email" id="email_add" class="form-control" required>
+
+              <input
+                type="email"
+                name="email"
+                id="email_add"
+                class="form-control"
+                required>
             </div>
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Phone</label>
-              <input type="text" name="phone" id="phone_add" class="form-control">
+
+              <input
+                type="text"
+                name="phone"
+                id="phone_add"
+                class="form-control">
             </div>
+
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Authentication -->
+          <h6 class="section-heading">Authentication</h6>
+
+          <div class="row">
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Login ID</label>
-              <input type="email" name="login_id" id="login_id_add" class="form-control" readonly required>
+
+              <input
+                type="email"
+                name="login_id"
+                id="login_id_add"
+                class="form-control"
+                readonly
+                required>
             </div>
 
             <div class="col-md-6 mb-3">
-              <label class="form-label">Type</label>
-              <select name="auth_type" id="auth_type_add" class="form-control auth-type">
+              <label class="form-label">Authentication Type</label>
+
+              <select
+                name="auth_type"
+                id="auth_type_add"
+                class="form-control auth-type"
+                required>
+
                 <option value="">Select Type</option>
                 <option value="SSO">SSO</option>
                 <option value="LOCAL_DB">Local DB</option>
               </select>
             </div>
 
-            <div class="col-md-6 mb-3 password-wrapper" id="passwordWrapperadd">
+            <div
+              class="col-md-6 mb-3 password-wrapper"
+              id="passwordWrapperadd">
+
               <label class="form-label">Password</label>
-              <input type="password" name="password" class="form-control">
+
+              <input
+                type="password"
+                name="password"
+                class="form-control">
             </div>
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Access Group</label>
-              <select name="access_group" class="form-control">
+
+              <select
+                name="access_group"
+                class="form-control">
+
                 <option value="">Select Access Group</option>
+
                 {% for group in access_groups %}
-                  <option value="{{ group.id }}">{{ group.name }}</option>
+                <option value="{{ group.id }}">
+                  {{ group.name }}
+                </option>
+                {% endfor %}
+              </select>
+
+              <small class="text-muted">
+                Superusers may operate without an access group.
+              </small>
+            </div>
+
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Association -->
+          <h6 class="section-heading">Association</h6>
+
+          <div class="row">
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Branch</label>
+
+              <select
+                name="branch"
+                id="branch_add"
+                class="form-control select2-modal">
+
+                <option value="ALL">All Branches</option>
+
+                {% for branch in branches %}
+                <option value="{{ branch.bra_code }}">
+                  {{ branch.bra_code }} - {{ branch.bra_desc }}
+                </option>
                 {% endfor %}
               </select>
             </div>
 
             <div class="col-md-6 mb-3">
-              <label class="form-label">Branch</label>
-              <select name="branch"
-        id="branch_add"
-        class="form-control select2-modal">
-
-  <option value="ALL">All Branches</option>
-
-  {% for branch in branches %}
-    <option value="{{ branch.bra_code }}">
-      {{ branch.bra_code }} - {{ branch.bra_desc }}
-    </option>
-  {% endfor %}
-</select>
-            </div>
-
-            <div class="col-md-6 mb-3">
               <label class="form-label">Company</label>
-             <select name="company"
-        id="company_add"
-        class="form-control select2-modal">
 
-  <option value="ALL">All Companies</option>
+              <select
+                name="company"
+                id="company_add"
+                class="form-control select2-modal">
 
-  {% for company in companies %}
-    <option value="{{ company.cmp_code }}">
-      {{ company.cmp_code }} - {{ company.cmp_desc }}
-    </option>
-  {% endfor %}
-</select>
+                <option value="ALL">All Companies</option>
+
+                {% for company in companies %}
+                <option value="{{ company.cmp_code }}">
+                  {{ company.cmp_code }} - {{ company.cmp_desc }}
+                </option>
+                {% endfor %}
+              </select>
             </div>
 
           </div>
+
+          <hr class="my-4">
+
+          <!-- System Privileges -->
+          <div class="system-privileges-section">
+
+            <div class="d-flex align-items-center mb-3">
+              <div class="privilege-icon me-2">
+                <i class="fa-solid fa-user-shield"></i>
+              </div>
+
+              <div>
+                <h6 class="section-heading mb-1">
+                  System Privileges
+                </h6>
+
+                <p class="text-sm text-secondary mb-0">
+                  These privileges apply directly to this user
+                </p>
+                {% if not request.user.is_superuser %}
+                <p class="text-xs text-warning mb-0 mt-1">
+                  Staff and Superuser can only be assigned by a superuser.
+                </p>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="row g-3">
+
+              <div class="col-md-4">
+                <div class="privilege-card">
+
+                  <div class="form-check form-switch mb-0">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      name="is_active"
+                      id="is_active_add"
+                      checked>
+
+                    <label
+                      class="form-check-label"
+                      for="is_active_add">
+                      Active User
+                    </label>
+                  </div>
+
+                  <small class="text-muted">
+                    Allows the user to sign in.
+                  </small>
+                </div>
+              </div>
+
+              
+
+              <div class="col-md-4">
+                <div class="privilege-card">
+
+                  <div class="form-check form-switch mb-0">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      name="is_staff"
+                      id="is_staff_add"
+                      {% if not request.user.is_superuser %}disabled{% endif %}>
+
+                    <label
+                      class="form-check-label"
+                      for="is_staff_add">
+                      Staff Status
+                    </label>
+                  </div>
+
+                  <small class="text-muted">
+                    Allows access to Django Admin.
+                  </small>
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <div class="privilege-card privilege-card-danger">
+
+                  <div class="form-check form-switch mb-0">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      name="is_superuser"
+                      id="is_superuser_add"
+                      {% if not request.user.is_superuser %}disabled{% endif %}>
+
+                    <label
+                      class="form-check-label"
+                      for="is_superuser_add">
+                      Superuser
+                    </label>
+                  </div>
+
+                  <small class="text-muted">
+                    Grants unrestricted system access.
+                  </small>
+                </div>
+              </div>
+
+              
+
+            </div>
+          </div>
+
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-sm">Save User</button>
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm"
+            data-bs-dismiss="modal">
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary btn-sm">
+            Save User
+          </button>
         </div>
+
       </form>
     </div>
   </div>
 </div>
 
 <style>
-  .modal-xl {
-    max-width: 95% !important;
+  .user-master-table {
+    width: 100%;
+    min-width: 0 !important;
+    table-layout: fixed;
+  }
+
+  .user-master-table th:nth-child(1),
+  .user-master-table td:nth-child(1) {
+    width: 25%;
+  }
+
+  .user-master-table th:nth-child(2),
+  .user-master-table td:nth-child(2) {
+    width: 18%;
+  }
+
+  .user-master-table th:nth-child(3),
+  .user-master-table td:nth-child(3) {
+    width: 15%;
+  }
+
+  .user-master-table th:nth-child(4),
+  .user-master-table td:nth-child(4) {
+    width: 22%;
+  }
+
+  .user-master-table th:nth-child(5),
+  .user-master-table td:nth-child(5) {
+    width: 10%;
+  }
+
+  .user-master-table th:nth-child(6),
+  .user-master-table td:nth-child(6) {
+    width: 10%;
+  }
+
+  .user-master-table td {
+    vertical-align: middle;
+    white-space: normal !important;
+  }
+
+  .user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(242, 99, 34, 0.12);
+    color: var(--hn-orange);
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .user-cell-content {
+    min-width: 0;
+  }
+
+  .user-email {
+    max-width: 260px;
+    overflow-wrap: anywhere;
+  }
+
+  .compact-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.45;
+  }
+
+  .compact-info strong {
+    color: #344767;
+    font-size: 13px;
+  }
+
+  .compact-info span {
+    color: #67748e;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .status-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .privilege-icons {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .privilege-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 27px;
+    height: 27px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+
+  .privilege-superuser {
+    background: rgba(220, 38, 38, 0.12);
+    color: #dc2626;
+  }
+
+  .privilege-staff {
+    background: rgba(245, 158, 11, 0.14);
+    color: #d97706;
+  }
+
+  .privilege-standard {
+    background: rgba(100, 116, 139, 0.12);
+    color: #64748b;
+  }
+
+  .user-master-table .icon-action {
+    margin: 2px;
+  }
+
+  .user-modal {
+    overflow-y: auto !important;
+  }
+
+  .user-modal-dialog {
+    width: calc(100% - 2rem);
+    max-width: 1250px !important;
+    margin: 1rem auto !important;
+  }
+
+  .user-modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 2rem);
+    overflow: hidden;
+    background: #ffffff;
+  }
+
+  .user-modal-form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: calc(100vh - 2rem);
+    overflow: hidden;
+  }
+
+  .user-modal-form > .modal-header,
+  .user-modal-form > .modal-footer {
+    flex: 0 0 auto;
+    background: #ffffff;
+  }
+
+  .user-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 24px !important;
+    background: #ffffff;
+  }
+
+  .section-heading {
+    color: #677084;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .system-privileges-section {
+    padding: 18px;
+    border: 1px solid #e7eaf0;
+    border-radius: 14px;
+    background: #ffffff;
+  }
+
+  .privilege-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(242, 99, 34, 0.1);
+    color: var(--hn-orange);
+  }
+
+  .privilege-card {
+    height: 100%;
+    padding: 16px;
+    border: 1px solid #edf0f4;
+    border-radius: 12px;
+    background: #ffffff;
+  }
+
+  .privilege-card-danger {
+    border-color: rgba(220, 38, 38, 0.18);
+    background: rgba(220, 38, 38, 0.02);
+  }
+
+  .privilege-card .form-check-label {
+    color: #344767;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .privilege-card small {
+    display: block;
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+
+  .system-privileges-section .form-check-input:checked {
+    border-color: var(--hn-orange);
+    background-color: var(--hn-orange);
+  }
+
+  .auth-local-badge {
+    background: #f26322 !important;
+    color: #ffffff !important;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+  }
+
+  .system-privileges-section .form-check-input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 
   .select2-container {
@@ -418,58 +1349,108 @@
   .select2-dropdown {
     z-index: 99999;
   }
+
+  @media (max-width: 1199.98px) {
+    .user-master-table {
+      min-width: 920px !important;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .user-modal-dialog {
+      width: calc(100% - 1rem);
+      margin: 0.5rem auto !important;
+    }
+
+    .user-modal-content,
+    .user-modal-form {
+      max-height: calc(100vh - 1rem);
+    }
+
+    .user-modal-body {
+      max-height: calc(100vh - 150px);
+      padding: 16px !important;
+    }
+
+    .system-privileges-section {
+      padding: 14px;
+    }
+  }
 </style>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-function initSelect2() {
-  $(".select2-modal").each(function () {
-    if ($(this).hasClass("select2-hidden-accessible")) {
-      $(this).select2("destroy");
+  function initSelect2(modalElement) {
+    $(modalElement).find(".select2-modal").each(function () {
+      if ($(this).hasClass("select2-hidden-accessible")) {
+        $(this).select2("destroy");
+      }
+
+      $(this).select2({
+        width: "100%",
+        dropdownParent: $(modalElement)
+      });
+    });
+  }
+
+  function toggleEmployee(target) {
+    const checkbox = $("#is_employee_" + target);
+    const wrapper = $("#employeeIdWrapper" + target);
+    const input = $("#employee_id_" + target);
+
+    if (checkbox.is(":checked")) {
+      wrapper.removeClass("d-none");
+      input.attr("required", true);
+    } else {
+      wrapper.addClass("d-none");
+      input.removeAttr("required");
+
+      if (target === "add") {
+        input.val("");
+      }
+    }
+  }
+
+  function togglePassword(target) {
+    const authType = $("#auth_type_" + target).val();
+    const wrapper = $("#passwordWrapper" + target);
+    const passwordInput = wrapper.find("input[name='password']");
+
+    if (authType === "SSO") {
+      wrapper.addClass("d-none");
+      passwordInput.val("").removeAttr("required");
+    } else {
+      wrapper.removeClass("d-none");
+
+      if (target === "add" && authType === "LOCAL_DB") {
+        passwordInput.attr("required", true);
+      } else {
+        passwordInput.removeAttr("required");
+      }
+    }
+  }
+
+  function fetchEmployee(empId, target) {
+    if (!empId) {
+      return;
     }
 
-    $(this).select2({
-      width: "100%",
-      dropdownParent: $(this).closest(".modal")
-    });
-  });
-}
+    fetch(`/masters/users/fetch-employee/${encodeURIComponent(empId)}/`)
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("Employee request failed.");
+        }
 
-function toggleEmployee(target) {
-  const checkbox = $("#is_employee_" + target);
-  const wrapper = $("#employeeIdWrapper" + target);
-  const input = $("#employee_id_" + target);
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data.success) {
+          alert(data.message || "Employee not found.");
+          return;
+        }
 
-  if (checkbox.is(":checked")) {
-    wrapper.removeClass("d-none");
-    input.attr("required", true);
-  } else {
-    wrapper.addClass("d-none");
-    input.removeAttr("required").val("");
-  }
-}
-
-function togglePassword(target) {
-  const authType = $("#auth_type_" + target).val();
-  const wrapper = $("#passwordWrapper" + target);
-
-  if (authType === "SSO") {
-    wrapper.addClass("d-none");
-    wrapper.find("input").val("").removeAttr("required");
-  } else {
-    wrapper.removeClass("d-none");
-  }
-}
-
-function fetchEmployee(empId, target) {
-  if (!empId) return;
-
-  fetch(`/masters/users/fetch-employee/${empId}/`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
         $("#first_name_" + target).val(data.first_name || "");
         $("#last_name_" + target).val(data.last_name || "");
         $("#designation_" + target).val(data.designation || "");
@@ -478,40 +1459,85 @@ function fetchEmployee(empId, target) {
         $("#phone_" + target).val(data.phone || "");
         $("#login_id_" + target).val(data.email || "");
 
-        $("#department_" + target).val(data.department || "").trigger("change");
-        $("#branch_" + target).val(data.branch || "ALL").trigger("change");
-        $("#company_" + target).val(data.company || "ALL").trigger("change");
+        $("#department_" + target)
+          .val(data.department || "")
+          .trigger("change");
+
+        $("#branch_" + target)
+          .val(data.branch || "ALL")
+          .trigger("change");
+
+        $("#company_" + target)
+          .val(data.company || "ALL")
+          .trigger("change");
+      })
+      .catch(function () {
+        alert("Could not retrieve employee details.");
+      });
+  }
+
+  $(document).ready(function () {
+
+    $(".user-modal").on("shown.bs.modal", function () {
+      initSelect2(this);
+
+      const modalId = $(this).attr("id");
+
+      if (modalId === "addUserModal") {
+        toggleEmployee("add");
+        togglePassword("add");
       } else {
-        alert(data.message);
+        const target = modalId.replace("editUserModal", "");
+        toggleEmployee(target);
+        togglePassword(target);
       }
     });
-}
 
-$(document).ready(function () {
-  $(".modal").on("shown.bs.modal", function () {
-    initSelect2();
-  });
+    $(".employee-check").on("change", function () {
+      toggleEmployee($(this).data("target"));
+    });
 
-  $(".employee-check").on("change", function () {
-    toggleEmployee($(this).data("target"));
-  });
+    $(".auth-type").on("change", function () {
+      const target = $(this)
+        .attr("id")
+        .replace("auth_type_", "");
 
-  $(".auth-type").on("change", function () {
-    const id = $(this).attr("id").replace("auth_type_", "");
-    togglePassword(id);
-  });
+      togglePassword(target);
+    });
 
-  $(".employee-id-input").on("blur", function () {
-    fetchEmployee($(this).val().trim(), $(this).data("target"));
-  });
+    $(".employee-id-input").on("blur", function () {
+      const employeeId = $(this).val().trim();
+      const target = $(this).data("target");
 
-  $("input[id^='email_']").on("input", function () {
-    const target = $(this).attr("id").replace("email_", "");
-    if (!$("#is_employee_" + target).is(":checked")) {
-      $("#login_id_" + target).val($(this).val());
-    }
+      fetchEmployee(employeeId, target);
+    });
+
+    $("input[id^='email_']").on("input", function () {
+      const target = $(this)
+        .attr("id")
+        .replace("email_", "");
+
+      const employeeCheckbox = $("#is_employee_" + target);
+
+      if (!employeeCheckbox.is(":checked")) {
+        $("#login_id_" + target).val(
+          $(this).val().trim().toLowerCase()
+        );
+      }
+    });
+
+    $("input[name='is_superuser']").on("change", function () {
+      const form = $(this).closest("form");
+      const staffSwitch = form.find(
+        "input[name='is_staff']"
+      );
+
+      if ($(this).is(":checked")) {
+        staffSwitch.prop("checked", true);
+      }
+    });
+
   });
-});
 </script>
 
 {% endblock %}

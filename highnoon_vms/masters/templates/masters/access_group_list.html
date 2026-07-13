@@ -1,0 +1,610 @@
+{% extends "base.html" %}
+
+{% block title %}Access Groups{% endblock %}
+{% block breadcrumb %}Access Groups{% endblock %}
+{% block page_heading %}Access Groups{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center px-4 py-3">
+    <div>
+      <h6 class="mb-0">Access Groups</h6>
+      <p class="text-sm text-secondary mb-0">
+        Create groups and assign permissions
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="icon-action icon-add"
+      data-bs-toggle="modal"
+      data-bs-target="#addAccessGroupModal"
+      title="Add Access Group">
+      <i class="fa-solid fa-plus"></i>
+    </button>
+  </div>
+
+  <div class="card-body px-0 pt-0 pb-2">
+    <div class="table-responsive p-3">
+      <table class="table align-items-center mb-0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Group Name</th>
+            <th>Users</th>
+            <th>Permissions</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for group in groups %}
+          <tr>
+            <td>{{ group.id }}</td>
+            <td>{{ group.name }}</td>
+            <td>{{ group.user_set.count }}</td>
+            <td>{{ group.permissions.count }}</td>
+
+            <td class="text-end">
+              <button
+                type="button"
+                class="icon-action icon-edit"
+                data-bs-toggle="modal"
+                data-bs-target="#editAccessGroupModal{{ group.id }}"
+                title="Edit">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+
+              <button
+                type="button"
+                class="icon-action icon-delete"
+                data-bs-toggle="modal"
+                data-bs-target="#deleteAccessGroupModal{{ group.id }}"
+                title="Delete">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+
+          <!-- Edit Modal -->
+          <div
+            class="modal fade access-group-modal"
+            id="editAccessGroupModal{{ group.id }}"
+            tabindex="-1"
+            aria-hidden="true">
+
+            <div class="modal-dialog modal-xl access-group-dialog">
+              <div class="modal-content access-group-content">
+
+                <form
+                  method="POST"
+                  class="access-group-form"
+                  action="{% url 'access_group_update' group.id %}">
+
+                  {% csrf_token %}
+
+                  <div class="modal-header">
+                    <h5 class="modal-title">Edit Access Group</h5>
+
+                    <button
+                      type="button"
+                      class="btn-close"
+                      data-bs-dismiss="modal">
+                    </button>
+                  </div>
+
+                  <div class="modal-body access-group-body">
+                    <div class="mb-4">
+                      <label class="form-label">Group Name</label>
+
+                      <input
+                        type="text"
+                        name="group_name"
+                        class="form-control"
+                        value="{{ group.name }}"
+                        required>
+                    </div>
+
+                    <div class="permission-section">
+                      <div class="permission-toolbar">
+                        <div>
+                          <h6 class="mb-1">Permissions</h6>
+
+                          <p class="text-sm text-secondary mb-0">
+                            Select the permissions assigned to this group
+                          </p>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                          <button
+                            type="button"
+                            class="icon-action permission-select-all"
+                            title="Select All Permissions">
+                            <i class="fa-solid fa-check-double"></i>
+                          </button>
+
+                          <button
+                            type="button"
+                            class="icon-action icon-delete permission-clear-all"
+                            title="Clear All Permissions">
+                            <i class="fa-solid fa-eraser"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="row g-3 permission-grid">
+                        {% for group_key, permissions in grouped_permissions.items %}
+                        <div class="col-xl-4 col-lg-6 col-md-6">
+                          <div class="permission-card">
+                            <div class="permission-card-header">
+                              <h6 class="permission-title mb-0">
+                                {{ group_key|title }}
+                              </h6>
+                            </div>
+
+                            <div class="permission-card-body">
+                              {% for permission in permissions %}
+                              <div class="form-check permission-item">
+                                <input
+                                  class="form-check-input"
+                                  type="checkbox"
+                                  name="permissions"
+                                  value="{{ permission.id }}"
+                                  id="edit_permission_{{ group.id }}_{{ permission.id }}"
+                                  {% if permission in group.permissions.all %}checked{% endif %}>
+
+                                <label
+                                  class="form-check-label"
+                                  for="edit_permission_{{ group.id }}_{{ permission.id }}">
+                                  {{ permission.name }}
+                                </label>
+                              </div>
+                              {% endfor %}
+                            </div>
+                          </div>
+                        </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="modal-footer">
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      data-bs-dismiss="modal">
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      class="btn btn-primary btn-sm">
+                      Update Group
+                    </button>
+                  </div>
+
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Delete Modal -->
+          <div
+            class="modal fade"
+            id="deleteAccessGroupModal{{ group.id }}"
+            tabindex="-1"
+            aria-hidden="true">
+
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <form
+                  method="POST"
+                  action="{% url 'access_group_delete' group.id %}">
+
+                  {% csrf_token %}
+
+                  <div class="modal-header">
+                    <h5 class="modal-title text-danger">
+                      Delete Access Group
+                    </h5>
+
+                    <button
+                      type="button"
+                      class="btn-close"
+                      data-bs-dismiss="modal">
+                    </button>
+                  </div>
+
+                  <div class="modal-body">
+                    Are you sure you want to delete
+                    <strong>{{ group.name }}</strong>?
+                  </div>
+
+                  <div class="modal-footer">
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      data-bs-dismiss="modal">
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      class="btn btn-danger btn-sm">
+                      Delete
+                    </button>
+                  </div>
+
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">
+              No access groups found.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Modal -->
+<div
+  class="modal fade access-group-modal"
+  id="addAccessGroupModal"
+  tabindex="-1"
+  aria-hidden="true">
+
+  <div class="modal-dialog modal-xl access-group-dialog">
+    <div class="modal-content access-group-content">
+
+      <form
+        method="POST"
+        class="access-group-form"
+        action="{% url 'access_group_create' %}">
+
+        {% csrf_token %}
+
+        <div class="modal-header">
+          <h5 class="modal-title">Add Access Group</h5>
+
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal">
+          </button>
+        </div>
+
+        <div class="modal-body access-group-body">
+          <div class="mb-4">
+            <label class="form-label">Group Name</label>
+
+            <input
+              type="text"
+              name="group_name"
+              class="form-control"
+              placeholder="Example: Reception"
+              required>
+          </div>
+
+          <div class="permission-section">
+            <div class="permission-toolbar">
+              <div>
+                <h6 class="mb-1">Permissions</h6>
+
+                <p class="text-sm text-secondary mb-0">
+                  Select the permissions assigned to this group
+                </p>
+              </div>
+
+              <div class="d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  class="icon-action permission-select-all"
+                  title="Select All Permissions">
+                  <i class="fa-solid fa-check-double"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="icon-action icon-delete permission-clear-all"
+                  title="Clear All Permissions">
+                  <i class="fa-solid fa-eraser"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="row g-3 permission-grid">
+              {% for group_key, permissions in grouped_permissions.items %}
+              <div class="col-xl-4 col-lg-6 col-md-6">
+                <div class="permission-card">
+                  <div class="permission-card-header">
+                    <h6 class="permission-title mb-0">
+                      {{ group_key|title }}
+                    </h6>
+                  </div>
+
+                  <div class="permission-card-body">
+                    {% for permission in permissions %}
+                    <div class="form-check permission-item">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        name="permissions"
+                        value="{{ permission.id }}"
+                        id="add_permission_{{ permission.id }}">
+
+                      <label
+                        class="form-check-label"
+                        for="add_permission_{{ permission.id }}">
+                        {{ permission.name }}
+                      </label>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm"
+            data-bs-dismiss="modal">
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary btn-sm">
+            Save Group
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Modal dimensions */
+  .access-group-modal {
+    overflow-y: hidden !important;
+  }
+
+  .access-group-dialog {
+    width: calc(100% - 2rem);
+    max-width: 1140px;
+    height: calc(100vh - 2rem);
+    margin: 1rem auto !important;
+  }
+
+  .access-group-content {
+    height: 100%;
+    max-height: calc(100vh - 2rem) !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+  }
+
+  /*
+    The form sits between modal-content and modal-body,
+    so the form itself must be the flex container.
+  */
+  .access-group-form {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: calc(100vh - 2rem);
+    overflow: hidden !important;
+  }
+
+  .access-group-form > .modal-header,
+  .access-group-form > .modal-footer {
+    flex: 0 0 auto;
+    background: #ffffff;
+  }
+
+  .access-group-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    padding: 24px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain;
+    background: #ffffff !important;
+    scrollbar-width: thin;
+  }
+
+  .access-group-body::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .access-group-body::-webkit-scrollbar-track {
+    background: #f4f5f7;
+    border-radius: 10px;
+  }
+
+  .access-group-body::-webkit-scrollbar-thumb {
+    background: #c8ccd4;
+    border-radius: 10px;
+  }
+
+  .access-group-body::-webkit-scrollbar-thumb:hover {
+    background: #aeb4bf;
+  }
+
+  /* Permission section */
+  .permission-section {
+    width: 100%;
+    padding: 18px;
+    border: 1px solid #e7eaf0;
+    border-radius: 14px;
+    background: #ffffff !important;
+  }
+
+  .permission-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #edf0f4;
+  }
+
+  .permission-grid {
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .permission-grid > [class*="col-"] {
+    display: flex;
+  }
+
+  .permission-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100%;
+    overflow: hidden;
+    border: 1px solid #e7eaf0 !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05) !important;
+  }
+
+  .permission-card-header {
+    min-height: 58px;
+    padding: 16px 18px;
+    border-bottom: 1px solid #edf0f4;
+    background: #ffffff !important;
+  }
+
+  .permission-card-body {
+    flex: 1;
+    padding: 16px 18px;
+    background: #ffffff !important;
+  }
+
+  .permission-title {
+    color: #344767 !important;
+    font-size: 14px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .permission-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 28px;
+    margin-bottom: 10px !important;
+    padding-left: 0 !important;
+  }
+
+  .permission-item:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  .permission-item .form-check-input {
+    flex: 0 0 auto;
+    margin: 2px 0 0 !important;
+  }
+
+  .permission-item .form-check-label {
+    color: #677084 !important;
+    font-size: 13px;
+    line-height: 1.4;
+    cursor: pointer;
+  }
+
+  .permission-item .form-check-input:checked {
+    border-color: var(--hn-orange) !important;
+    background-color: var(--hn-orange) !important;
+  }
+
+  .permission-select-all:hover {
+    background: rgba(22, 163, 74, 0.12) !important;
+    color: #16a34a !important;
+  }
+
+  @media (max-width: 767.98px) {
+    .access-group-dialog {
+      width: calc(100% - 1rem) !important;
+      height: calc(100vh - 1rem);
+      margin: 0.5rem auto !important;
+    }
+
+    .access-group-content,
+    .access-group-form {
+      max-height: calc(100vh - 1rem) !important;
+    }
+
+    .access-group-body {
+      padding: 16px !important;
+    }
+
+    .permission-section {
+      padding: 14px;
+    }
+
+    .permission-toolbar {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .permission-grid > [class*="col-"] {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".permission-select-all").forEach(function (button) {
+      button.addEventListener("click", function () {
+        const form = button.closest("form");
+
+        if (!form) {
+          return;
+        }
+
+        form.querySelectorAll(
+          "input[type='checkbox'][name='permissions']"
+        ).forEach(function (checkbox) {
+          checkbox.checked = true;
+        });
+      });
+    });
+
+    document.querySelectorAll(".permission-clear-all").forEach(function (button) {
+      button.addEventListener("click", function () {
+        const form = button.closest("form");
+
+        if (!form) {
+          return;
+        }
+
+        form.querySelectorAll(
+          "input[type='checkbox'][name='permissions']"
+        ).forEach(function (checkbox) {
+          checkbox.checked = false;
+        });
+      });
+    });
+  });
+</script>
+
+{% endblock %}

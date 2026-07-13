@@ -84,6 +84,9 @@ class sys_usr_system(models.Model):
     usr_loginID = models.CharField(max_length=100, unique=True)
     usr_password = models.CharField(max_length=255, blank=True, null=True)
     usr_access_group = models.CharField(max_length=100)
+    usr_is_active = models.BooleanField(default=True)
+    usr_is_staff = models.BooleanField(default=False)
+    usr_is_superuser = models.BooleanField(default=False)
 
     # NULL means All Companies
     usr_company = models.ForeignKey(

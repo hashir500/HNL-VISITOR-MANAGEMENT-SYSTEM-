@@ -1,18 +1,20 @@
 from django.shortcuts import render, redirect, get_object_or_404
 import requests
 import openpyxl
+from collections import defaultdict
 
 from django.contrib import messages
 from django.conf import settings
 import os
 import uuid
 from openpyxl import load_workbook
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
 from django.db.models import Q
 
+from django.contrib.auth.decorators import login_required, permission_required
 from .access import employees_visible_to_user
 from .models import sys_usr_system
 from .models import sys_cmp_master
@@ -634,10 +636,21 @@ def purpose_delete(request, pk):
 # user views
 
 
+# =========================================================
+# USER MASTER
+# =========================================================
 
 
-
+@login_required
+@permission_required(
+    "masters.view_sys_emp_master",
+    raise_exception=True,
+)
 def fetch_employee_details(request, emp_pno):
+    """
+    Return employee information for the User Master employee lookup.
+    """
+
     employee = (
         sys_emp_master.objects
         .select_related(
@@ -689,9 +702,10 @@ def fetch_employee_details(request, emp_pno):
 
 def get_optional_company(company_code):
     """
-    Returns None when All Companies is selected.
-    Otherwise, returns the selected company object.
+    Return None when All Companies is selected.
+    Otherwise, return the selected company object.
     """
+
     company_code = (company_code or "").strip()
 
     if not company_code or company_code.upper() == "ALL":
@@ -705,9 +719,10 @@ def get_optional_company(company_code):
 
 def get_optional_branch(branch_code):
     """
-    Returns None when All Branches is selected.
-    Otherwise, returns the selected branch object.
+    Return None when All Branches is selected.
+    Otherwise, return the selected branch object.
     """
+
     branch_code = (branch_code or "").strip()
 
     if not branch_code or branch_code.upper() == "ALL":
@@ -719,6 +734,60 @@ def get_optional_branch(branch_code):
     )
 
 
+def get_user_master_context():
+    """
+    Shared dropdown data for User Master list and form templates.
+    """
+
+    return {
+        "departments": (
+            sys_dep_master.objects
+            .all()
+            .order_by("dep_code")
+        ),
+        "branches": (
+            sys_bra_master.objects
+            .all()
+            .order_by("bra_code")
+        ),
+        "companies": (
+            sys_cmp_master.objects
+            .all()
+            .order_by("cmp_code")
+        ),
+        "access_groups": (
+            Group.objects
+            .all()
+            .order_by("name")
+        ),
+    }
+
+
+def get_submitted_system_privileges(request):
+    """
+    Read Active, Staff and Superuser values from the submitted form.
+
+    Only an existing superuser may grant or remove Staff/Superuser
+    privileges. A normal user-manager can still activate/deactivate
+    accounts but cannot elevate system-level privileges.
+    """
+
+    is_active = request.POST.get("is_active") == "on"
+
+    if request.user.is_superuser:
+        is_staff = request.POST.get("is_staff") == "on"
+        is_superuser = request.POST.get("is_superuser") == "on"
+    else:
+        is_staff = False
+        is_superuser = False
+
+    # A Django superuser should also be staff.
+    if is_superuser:
+        is_staff = True
+
+    return is_active, is_staff, is_superuser
+
+
 def sync_django_auth_user(
     user_obj,
     first_name,
@@ -727,50 +796,73 @@ def sync_django_auth_user(
     old_login_id=None,
 ):
     """
-    Creates or updates the corresponding Django authentication user.
+    Create or update the corresponding django.contrib.auth User.
 
-    old_login_id is used during edit so the existing auth_user username
-    can be renamed instead of creating an unnecessary duplicate.
+    This synchronizes:
+    - username and email
+    - first and last name
+    - active/staff/superuser flags
+    - password or unusable password
+    - assigned Django Group
     """
+
     login_id = (user_obj.usr_loginID or "").strip().lower()
 
     django_user = None
 
     if old_login_id:
-        django_user = User.objects.filter(
-            username__iexact=old_login_id
-        ).first()
+        django_user = (
+            User.objects
+            .filter(username__iexact=old_login_id)
+            .first()
+        )
 
     if django_user is None:
-        django_user = User.objects.filter(
-            username__iexact=login_id
-        ).first()
+        django_user = (
+            User.objects
+            .filter(username__iexact=login_id)
+            .first()
+        )
 
     if django_user is None:
         django_user = User(username=login_id)
 
     django_user.username = login_id
-    django_user.email = (user_obj.usr_email or "").strip().lower()
+    django_user.email = (
+        user_obj.usr_email or ""
+    ).strip().lower()
+
     django_user.first_name = first_name
     django_user.last_name = last_name
-    django_user.is_active = True
 
-    if (user_obj.usr_auth or "").upper() == "LOCAL_DB":
+    django_user.is_active = user_obj.usr_is_active
+    django_user.is_staff = user_obj.usr_is_staff
+    django_user.is_superuser = user_obj.usr_is_superuser
+
+    auth_type = (user_obj.usr_auth or "").strip().upper()
+
+    if auth_type == "LOCAL_DB":
         if raw_password:
             django_user.set_password(raw_password)
+
         elif not django_user.pk:
             django_user.set_unusable_password()
+
     else:
+        # SSO users do not authenticate using a local password.
         django_user.set_unusable_password()
 
     django_user.save()
 
+    # One access group per VMS user.
     django_user.groups.clear()
 
     if user_obj.usr_access_group:
-        group = Group.objects.filter(
-            id=user_obj.usr_access_group
-        ).first()
+        group = (
+            Group.objects
+            .filter(pk=user_obj.usr_access_group)
+            .first()
+        )
 
         if group:
             django_user.groups.add(group)
@@ -778,15 +870,11 @@ def sync_django_auth_user(
     return django_user
 
 
-def get_user_master_context():
-    return {
-        "departments": sys_dep_master.objects.all().order_by("dep_code"),
-        "branches": sys_bra_master.objects.all().order_by("bra_code"),
-        "companies": sys_cmp_master.objects.all().order_by("cmp_code"),
-        "access_groups": Group.objects.all().order_by("name"),
-    }
-
-
+@login_required
+@permission_required(
+    "masters.view_sys_usr_system",
+    raise_exception=True,
+)
 def user_master_list(request):
     users = (
         sys_usr_system.objects
@@ -809,6 +897,11 @@ def user_master_list(request):
     )
 
 
+@login_required
+@permission_required(
+    "masters.add_sys_usr_system",
+    raise_exception=True,
+)
 @transaction.atomic
 def user_master_create(request):
     context = get_user_master_context()
@@ -821,46 +914,87 @@ def user_master_create(request):
             context,
         )
 
-    auth_type = (request.POST.get("auth_type") or "").strip().upper()
+    auth_type = (
+        request.POST.get("auth_type") or ""
+    ).strip().upper()
+
     password = request.POST.get("password")
 
-    first_name = (request.POST.get("first_name") or "").strip()
-    last_name = (request.POST.get("last_name") or "").strip()
+    is_active, is_staff, is_superuser = (
+        get_submitted_system_privileges(request)
+    )
+
+    first_name = (
+        request.POST.get("first_name") or ""
+    ).strip()
+
+    last_name = (
+        request.POST.get("last_name") or ""
+    ).strip()
+
     full_name = f"{first_name} {last_name}".strip()
 
-    login_id = (request.POST.get("login_id") or "").strip().lower()
-    email = (request.POST.get("email") or "").strip().lower()
+    login_id = (
+        request.POST.get("login_id") or ""
+    ).strip().lower()
 
-    employee_id = (request.POST.get("employee_id") or "").strip()
+    email = (
+        request.POST.get("email") or ""
+    ).strip().lower()
 
-    department_code = request.POST.get("department")
+    employee_id = (
+        request.POST.get("employee_id") or ""
+    ).strip()
+
+    department_code = (
+        request.POST.get("department") or ""
+    ).strip()
+
     company_code = request.POST.get("company")
     branch_code = request.POST.get("branch")
 
-    department = get_object_or_404(
-        sys_dep_master,
-        dep_code=department_code,
-    )
+    access_group_id = (
+        request.POST.get("access_group") or ""
+    ).strip()
 
-    company = get_optional_company(company_code)
-    branch = get_optional_branch(branch_code)
+    # -----------------------------------------------------
+    # Validation
+    # -----------------------------------------------------
 
     if not login_id:
         messages.error(request, "Login ID is required.")
+        return redirect("user_master_list")
+
+    if not email:
+        messages.error(request, "Email is required.")
         return redirect("user_master_list")
 
     if not full_name:
         messages.error(request, "User name is required.")
         return redirect("user_master_list")
 
+    if not department_code:
+        messages.error(request, "Department is required.")
+        return redirect("user_master_list")
+
     if auth_type not in ["SSO", "LOCAL_DB"]:
-        messages.error(request, "Please select a valid authentication type.")
+        messages.error(
+            request,
+            "Please select a valid authentication type.",
+        )
         return redirect("user_master_list")
 
     if auth_type == "LOCAL_DB" and not password:
         messages.error(
             request,
             "Password is required for a Local DB user.",
+        )
+        return redirect("user_master_list")
+
+    if not access_group_id and not is_superuser:
+        messages.error(
+            request,
+            "Access Group is required for a non-superuser account.",
         )
         return redirect("user_master_list")
 
@@ -873,6 +1007,16 @@ def user_master_create(request):
         )
         return redirect("user_master_list")
 
+    if User.objects.filter(
+        username__iexact=login_id
+    ).exists():
+        messages.error(
+            request,
+            f"A Django authentication user with Login ID "
+            f"{login_id} already exists.",
+        )
+        return redirect("user_master_list")
+
     if sys_usr_system.objects.filter(
         usr_email__iexact=email
     ).exists():
@@ -882,29 +1026,63 @@ def user_master_create(request):
         )
         return redirect("user_master_list")
 
-    # For non-employees, the Login ID is used as the unique PNO-style value.
     usr_pno = employee_id or login_id
 
-    if sys_usr_system.objects.filter(usr_pno=usr_pno).exists():
+    if sys_usr_system.objects.filter(
+        usr_pno=usr_pno
+    ).exists():
         messages.error(
             request,
             f"A user with PNO/identifier {usr_pno} already exists.",
         )
         return redirect("user_master_list")
 
+    department = get_object_or_404(
+        sys_dep_master,
+        dep_code=department_code,
+    )
+
+    company = get_optional_company(company_code)
+    branch = get_optional_branch(branch_code)
+
+    if access_group_id:
+        access_group = Group.objects.filter(
+            pk=access_group_id
+        ).first()
+
+        if not access_group:
+            messages.error(
+                request,
+                "The selected Access Group does not exist.",
+            )
+            return redirect("user_master_list")
+
+    # -----------------------------------------------------
+    # Create VMS user
+    # -----------------------------------------------------
+
     user_obj = sys_usr_system(
         usr_pno=usr_pno,
         usr_name=full_name,
-        usr_designation=(request.POST.get("designation") or "").strip(),
+        usr_designation=(
+            request.POST.get("designation") or ""
+        ).strip(),
         usr_dep_code=department,
-        usr_mobile=(request.POST.get("mobile") or "").strip() or None,
+        usr_mobile=(
+            request.POST.get("mobile") or ""
+        ).strip() or None,
         usr_email=email,
-        usr_phone=(request.POST.get("phone") or "").strip() or None,
+        usr_phone=(
+            request.POST.get("phone") or ""
+        ).strip() or None,
         usr_loginID=login_id,
         usr_auth=auth_type,
-        usr_access_group=request.POST.get("access_group") or "",
+        usr_access_group=access_group_id,
         usr_bra_code=branch,
         usr_company=company,
+        usr_is_active=is_active,
+        usr_is_staff=is_staff,
+        usr_is_superuser=is_superuser,
     )
 
     if auth_type == "LOCAL_DB":
@@ -921,10 +1099,19 @@ def user_master_create(request):
         raw_password=password,
     )
 
-    messages.success(request, "User created successfully.")
+    messages.success(
+        request,
+        "User created successfully.",
+    )
+
     return redirect("user_master_list")
 
 
+@login_required
+@permission_required(
+    "masters.change_sys_usr_system",
+    raise_exception=True,
+)
 @transaction.atomic
 def user_master_update(request, pk):
     user_obj = get_object_or_404(
@@ -942,8 +1129,11 @@ def user_master_update(request, pk):
         user_obj.first_name_display = (
             name_parts[0] if name_parts else ""
         )
+
         user_obj.last_name_display = (
-            name_parts[1] if len(name_parts) > 1 else ""
+            name_parts[1]
+            if len(name_parts) > 1
+            else ""
         )
 
         return render(
@@ -954,41 +1144,130 @@ def user_master_update(request, pk):
 
     old_login_id = user_obj.usr_loginID
 
-    auth_type = (request.POST.get("auth_type") or "").strip().upper()
+    linked_django_user = (
+        User.objects
+        .filter(username__iexact=old_login_id)
+        .first()
+    )
+
+    auth_type = (
+        request.POST.get("auth_type") or ""
+    ).strip().upper()
+
     password = request.POST.get("password")
 
-    first_name = (request.POST.get("first_name") or "").strip()
-    last_name = (request.POST.get("last_name") or "").strip()
+    submitted_active = (
+        request.POST.get("is_active") == "on"
+    )
+
+    # Only superusers can modify Staff and Superuser flags.
+    if request.user.is_superuser:
+        submitted_staff = (
+            request.POST.get("is_staff") == "on"
+        )
+        submitted_superuser = (
+            request.POST.get("is_superuser") == "on"
+        )
+    else:
+        submitted_staff = user_obj.usr_is_staff
+        submitted_superuser = user_obj.usr_is_superuser
+
+    if submitted_superuser:
+        submitted_staff = True
+
+    # -----------------------------------------------------
+    # Protect the currently logged-in account
+    # -----------------------------------------------------
+
+    editing_own_account = (
+        linked_django_user is not None
+        and linked_django_user.pk == request.user.pk
+    )
+
+    if editing_own_account:
+        if not submitted_active:
+            messages.error(
+                request,
+                "You cannot deactivate your own account.",
+            )
+            return redirect("user_master_list")
+
+        if request.user.is_superuser and not submitted_superuser:
+            messages.error(
+                request,
+                "You cannot remove your own superuser status.",
+            )
+            return redirect("user_master_list")
+
+        if request.user.is_staff and not submitted_staff:
+            messages.error(
+                request,
+                "You cannot remove your own staff status.",
+            )
+            return redirect("user_master_list")
+
+    first_name = (
+        request.POST.get("first_name") or ""
+    ).strip()
+
+    last_name = (
+        request.POST.get("last_name") or ""
+    ).strip()
+
     full_name = f"{first_name} {last_name}".strip()
 
-    login_id = (request.POST.get("login_id") or "").strip().lower()
-    email = (request.POST.get("email") or "").strip().lower()
+    login_id = (
+        request.POST.get("login_id") or ""
+    ).strip().lower()
 
-    employee_id = (request.POST.get("employee_id") or "").strip()
+    email = (
+        request.POST.get("email") or ""
+    ).strip().lower()
 
-    department = get_object_or_404(
-        sys_dep_master,
-        dep_code=request.POST.get("department"),
-    )
+    employee_id = (
+        request.POST.get("employee_id") or ""
+    ).strip()
 
-    company = get_optional_company(
-        request.POST.get("company")
-    )
+    department_code = (
+        request.POST.get("department") or ""
+    ).strip()
 
-    branch = get_optional_branch(
-        request.POST.get("branch")
-    )
+    access_group_id = (
+        request.POST.get("access_group") or ""
+    ).strip()
+
+    # -----------------------------------------------------
+    # Validation
+    # -----------------------------------------------------
 
     if not login_id:
         messages.error(request, "Login ID is required.")
+        return redirect("user_master_list")
+
+    if not email:
+        messages.error(request, "Email is required.")
         return redirect("user_master_list")
 
     if not full_name:
         messages.error(request, "User name is required.")
         return redirect("user_master_list")
 
+    if not department_code:
+        messages.error(request, "Department is required.")
+        return redirect("user_master_list")
+
     if auth_type not in ["SSO", "LOCAL_DB"]:
-        messages.error(request, "Please select a valid authentication type.")
+        messages.error(
+            request,
+            "Please select a valid authentication type.",
+        )
+        return redirect("user_master_list")
+
+    if not access_group_id and not submitted_superuser:
+        messages.error(
+            request,
+            "Access Group is required for a non-superuser account.",
+        )
         return redirect("user_master_list")
 
     duplicate_login = (
@@ -1002,6 +1281,24 @@ def user_master_update(request, pk):
         messages.error(
             request,
             f"A user with Login ID {login_id} already exists.",
+        )
+        return redirect("user_master_list")
+
+    duplicate_auth_user = (
+        User.objects
+        .filter(username__iexact=login_id)
+    )
+
+    if linked_django_user:
+        duplicate_auth_user = duplicate_auth_user.exclude(
+            pk=linked_django_user.pk
+        )
+
+    if duplicate_auth_user.exists():
+        messages.error(
+            request,
+            f"A Django authentication user with Login ID "
+            f"{login_id} already exists.",
         )
         return redirect("user_master_list")
 
@@ -1035,6 +1332,35 @@ def user_master_update(request, pk):
         )
         return redirect("user_master_list")
 
+    department = get_object_or_404(
+        sys_dep_master,
+        dep_code=department_code,
+    )
+
+    company = get_optional_company(
+        request.POST.get("company")
+    )
+
+    branch = get_optional_branch(
+        request.POST.get("branch")
+    )
+
+    if access_group_id:
+        access_group = Group.objects.filter(
+            pk=access_group_id
+        ).first()
+
+        if not access_group:
+            messages.error(
+                request,
+                "The selected Access Group does not exist.",
+            )
+            return redirect("user_master_list")
+
+    # -----------------------------------------------------
+    # Update VMS user
+    # -----------------------------------------------------
+
     user_obj.usr_pno = usr_pno
     user_obj.usr_name = full_name
     user_obj.usr_designation = (
@@ -1050,11 +1376,13 @@ def user_master_update(request, pk):
     ).strip() or None
     user_obj.usr_loginID = login_id
     user_obj.usr_auth = auth_type
-    user_obj.usr_access_group = (
-        request.POST.get("access_group") or ""
-    )
+    user_obj.usr_access_group = access_group_id
     user_obj.usr_bra_code = branch
     user_obj.usr_company = company
+
+    user_obj.usr_is_active = submitted_active
+    user_obj.usr_is_staff = submitted_staff
+    user_obj.usr_is_superuser = submitted_superuser
 
     if auth_type == "LOCAL_DB":
         if password:
@@ -1072,10 +1400,19 @@ def user_master_update(request, pk):
         old_login_id=old_login_id,
     )
 
-    messages.success(request, "User updated successfully.")
+    messages.success(
+        request,
+        "User updated successfully.",
+    )
+
     return redirect("user_master_list")
 
 
+@login_required
+@permission_required(
+    "masters.delete_sys_usr_system",
+    raise_exception=True,
+)
 @transaction.atomic
 def user_master_delete(request, pk):
     user_obj = get_object_or_404(
@@ -1083,15 +1420,152 @@ def user_master_delete(request, pk):
         pk=pk,
     )
 
-    if request.method == "POST":
-        login_id = user_obj.usr_loginID
+    if request.method != "POST":
+        return redirect("user_master_list")
 
-        User.objects.filter(
-            username__iexact=login_id
-        ).delete()
+    linked_django_user = (
+        User.objects
+        .filter(username__iexact=user_obj.usr_loginID)
+        .first()
+    )
 
-        user_obj.delete()
+    if (
+        linked_django_user
+        and linked_django_user.pk == request.user.pk
+    ):
+        messages.error(
+            request,
+            "You cannot delete your own logged-in account.",
+        )
+        return redirect("user_master_list")
 
-        messages.success(request, "User deleted successfully.")
+    if (
+        user_obj.usr_is_superuser
+        and not request.user.is_superuser
+    ):
+        messages.error(
+            request,
+            "Only a superuser can delete another superuser.",
+        )
+        return redirect("user_master_list")
+
+    if linked_django_user:
+        linked_django_user.delete()
+
+    user_obj.delete()
+
+    messages.success(
+        request,
+        "User deleted successfully.",
+    )
 
     return redirect("user_master_list")
+
+# access group views
+
+@login_required
+@permission_required("auth.view_group", raise_exception=True)
+def access_group_list(request):
+    groups = (
+        Group.objects
+        .prefetch_related("permissions", "user_set")
+        .all()
+        .order_by("name")
+    )
+
+    permissions = (
+        Permission.objects
+        .select_related("content_type")
+        .exclude(content_type__app_label__in=[
+            "admin",
+            "contenttypes",
+            "sessions",
+            "sites",
+            "account",
+            "socialaccount",
+        ])
+        .order_by(
+            "content_type__app_label",
+            "content_type__model",
+            "codename",
+        )
+    )
+
+    grouped_permissions = defaultdict(list)
+
+    for permission in permissions:
+        app_label = permission.content_type.app_label
+        model_name = permission.content_type.model
+
+        group_key = f"{app_label}.{model_name}"
+
+        grouped_permissions[group_key].append(permission)
+
+    grouped_permissions = dict(grouped_permissions)
+
+    return render(
+        request,
+        "masters/access_group_list.html",
+        {
+            "groups": groups,
+            "grouped_permissions": grouped_permissions,
+        },
+    )
+
+@login_required
+@permission_required("auth.add_group", raise_exception=True)
+def access_group_create(request):
+    if request.method == "POST":
+
+        group_name = request.POST.get("group_name", "").strip()
+
+        if Group.objects.filter(name=group_name).exists():
+            messages.error(request, "Access group already exists.")
+            return redirect("access_group_list")
+
+        group = Group.objects.create(name=group_name)
+
+        permission_ids = request.POST.getlist("permissions")
+
+        group.permissions.set(
+            Permission.objects.filter(id__in=permission_ids)
+        )
+
+        messages.success(request, "Access group created successfully.")
+
+    return redirect("access_group_list")
+
+@login_required
+@permission_required("auth.change_group", raise_exception=True)
+def access_group_update(request, pk):
+    group = get_object_or_404(Group, pk=pk)
+
+    if request.method == "POST":
+
+        group.name = request.POST.get("group_name").strip()
+        group.save()
+
+        permission_ids = request.POST.getlist("permissions")
+
+        group.permissions.set(
+            Permission.objects.filter(id__in=permission_ids)
+        )
+
+        messages.success(request, "Access group updated successfully.")
+
+    return redirect("access_group_list")
+
+@login_required
+@permission_required("auth.delete_group", raise_exception=True)
+def access_group_delete(request, pk):
+    group = get_object_or_404(Group, pk=pk)
+
+    if request.method == "POST":
+        group.delete()
+
+        messages.success(
+            request,
+            "Access group deleted successfully."
+        )
+
+    return redirect("access_group_list")

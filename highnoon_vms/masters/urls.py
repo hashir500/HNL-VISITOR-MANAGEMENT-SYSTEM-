@@ -2,21 +2,25 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # company urls
     path("companies/", views.company_list, name="company_list"),
     path("companies/create/", views.company_create, name="company_create"),
     path("companies/update/<int:pk>/", views.company_update, name="company_update"),
     path("companies/delete/<int:pk>/", views.company_delete, name="company_delete"),
 
+    #branches urls
     path("branches/", views.branch_list, name="branch_list"),
     path("branches/create/", views.branch_create, name="branch_create"),
     path("branches/update/<int:pk>/", views.branch_update, name="branch_update"),
     path("branches/delete/<int:pk>/", views.branch_delete, name="branch_delete"),
 
+    # divison urls
     path("divisions/", views.division_list, name="division_list"),
     path("divisions/create/", views.division_create, name="division_create"),
     path("divisions/update/<int:pk>/", views.division_update, name="division_update"),
     path("divisions/delete/<int:pk>/", views.division_delete, name="division_delete"),
 
+    # department urls
     path("departments/", views.department_master_list, name="department_master_list"),
     path("departments/create/", views.department_master_create, name="department_master_create"),
     path("departments/update/<int:pk>/", views.department_master_update, name="department_master_update"),
@@ -25,6 +29,7 @@ urlpatterns = [
     path("departments/import/process/", views.department_import_process, name="department_import_process"),
     path("departments/delete-all/",views.department_delete_all,name="department_delete_all"),
 
+    # employee urls
     path("employees/", views.employee_master_list, name="employee_master_list"),
     path("employees/create/", views.employee_master_create, name="employee_master_create"),
     path("employees/update/<int:pk>/", views.employee_master_update, name="employee_master_update"),
@@ -33,15 +38,23 @@ urlpatterns = [
     path("employees/import/process/", views.employee_import_process, name="employee_import_process"),
     path("employees/delete-all/",views.employee_delete_all,name="employee_delete_all"),
 
+    # purpose urls
     path("purposes/", views.purpose_list, name="purpose_list"),
     path("purposes/create/", views.purpose_create, name="purpose_create"),
     path("purposes/update/<int:pk>/", views.purpose_update, name="purpose_update"),
     path("purposes/delete/<int:pk>/", views.purpose_delete, name="purpose_delete"),
 
+    # users urls
     path("users/", views.user_master_list, name="user_master_list"),
     path("users/add/", views.user_master_create, name="user_master_create"),
     path("users/<int:pk>/edit/", views.user_master_update, name="user_master_update"),
     path("users/<int:pk>/delete/", views.user_master_delete, name="user_master_delete"),
     path("users/fetch-employee/<str:emp_pno>/", views.fetch_employee_details, name="fetch_employee_details"),
+
+    # access group urls
+    path("access-groups/", views.access_group_list, name="access_group_list"),
+    path("access-groups/add/", views.access_group_create, name="access_group_create"),
+    path("access-groups/<int:pk>/edit/", views.access_group_update, name="access_group_update"),
+    path("access-groups/<int:pk>/delete/", views.access_group_delete, name="access_group_delete"),
     
 ]
