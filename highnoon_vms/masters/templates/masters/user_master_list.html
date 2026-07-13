@@ -103,7 +103,7 @@
 
                 <div class="mt-1">
                   {% if user.usr_auth == "SSO" %}
-                    <span class="badge bg-info">SSO</span>
+                    <span class="badge auth-local-badge2">SSO</span>
                   {% else %}
                     <span class="badge auth-local-badge">Local DB</span>
                   {% endif %}
@@ -1326,6 +1326,15 @@
     background-color: var(--hn-orange);
   }
 
+   .auth-local-badge2 {
+    background: #002b5c !important;
+    color: #ffffff !important;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+  }
   .auth-local-badge {
     background: #f26322 !important;
     color: #ffffff !important;
