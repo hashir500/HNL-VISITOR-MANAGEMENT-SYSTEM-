@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>{{ report_title }}</title>
+
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: #1f2937;
+      font-family: Arial, sans-serif;
+      font-size: 8pt;
+    }
+
+    .report-container {
+      width: 100%;
+      border: 1.5px solid #4b5563;
+      padding: 10px;
+    }
+
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 10px 0;
+    }
+
+    .header-table td {
+      border: none;
+      vertical-align: top;
+    }
+
+    .published-cell {
+      width: 28%;
+      padding: 5px 8px;
+      font-size: 7.5pt;
+      line-height: 1.6;
+    }
+
+    .title-cell {
+      width: 44%;
+      padding: 5px 8px;
+      text-align: center;
+    }
+
+    .page-cell {
+      width: 28%;
+      padding: 5px 8px;
+      text-align: right;
+      font-size: 7.5pt;
+      font-weight: bold;
+    }
+
+    .company-name {
+      font-size: 11pt;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .report-title {
+      margin-top: 5px;
+      font-size: 13pt;
+      font-weight: bold;
+    }
+
+    .header-divider {
+      border-bottom: 2px solid #4b5563;
+      padding-bottom: 10px;
+    }
+
+    .meta-label {
+      font-weight: bold;
+    }
+
+    .filter-table {
+      width: 100%;
+      margin: 8px 0 12px 0;
+      border-collapse: collapse;
+      background: #f8fafc;
+    }
+
+    .filter-table td {
+      padding: 6px 8px;
+      border: 1px solid #d1d5db;
+      font-size: 7.5pt;
+    }
+
+    .filter-label {
+      font-weight: bold;
+      color: #374151;
+    }
+
+    .stats-table {
+      width: 100%;
+      margin: 0 0 12px 0;
+      border-collapse: collapse;
+    }
+
+    .stats-table td {
+      width: 33.33%;
+      padding: 8px;
+      border: 1px solid #d1d5db;
+      text-align: center;
+      background: #f8fafc;
+    }
+
+    .stat-label {
+      display: block;
+      margin-bottom: 4px;
+      color: #6b7280;
+      font-size: 7.5pt;
+    }
+
+    .stat-value {
+      display: block;
+      color: #111827;
+      font-size: 12pt;
+      font-weight: bold;
+    }
+
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+      font-size: 8pt;
+    }
+
+    .summary-table th,
+    .summary-table td {
+      padding: 6px;
+      border: 1px solid #9ca3af;
+    }
+
+    .summary-table th {
+      background: #e5e7eb;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    .summary-table .number-column {
+      text-align: center;
+    }
+
+    .empty-row {
+      padding: 14px !important;
+      color: #6b7280;
+      text-align: center;
+    }
+
+    .footer-note {
+      margin-top: 12px;
+      padding-top: 8px;
+      border-top: 1px solid #d1d5db;
+      color: #6b7280;
+      font-size: 7pt;
+      text-align: center;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <div class="report-container">
+
+    <!-- Header -->
+    <div class="header-divider">
+
+      <table class="header-table">
+
+        <tr>
+
+          <td class="published-cell">
+
+            <span class="meta-label">
+              Published
+            </span>
+
+            <br>
+
+            <span class="meta-label">
+              Date:
+            </span>
+
+            {{ published_date }}
+
+            <br>
+
+            <span class="meta-label">
+              Time:
+            </span>
+
+            {{ published_time }}
+
+            <br>
+
+            <span class="meta-label">
+              By:
+            </span>
+
+            {{ generated_by }}
+
+          </td>
+
+          <td class="title-cell">
+
+            <div class="company-name">
+              Highnoon Laboratories Limited
+            </div>
+
+            <div class="report-title">
+              {{ report_title }}
+            </div>
+
+          </td>
+
+          <td class="page-cell">
+            Page
+            <pdf:pagenumber>
+            of
+            <pdf:pagecount>
+          </td>
+
+        </tr>
+
+      </table>
+
+    </div>
+
+    <!-- Applied Filters -->
+    <table class="filter-table">
+
+      <tr>
+
+        <td>
+          <span class="filter-label">
+            Company:
+          </span>
+
+          {% if selected_company == "ALL" %}
+            All Companies
+          {% else %}
+            {{ selected_company }}
+          {% endif %}
+        </td>
+
+        <td>
+          <span class="filter-label">
+            Branch:
+          </span>
+
+          {% if selected_branch == "ALL" %}
+            All Branches
+          {% else %}
+            {{ selected_branch }}
+          {% endif %}
+        </td>
+
+        <td>
+          <span class="filter-label">
+            Purpose:
+          </span>
+
+          {% if selected_purpose == "ALL" %}
+            All Purposes
+          {% else %}
+            Filtered Purpose
+          {% endif %}
+        </td>
+
+      </tr>
+
+    </table>
+
+    <!-- Report Totals -->
+    <table class="stats-table">
+
+      <tr>
+
+        <td>
+
+          <span class="stat-label">
+            Unique Visitors
+          </span>
+
+          <span class="stat-value">
+            {{ total_unique_visitors|default:0 }}
+          </span>
+
+        </td>
+
+        <td>
+
+          <span class="stat-label">
+            Total Visits
+          </span>
+
+          <span class="stat-value">
+            {{ total_visits|default:0 }}
+          </span>
+
+        </td>
+
+        <td>
+
+          <span class="stat-label">
+            Overall Average Visit Time
+          </span>
+
+          <span class="stat-value">
+            {{ overall_average_duration_display|default:"-" }}
+          </span>
+
+        </td>
+
+      </tr>
+
+    </table>
+
+    <!-- Summary Table -->
+    <table class="summary-table">
+
+      <thead>
+
+        <tr>
+          <th>Purpose</th>
+          <th class="number-column">
+            No. of Visitors
+          </th>
+          <th class="number-column">
+            Total Visits
+          </th>
+          <th class="number-column">
+            Average Visit Time
+          </th>
+        </tr>
+
+      </thead>
+
+      <tbody>
+
+        {% for row in summary_rows %}
+        <tr>
+
+          <td>
+            {{ row.purpose }}
+          </td>
+
+          <td class="number-column">
+            {{ row.visitor_count }}
+          </td>
+
+          <td class="number-column">
+            {{ row.total_visits }}
+          </td>
+
+          <td class="number-column">
+            {{ row.average_duration_display }}
+          </td>
+
+        </tr>
+
+        {% empty %}
+        <tr>
+
+          <td
+            colspan="4"
+            class="empty-row">
+
+            No visit records were found for the selected filters.
+          </td>
+
+        </tr>
+        {% endfor %}
+
+      </tbody>
+
+    </table>
+
+    <div class="footer-note">
+      This report was generated by the Highnoon Visitor Management System.
+    </div>
+
+  </div>
+
+</body>
+
+</html>

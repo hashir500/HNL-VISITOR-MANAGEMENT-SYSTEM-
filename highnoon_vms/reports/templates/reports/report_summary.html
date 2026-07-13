@@ -1,0 +1,793 @@
+{% extends "base.html" %}
+
+{% block title %}Report Summary{% endblock %}
+{% block breadcrumb %}Reports / Summary{% endblock %}
+{% block page_heading %}Report Summary{% endblock %}
+
+{% block content %}
+
+<div class="card mb-4">
+
+  <div class="card-header px-4 py-3">
+    <div>
+      <h6 class="mb-1">
+        Generate Summary Report
+      </h6>
+
+      <p class="text-sm text-secondary mb-0">
+        View visitor statistics grouped by visit purpose
+      </p>
+    </div>
+  </div>
+
+  <div class="card-body pt-0">
+
+    {% if not has_report_access %}
+    <div class="alert alert-warning mb-4">
+      <i class="fa-solid fa-triangle-exclamation me-2"></i>
+
+      Your account is not linked with a valid User Master record.
+      Contact an administrator to assign Company and Branch access.
+    </div>
+    {% endif %}
+
+    <form
+      method="GET"
+      action="{% url 'report_summary' %}"
+      id="summaryReportForm">
+
+      <div class="row g-3">
+
+        <!-- Report Type -->
+        <div class="col-xl-3 col-lg-4 col-md-6">
+
+          <label class="form-label">
+            Report Type
+            <span class="text-danger">*</span>
+          </label>
+
+          <select
+            name="report_type"
+            id="reportType"
+            class="form-control report-select"
+            required>
+
+            <option value="">
+              Select Report Type
+            </option>
+
+            <option
+              value="daily"
+              {% if report_type == "daily" %}selected{% endif %}>
+              Daily
+            </option>
+
+            <option
+              value="weekly"
+              {% if report_type == "weekly" %}selected{% endif %}>
+              Weekly
+            </option>
+
+            <option
+              value="monthly"
+              {% if report_type == "monthly" %}selected{% endif %}>
+              Monthly
+            </option>
+
+            <option
+              value="yearly"
+              {% if report_type == "yearly" %}selected{% endif %}>
+              Yearly
+            </option>
+
+            <option
+              value="custom"
+              {% if report_type == "custom" %}selected{% endif %}>
+              Custom Date Range
+            </option>
+
+          </select>
+
+        </div>
+
+        <!-- Daily -->
+        <div
+          class="col-xl-3 col-lg-4 col-md-6 report-date-field"
+          id="dailyField">
+
+          <label class="form-label">
+            Select Date
+            <span class="text-danger">*</span>
+          </label>
+
+          <input
+            type="date"
+            name="date"
+            id="dailyDate"
+            class="form-control"
+            value="{{ selected_date }}">
+
+        </div>
+
+        <!-- Weekly -->
+        <div
+          class="col-xl-3 col-lg-4 col-md-6 report-date-field"
+          id="weeklyField">
+
+          <label class="form-label">
+            Week Start Date
+            <span class="text-danger">*</span>
+          </label>
+
+          <input
+            type="date"
+            name="week_start"
+            id="weekStart"
+            class="form-control"
+            value="{{ selected_week_start }}">
+
+          <small class="text-muted">
+            The report covers seven days from this date.
+          </small>
+
+        </div>
+
+        <!-- Monthly -->
+        <div
+          class="col-xl-3 col-lg-4 col-md-6 report-date-field"
+          id="monthlyField">
+
+          <label class="form-label">
+            Select Month
+            <span class="text-danger">*</span>
+          </label>
+
+          <input
+            type="month"
+            name="month"
+            id="selectedMonth"
+            class="form-control"
+            value="{{ selected_month }}">
+
+        </div>
+
+        <!-- Yearly -->
+        <div
+          class="col-xl-3 col-lg-4 col-md-6 report-date-field"
+          id="yearlyField">
+
+          <label class="form-label">
+            Select Year
+            <span class="text-danger">*</span>
+          </label>
+
+          <input
+            type="number"
+            name="year"
+            id="selectedYear"
+            class="form-control"
+            value="{{ selected_year }}"
+            min="2000"
+            max="2100"
+            step="1">
+
+        </div>
+
+        <!-- Custom Start -->
+        <div
+          class="col-xl-3 col-lg-4 col-md-6 report-date-field custom-field"
+          id="customStartField">
+
+          <label class="form-label">
+            Start Date
+            <span class="text-danger">*</span>
+          </label>
+
+          <input
+            type="date"
+            name="start_date"
+            id="customStartDate"
+            class="form-control"
+            value="{{ selected_start_date }}">
+
+        </div>
+
+        <!-- Custom End -->
+        <div
+          class="col-xl-3 col-lg-4 col-md-6 report-date-field custom-field"
+          id="customEndField">
+
+          <label class="form-label">
+            End Date
+            <span class="text-danger">*</span>
+          </label>
+
+          <input
+            type="date"
+            name="end_date"
+            id="customEndDate"
+            class="form-control"
+            value="{{ selected_end_date }}">
+
+        </div>
+
+        <!-- Company -->
+        {% if can_select_company %}
+        <div class="col-xl-3 col-lg-4 col-md-6">
+
+          <label class="form-label">
+            Company
+          </label>
+
+          <select
+            name="company"
+            id="companyFilter"
+            class="form-control report-select">
+
+            <option value="ALL">
+              All Companies
+            </option>
+
+            {% for company in companies %}
+            <option
+              value="{{ company.cmp_code }}"
+              {% if selected_company == company.cmp_code %}selected{% endif %}>
+
+              {{ company.cmp_code }} - {{ company.cmp_desc }}
+            </option>
+            {% endfor %}
+
+          </select>
+
+        </div>
+        {% else %}
+        <input
+          type="hidden"
+          name="company"
+          value="{{ selected_company }}">
+        {% endif %}
+
+        <!-- Branch -->
+        {% if can_select_branch %}
+        <div class="col-xl-3 col-lg-4 col-md-6">
+
+          <label class="form-label">
+            Branch
+          </label>
+
+          <select
+            name="branch"
+            id="branchFilter"
+            class="form-control report-select">
+
+            <option value="ALL">
+              All Branches
+            </option>
+
+            {% for branch in branches %}
+            <option
+              value="{{ branch.bra_code }}"
+              {% if selected_branch == branch.bra_code %}selected{% endif %}>
+
+              {{ branch.bra_code }} - {{ branch.bra_desc }}
+            </option>
+            {% endfor %}
+
+          </select>
+
+        </div>
+        {% else %}
+        <input
+          type="hidden"
+          name="branch"
+          value="{{ selected_branch }}">
+        {% endif %}
+
+        <!-- Purpose -->
+        <div class="col-xl-3 col-lg-4 col-md-6">
+
+          <label class="form-label">
+            Purpose
+          </label>
+
+          <select
+            name="purpose"
+            id="purposeFilter"
+            class="form-control report-select">
+
+            <option value="ALL">
+              All Purposes
+            </option>
+
+            {% for purpose in purposes %}
+            <option
+              value="{{ purpose.pur_id }}"
+              {% if selected_purpose == purpose.pur_id|stringformat:"s" %}selected{% endif %}>
+
+              {{ purpose.pur_purpose }}
+            </option>
+            {% endfor %}
+
+          </select>
+
+        </div>
+
+        <!-- Buttons -->
+        <div class="col-12">
+
+          <div class="d-flex justify-content-end flex-wrap gap-2">
+
+            <a
+              href="{% url 'report_summary' %}"
+              class="btn btn-secondary btn-sm mb-0 px-4">
+
+              <i class="fa-solid fa-rotate-left me-1"></i>
+              Reset
+            </a>
+
+            <button
+              type="submit"
+              class="btn btn-primary btn-sm mb-0 px-4"
+              {% if not has_report_access %}disabled{% endif %}>
+
+              <i class="fa-solid fa-chart-column me-1"></i>
+              Generate Summary
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </form>
+
+  </div>
+</div>
+
+{% if report_generated %}
+
+<!-- Report Header -->
+<div class="card mb-4">
+
+  <div class="card-header px-4 py-3">
+
+    <div class="summary-result-header">
+
+      <div>
+
+        <h6 class="mb-1">
+          {{ report_title }}
+        </h6>
+
+        <p class="text-sm text-secondary mb-0">
+          Published {{ published_date }} at {{ published_time }}
+          &nbsp;|&nbsp;
+          Generated by {{ generated_by }}
+        </p>
+
+      </div>
+
+      {% if perms.reports.download_reports %}
+      <a
+        href="{% url 'download_summary_pdf' %}?{{ request.GET.urlencode }}"
+        class="btn btn-primary btn-sm mb-0">
+
+        <i class="fa-solid fa-download me-1"></i>
+        Download PDF
+      </a>
+      {% endif %}
+
+    </div>
+
+  </div>
+
+  <!-- Access Information -->
+  {% if not can_select_company or not can_select_branch %}
+  <div class="px-4 pb-3">
+
+    <div class="report-access-summary">
+
+      <i class="fa-solid fa-lock me-2"></i>
+
+      <span class="text-sm">
+
+        Showing records for
+
+        {% if not can_select_company %}
+          <strong>Company {{ selected_company }}</strong>
+        {% else %}
+          <strong>All Companies</strong>
+        {% endif %}
+
+        <span class="mx-1">•</span>
+
+        {% if not can_select_branch %}
+          <strong>Branch {{ selected_branch }}</strong>
+        {% else %}
+          <strong>All Branches</strong>
+        {% endif %}
+
+      </span>
+
+    </div>
+
+  </div>
+  {% endif %}
+
+  <!-- Summary Cards -->
+  <div class="card-body pt-0">
+
+    <div class="row g-3">
+
+      <div class="col-lg-4 col-md-6">
+
+        <div class="summary-stat-card">
+
+          <div class="summary-stat-icon">
+            <i class="fa-solid fa-users"></i>
+          </div>
+
+          <div>
+            <p class="text-sm text-secondary mb-1">
+              Unique Visitors
+            </p>
+
+            <h4 class="mb-0">
+              {{ total_unique_visitors|default:0 }}
+            </h4>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="col-lg-4 col-md-6">
+
+        <div class="summary-stat-card">
+
+          <div class="summary-stat-icon">
+            <i class="fa-solid fa-clipboard-list"></i>
+          </div>
+
+          <div>
+            <p class="text-sm text-secondary mb-1">
+              Total Visits
+            </p>
+
+            <h4 class="mb-0">
+              {{ total_visits|default:0 }}
+            </h4>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="col-lg-4 col-md-6">
+
+        <div class="summary-stat-card">
+
+          <div class="summary-stat-icon">
+            <i class="fa-solid fa-clock"></i>
+          </div>
+
+          <div>
+            <p class="text-sm text-secondary mb-1">
+              Overall Average Visit Time
+            </p>
+
+            <h4 class="mb-0">
+              {{ overall_average_duration_display|default:"-" }}
+            </h4>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Summary Table -->
+  <div class="card-body px-0 pt-0 pb-2">
+
+    <div class="table-responsive p-3">
+
+      <table class="table table-hover align-items-center mb-0 summary-table">
+
+        <thead>
+          <tr>
+            <th>Purpose</th>
+            <th class="text-center">No. of Visitors</th>
+            <th class="text-center">Total Visits</th>
+            <th class="text-center">Average Visit Time</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          {% for row in summary_rows %}
+          <tr>
+
+            <td>
+              <div class="purpose-cell">
+
+                <div class="purpose-icon">
+                  <i class="fa-solid fa-bullseye"></i>
+                </div>
+
+                <strong>
+                  {{ row.purpose }}
+                </strong>
+
+              </div>
+            </td>
+
+            <td class="text-center">
+              {{ row.visitor_count }}
+            </td>
+
+            <td class="text-center">
+              {{ row.total_visits }}
+            </td>
+
+            <td class="text-center">
+              {{ row.average_duration_display }}
+            </td>
+
+          </tr>
+
+          {% empty %}
+          <tr>
+            <td
+              colspan="4"
+              class="text-center text-muted py-4">
+
+              No visit records were found for the selected filters.
+            </td>
+          </tr>
+          {% endfor %}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</div>
+
+{% endif %}
+
+<style>
+  .report-date-field {
+    display: none;
+  }
+
+  .summary-result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .report-access-summary {
+    display: inline-flex;
+    align-items: center;
+    padding: 9px 13px;
+    border: 1px solid rgba(242, 99, 34, 0.2);
+    border-radius: 10px;
+    background: rgba(242, 99, 34, 0.06);
+    color: #67748e;
+  }
+
+  .report-access-summary i {
+    color: var(--hn-orange);
+  }
+
+  .summary-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    height: 100%;
+    min-height: 110px;
+    padding: 18px;
+    border: 1px solid #edf0f4;
+    border-radius: 14px;
+    background: #ffffff;
+  }
+
+  .summary-stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: rgba(242, 99, 34, 0.11);
+    color: var(--hn-orange);
+    font-size: 17px;
+  }
+
+  .summary-stat-card h4 {
+    color: #344767;
+    font-weight: 700;
+  }
+
+  .summary-table td {
+    vertical-align: middle;
+  }
+
+  .purpose-cell {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .purpose-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: rgba(52, 71, 103, 0.08);
+    color: #344767;
+    font-size: 12px;
+  }
+
+  .report-select + .select2-container {
+    width: 100% !important;
+  }
+
+  .select2-container--default
+  .select2-selection--single {
+    min-height: 42px;
+    border: 1px solid #d2d6da;
+    border-radius: 0.5rem;
+  }
+
+  .select2-container--default
+  .select2-selection--single
+  .select2-selection__rendered {
+    line-height: 42px;
+    padding-left: 14px;
+  }
+
+  .select2-container--default
+  .select2-selection--single
+  .select2-selection__arrow {
+    height: 42px;
+  }
+
+  @media (max-width: 767.98px) {
+    .summary-result-header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .summary-result-header .btn {
+      width: 100%;
+    }
+
+    .report-access-summary {
+      width: 100%;
+      align-items: flex-start;
+    }
+  }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+
+    $('.report-select').each(function () {
+      if ($(this).hasClass('select2-hidden-accessible')) {
+        $(this).select2('destroy');
+      }
+
+      $(this).select2({
+        width: '100%',
+        minimumResultsForSearch: 8
+      });
+    });
+
+    const reportType = document.getElementById('reportType');
+
+    const dailyField = document.getElementById('dailyField');
+    const weeklyField = document.getElementById('weeklyField');
+    const monthlyField = document.getElementById('monthlyField');
+    const yearlyField = document.getElementById('yearlyField');
+    const customStartField = document.getElementById('customStartField');
+    const customEndField = document.getElementById('customEndField');
+
+    const dailyDate = document.getElementById('dailyDate');
+    const weekStart = document.getElementById('weekStart');
+    const selectedMonth = document.getElementById('selectedMonth');
+    const selectedYear = document.getElementById('selectedYear');
+    const customStartDate = document.getElementById('customStartDate');
+    const customEndDate = document.getElementById('customEndDate');
+
+    function hideAllDateFields() {
+      [
+        dailyField,
+        weeklyField,
+        monthlyField,
+        yearlyField,
+        customStartField,
+        customEndField
+      ].forEach(function (field) {
+        field.style.display = 'none';
+      });
+
+      [
+        dailyDate,
+        weekStart,
+        selectedMonth,
+        selectedYear,
+        customStartDate,
+        customEndDate
+      ].forEach(function (field) {
+        field.removeAttribute('required');
+      });
+    }
+
+    function showSelectedDateFields() {
+      hideAllDateFields();
+
+      if (reportType.value === 'daily') {
+        dailyField.style.display = 'block';
+        dailyDate.setAttribute('required', true);
+      }
+
+      if (reportType.value === 'weekly') {
+        weeklyField.style.display = 'block';
+        weekStart.setAttribute('required', true);
+      }
+
+      if (reportType.value === 'monthly') {
+        monthlyField.style.display = 'block';
+        selectedMonth.setAttribute('required', true);
+      }
+
+      if (reportType.value === 'yearly') {
+        yearlyField.style.display = 'block';
+        selectedYear.setAttribute('required', true);
+      }
+
+      if (reportType.value === 'custom') {
+        customStartField.style.display = 'block';
+        customEndField.style.display = 'block';
+
+        customStartDate.setAttribute('required', true);
+        customEndDate.setAttribute('required', true);
+      }
+    }
+
+    reportType.addEventListener(
+      'change',
+      showSelectedDateFields
+    );
+
+    showSelectedDateFields();
+
+    $('#companyFilter, #branchFilter').on(
+      'change',
+      function () {
+        /*
+         * Do not automatically submit.
+         * The user may still want to select a purpose or period first.
+         */
+      }
+    );
+
+  });
+</script>
+{% endblock %}

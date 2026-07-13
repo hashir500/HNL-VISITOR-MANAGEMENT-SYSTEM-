@@ -1,128 +1,2806 @@
-from datetime import datetime, timedelta
+from calendar import monthrange
+from datetime import date, datetime, time, timedelta
+from urllib.parse import urlencode
 
+from django.contrib import messages
+from django.contrib.auth.decorators import (
+    login_required,
+    permission_required,
+)
+from django.db.models import (
+    Avg,
+    Count,
+    DurationField,
+    ExpressionWrapper,
+    F,
+    Q,
+)
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.template.loader import get_template
+from django.urls import reverse
 from django.utils import timezone
-from django.contrib.auth.decorators import login_required, permission_required
 
 from xhtml2pdf import pisa
 
+from masters.models import (
+    sys_bra_master,
+    sys_cmp_master,
+    sys_emp_master,
+    sys_pur_master,
+    sys_usr_system,
+)
+from visitors.models import visitor, visitor_card
 from visits.models import visit
 
 
-def get_filtered_report(request):
-    report_type = request.GET.get("report_type")
+from io import BytesIO
 
-    visits = visit.objects.all().order_by("-check_in_time")
-    report_title = "Visit Report"
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.platypus import (
+    BaseDocTemplate,
+    Frame,
+    PageTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+)
+
+
+# =========================================================
+# GENERAL HELPERS
+# =========================================================
+
+
+def normalize_filter_value(value):
+    """
+    Convert empty and ALL values into None.
+    """
+
+    value = (value or "").strip()
+
+    if not value or value.upper() == "ALL":
+        return None
+
+    return value
+
+
+def safe_parse_date(value, default_value=None):
+    """
+    Parse YYYY-MM-DD safely.
+    """
+
+    try:
+        return datetime.strptime(
+            value,
+            "%Y-%m-%d",
+        ).date()
+    except (TypeError, ValueError):
+        return default_value
+
+
+def safe_parse_month(value, default_value=None):
+    """
+    Parse YYYY-MM safely.
+
+    Returns:
+        (year, month)
+    """
+
+    try:
+        year_text, month_text = value.split("-")
+
+        year = int(year_text)
+        month = int(month_text)
+
+        if month < 1 or month > 12:
+            raise ValueError
+
+        return year, month
+
+    except (AttributeError, TypeError, ValueError):
+        if default_value:
+            return default_value.year, default_value.month
+
+        return None, None
+
+
+def safe_parse_year(value, default_value=None):
+    """
+    Parse a year safely.
+    """
+
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default_value
+
+
+def make_start_datetime(selected_date):
+    return timezone.make_aware(
+        datetime.combine(
+            selected_date,
+            time.min,
+        )
+    )
+
+
+def make_end_datetime(selected_date):
+    return timezone.make_aware(
+        datetime.combine(
+            selected_date,
+            time.max,
+        )
+    )
+
+
+def format_duration(duration_value):
+    """
+    Convert a timedelta into a readable duration.
+
+    Examples:
+        35 minutes
+        1 hr 20 mins
+        2 hrs 5 mins
+    """
+
+    if not duration_value:
+        return "-"
+
+    total_seconds = int(duration_value.total_seconds())
+
+    if total_seconds < 0:
+        return "-"
+
+    total_minutes = total_seconds // 60
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+
+    if hours and minutes:
+        hour_label = "hr" if hours == 1 else "hrs"
+        minute_label = "min" if minutes == 1 else "mins"
+
+        return (
+            f"{hours} {hour_label} "
+            f"{minutes} {minute_label}"
+        )
+
+    if hours:
+        hour_label = "hr" if hours == 1 else "hrs"
+        return f"{hours} {hour_label}"
+
+    minute_label = "min" if total_minutes == 1 else "mins"
+    return f"{total_minutes} {minute_label}"
+
+
+# =========================================================
+# COMPANY / BRANCH ACCESS
+# =========================================================
+
+
+def get_logged_in_vms_user(request):
+    """
+    Match the logged-in Django user with sys_usr_system.
+
+    A Django superuser is allowed unrestricted report access even
+    without a User Master record.
+    """
+
+    if request.user.is_superuser:
+        return None
+
+    login_id = (
+        request.user.username
+        or request.user.email
+        or ""
+    ).strip().lower()
+
+    return (
+        sys_usr_system.objects
+        .select_related(
+            "usr_company",
+            "usr_bra_code",
+        )
+        .filter(
+            usr_loginID__iexact=login_id
+        )
+        .first()
+    )
+
+
+def get_report_access_settings(request):
+    """
+    Resolve Company and Branch access.
+
+    Rules:
+    - Superuser: all companies and all branches.
+    - usr_company is None: all companies.
+    - usr_bra_code is None: all branches.
+    - Otherwise, access is restricted to assigned values.
+    """
+
+    if request.user.is_superuser:
+        return {
+            "has_access": True,
+            "user_master": None,
+            "can_select_company": True,
+            "can_select_branch": True,
+            "assigned_company_code": None,
+            "assigned_branch_code": None,
+        }
+
+    user_master = get_logged_in_vms_user(request)
+
+    if not user_master:
+        return {
+            "has_access": False,
+            "user_master": None,
+            "can_select_company": False,
+            "can_select_branch": False,
+            "assigned_company_code": None,
+            "assigned_branch_code": None,
+        }
+
+    company_code = (
+        user_master.usr_company.cmp_code
+        if user_master.usr_company
+        else None
+    )
+
+    branch_code = (
+        user_master.usr_bra_code.bra_code
+        if user_master.usr_bra_code
+        else None
+    )
+
+    return {
+        "has_access": True,
+        "user_master": user_master,
+        "can_select_company": (
+            user_master.usr_company is None
+        ),
+        "can_select_branch": (
+            user_master.usr_bra_code is None
+        ),
+        "assigned_company_code": company_code,
+        "assigned_branch_code": branch_code,
+    }
+
+
+def get_selected_company_branch(request, access):
+    """
+    Restricted users cannot bypass access rules through query strings.
+    """
+
+    if access["can_select_company"]:
+        selected_company = normalize_filter_value(
+            request.GET.get("company")
+        )
+    else:
+        selected_company = access[
+            "assigned_company_code"
+        ]
+
+    if access["can_select_branch"]:
+        selected_branch = normalize_filter_value(
+            request.GET.get("branch")
+        )
+    else:
+        selected_branch = access[
+            "assigned_branch_code"
+        ]
+
+    return selected_company, selected_branch
+
+
+def apply_report_access_filter(
+    queryset,
+    access,
+    selected_company=None,
+    selected_branch=None,
+):
+    """
+    Apply Company and Branch restrictions through the employee
+    attached to each visit.
+    """
+
+    if not access["has_access"]:
+        return queryset.none()
+
+    if not access["can_select_company"]:
+        selected_company = access[
+            "assigned_company_code"
+        ]
+
+    if not access["can_select_branch"]:
+        selected_branch = access[
+            "assigned_branch_code"
+        ]
+
+    if selected_company:
+        queryset = queryset.filter(
+            employee__emp_cmp__cmp_code=selected_company
+        )
+
+    if selected_branch:
+        queryset = queryset.filter(
+            employee__emp_bra_code__bra_code=selected_branch
+        )
+
+    return queryset
+
+
+def get_report_filter_options(
+    access,
+    selected_company=None,
+    selected_branch=None,
+):
+    """
+    Return dropdown data according to the logged-in user's access.
+    """
+
+    companies = (
+        sys_cmp_master.objects
+        .all()
+        .order_by("cmp_code")
+    )
+
+    branches = (
+        sys_bra_master.objects
+        .all()
+        .order_by("bra_code")
+    )
+
+    employees = (
+        sys_emp_master.objects
+        .select_related(
+            "emp_cmp",
+            "emp_bra_code",
+            "emp_dep_code",
+        )
+        .filter(emp_active=True)
+        .order_by("emp_name")
+    )
+
+    if not access["has_access"]:
+        return {
+            "companies": companies.none(),
+            "branches": branches.none(),
+            "employees": employees.none(),
+        }
+
+    if not access["can_select_company"]:
+        companies = companies.filter(
+            cmp_code=access["assigned_company_code"]
+        )
+
+        employees = employees.filter(
+            emp_cmp__cmp_code=access[
+                "assigned_company_code"
+            ]
+        )
+
+    elif selected_company:
+        employees = employees.filter(
+            emp_cmp__cmp_code=selected_company
+        )
+
+    if not access["can_select_branch"]:
+        branches = branches.filter(
+            bra_code=access["assigned_branch_code"]
+        )
+
+        employees = employees.filter(
+            emp_bra_code__bra_code=access[
+                "assigned_branch_code"
+            ]
+        )
+
+    elif selected_branch:
+        employees = employees.filter(
+            emp_bra_code__bra_code=selected_branch
+        )
+
+    return {
+        "companies": companies,
+        "branches": branches,
+        "employees": employees,
+    }
+
+
+# =========================================================
+# DATE FILTERS
+# =========================================================
+
+
+def get_report_date_range(request):
+    """
+    Resolve Daily, Weekly, Monthly, Yearly, or Custom date periods.
+
+    Returns:
+        start_datetime
+        end_datetime
+        report_title_suffix
+        selected filter context
+    """
+
+    today = timezone.localdate()
+
+    report_type = (
+        request.GET.get("report_type")
+        or ""
+    ).strip().lower()
+
+    selected_date = (
+        request.GET.get("date")
+        or today.strftime("%Y-%m-%d")
+    )
+
+    selected_week_start = (
+        request.GET.get("week_start")
+        or (
+            today - timedelta(
+                days=today.weekday()
+            )
+        ).strftime("%Y-%m-%d")
+    )
+
+    selected_month = (
+        request.GET.get("month")
+        or today.strftime("%Y-%m")
+    )
+
+    selected_year = (
+        request.GET.get("year")
+        or str(today.year)
+    )
+
+    selected_start_date = (
+        request.GET.get("start_date")
+        or today.strftime("%Y-%m-%d")
+    )
+
+    selected_end_date = (
+        request.GET.get("end_date")
+        or today.strftime("%Y-%m-%d")
+    )
+
+    start_datetime = None
+    end_datetime = None
+    title_suffix = ""
 
     if report_type == "daily":
-        selected_date = request.GET.get("date")
-        date_obj = datetime.strptime(selected_date, "%Y-%m-%d").date()
-
-        start_date_time = timezone.make_aware(
-            datetime.combine(date_obj, datetime.min.time())
-        )
-        end_date_time = timezone.make_aware(
-            datetime.combine(date_obj, datetime.max.time())
+        date_obj = safe_parse_date(
+            selected_date,
+            today,
         )
 
-        visits = visits.filter(check_in_time__range=(start_date_time, end_date_time))
-        report_title = f"Daily Visit Report - {date_obj.strftime('%d %B %Y')}"
+        start_datetime = make_start_datetime(
+            date_obj
+        )
+
+        end_datetime = make_end_datetime(
+            date_obj
+        )
+
+        title_suffix = date_obj.strftime(
+            "%d %B %Y"
+        )
 
     elif report_type == "weekly":
-        week_start = request.GET.get("week_start")
-        start_date = datetime.strptime(week_start, "%Y-%m-%d").date()
+        start_date = safe_parse_date(
+            selected_week_start,
+            today - timedelta(
+                days=today.weekday()
+            ),
+        )
+
         end_date = start_date + timedelta(days=6)
 
-        start_date_time = timezone.make_aware(
-            datetime.combine(start_date, datetime.min.time())
-        )
-        end_date_time = timezone.make_aware(
-            datetime.combine(end_date, datetime.max.time())
+        start_datetime = make_start_datetime(
+            start_date
         )
 
-        visits = visits.filter(check_in_time__range=(start_date_time, end_date_time))
-        report_title = f"Weekly Visit Report - {start_date.strftime('%d %B %Y')} to {end_date.strftime('%d %B %Y')}"
+        end_datetime = make_end_datetime(
+            end_date
+        )
+
+        title_suffix = (
+            f"{start_date.strftime('%d %B %Y')} "
+            f"to {end_date.strftime('%d %B %Y')}"
+        )
 
     elif report_type == "monthly":
-        selected_month = request.GET.get("month")
-        year, month = selected_month.split("-")
-
-        year = int(year)
-        month = int(month)
-
-        start_date = datetime(year, month, 1).date()
-
-        if month == 12:
-            end_date = datetime(year + 1, 1, 1).date()
-        else:
-            end_date = datetime(year, month + 1, 1).date()
-
-        start_date_time = timezone.make_aware(
-            datetime.combine(start_date, datetime.min.time())
-        )
-        end_date_time = timezone.make_aware(
-            datetime.combine(end_date, datetime.min.time())
+        year, month = safe_parse_month(
+            selected_month,
+            today,
         )
 
+        first_date = date(
+            year,
+            month,
+            1,
+        )
+
+        last_day = monthrange(
+            year,
+            month,
+        )[1]
+
+        last_date = date(
+            year,
+            month,
+            last_day,
+        )
+
+        start_datetime = make_start_datetime(
+            first_date
+        )
+
+        end_datetime = make_end_datetime(
+            last_date
+        )
+
+        title_suffix = first_date.strftime(
+            "%B %Y"
+        )
+
+    elif report_type == "yearly":
+        year = safe_parse_year(
+            selected_year,
+            today.year,
+        )
+
+        first_date = date(
+            year,
+            1,
+            1,
+        )
+
+        last_date = date(
+            year,
+            12,
+            31,
+        )
+
+        start_datetime = make_start_datetime(
+            first_date
+        )
+
+        end_datetime = make_end_datetime(
+            last_date
+        )
+
+        title_suffix = str(year)
+
+    elif report_type == "custom":
+        start_date = safe_parse_date(
+            selected_start_date,
+            today,
+        )
+
+        end_date = safe_parse_date(
+            selected_end_date,
+            today,
+        )
+
+        if end_date < start_date:
+            start_date, end_date = (
+                end_date,
+                start_date,
+            )
+
+        start_datetime = make_start_datetime(
+            start_date
+        )
+
+        end_datetime = make_end_datetime(
+            end_date
+        )
+
+        title_suffix = (
+            f"{start_date.strftime('%d %B %Y')} "
+            f"to {end_date.strftime('%d %B %Y')}"
+        )
+
+    return {
+        "report_type": report_type,
+        "start_datetime": start_datetime,
+        "end_datetime": end_datetime,
+        "title_suffix": title_suffix,
+        "selected_date": selected_date,
+        "selected_week_start": selected_week_start,
+        "selected_month": selected_month,
+        "selected_year": selected_year,
+        "selected_start_date": selected_start_date,
+        "selected_end_date": selected_end_date,
+    }
+
+
+def apply_date_filter(queryset, date_settings):
+    start_datetime = date_settings[
+        "start_datetime"
+    ]
+
+    end_datetime = date_settings[
+        "end_datetime"
+    ]
+
+    if start_datetime and end_datetime:
+        queryset = queryset.filter(
+            check_in_time__range=(
+                start_datetime,
+                end_datetime,
+            )
+        )
+
+    return queryset
+
+
+# =========================================================
+# SHARED VISIT QUERY
+# =========================================================
+
+
+def get_base_report_queryset():
+    return (
+        visit.objects
+        .select_related(
+            "visitor",
+            "employee",
+            "employee__emp_cmp",
+            "employee__emp_bra_code",
+            "employee__emp_dep_code",
+            "visitor_card",
+        )
+        .all()
+    )
+
+
+def get_filtered_history_queryset(request):
+    """
+    Return filtered visit rows for History and its PDF.
+    """
+
+    access = get_report_access_settings(
+        request
+    )
+
+    selected_company, selected_branch = (
+        get_selected_company_branch(
+            request,
+            access,
+        )
+    )
+
+    date_settings = get_report_date_range(
+        request
+    )
+
+    visits = get_base_report_queryset()
+
+    visits = apply_report_access_filter(
+        queryset=visits,
+        access=access,
+        selected_company=selected_company,
+        selected_branch=selected_branch,
+    )
+
+    visits = apply_date_filter(
+        visits,
+        date_settings,
+    )
+
+    selected_visitor = normalize_filter_value(
+        request.GET.get("visitor")
+    )
+
+    selected_employee = normalize_filter_value(
+        request.GET.get("employee")
+    )
+
+    selected_purpose = normalize_filter_value(
+        request.GET.get("purpose")
+    )
+
+    selected_status = normalize_filter_value(
+        request.GET.get("status")
+    )
+
+    selected_card = normalize_filter_value(
+        request.GET.get("card")
+    )
+
+    if selected_visitor:
         visits = visits.filter(
-            check_in_time__gte=start_date_time,
-            check_in_time__lt=end_date_time
+            visitor_id=selected_visitor
         )
 
-        report_title = f"Monthly Visit Report - {datetime(year, month, 1).strftime('%B %Y')}"
+    if selected_employee:
+        visits = visits.filter(
+            employee_id=selected_employee
+        )
 
-    return visits, report_title
+    if selected_purpose:
+        purpose_obj = (
+            sys_pur_master.objects
+            .filter(
+                pur_id=selected_purpose
+            )
+            .first()
+        )
+
+        if purpose_obj:
+            visits = visits.filter(
+                visit_purpose__iexact=(
+                    purpose_obj.pur_purpose
+                )
+            )
+
+    if selected_status:
+        visits = visits.filter(
+            status=selected_status
+        )
+
+    if selected_card:
+        visits = visits.filter(
+            visitor_card_id=selected_card
+        )
+
+    visits = visits.order_by(
+        "-check_in_time"
+    )
+
+    title_suffix = (
+        date_settings["title_suffix"]
+    )
+
+    report_title = "Visit History Report"
+
+    if title_suffix:
+        report_title = (
+            f"{report_title} - {title_suffix}"
+        )
+
+    return {
+        "visits": visits,
+        "report_title": report_title,
+        "access": access,
+        "selected_company": (
+            selected_company or "ALL"
+        ),
+        "selected_branch": (
+            selected_branch or "ALL"
+        ),
+        "selected_visitor": (
+            selected_visitor or "ALL"
+        ),
+        "selected_employee": (
+            selected_employee or "ALL"
+        ),
+        "selected_purpose": (
+            selected_purpose or "ALL"
+        ),
+        "selected_status": (
+            selected_status or "ALL"
+        ),
+        "selected_card": (
+            selected_card or "ALL"
+        ),
+        "date_settings": date_settings,
+    }
+
+
+def get_filtered_summary_queryset(request):
+    """
+    Return grouped Summary rows by visit purpose.
+    """
+
+    access = get_report_access_settings(
+        request
+    )
+
+    selected_company, selected_branch = (
+        get_selected_company_branch(
+            request,
+            access,
+        )
+    )
+
+    date_settings = get_report_date_range(
+        request
+    )
+
+    visits = get_base_report_queryset()
+
+    visits = apply_report_access_filter(
+        queryset=visits,
+        access=access,
+        selected_company=selected_company,
+        selected_branch=selected_branch,
+    )
+
+    visits = apply_date_filter(
+        visits,
+        date_settings,
+    )
+
+    selected_purpose = normalize_filter_value(
+        request.GET.get("purpose")
+    )
+
+    if selected_purpose:
+        purpose_obj = (
+            sys_pur_master.objects
+            .filter(
+                pur_id=selected_purpose
+            )
+            .first()
+        )
+
+        if purpose_obj:
+            visits = visits.filter(
+                visit_purpose__iexact=(
+                    purpose_obj.pur_purpose
+                )
+            )
+
+    visit_duration = ExpressionWrapper(
+        F("check_out_time")
+        - F("check_in_time"),
+        output_field=DurationField(),
+    )
+
+    summary_queryset = (
+        visits
+        .values("visit_purpose")
+        .annotate(
+            visitor_count=Count(
+                "visitor_id",
+                distinct=True,
+            ),
+            total_visits=Count(
+                "visit_id"
+            ),
+            average_duration=Avg(
+                visit_duration,
+                filter=Q(
+                    check_out_time__isnull=False
+                ),
+            ),
+        )
+        .order_by(
+            "-visitor_count",
+            "visit_purpose",
+        )
+    )
+
+    summary_rows = []
+
+    for item in summary_queryset:
+        summary_rows.append({
+            "purpose": (
+                item["visit_purpose"]
+                or "Not Specified"
+            ),
+            "visitor_count": (
+                item["visitor_count"]
+            ),
+            "total_visits": (
+                item["total_visits"]
+            ),
+            "average_duration": (
+                item["average_duration"]
+            ),
+            "average_duration_display": (
+                format_duration(
+                    item["average_duration"]
+                )
+            ),
+        })
+
+    total_unique_visitors = (
+        visits
+        .values("visitor_id")
+        .distinct()
+        .count()
+    )
+
+    total_visits = visits.count()
+
+    overall_average_duration = (
+        visits
+        .filter(
+            check_out_time__isnull=False
+        )
+        .aggregate(
+            average=Avg(
+                visit_duration
+            )
+        )["average"]
+    )
+
+    title_suffix = (
+        date_settings["title_suffix"]
+    )
+
+    report_title = "Visit Summary Report"
+
+    if title_suffix:
+        report_title = (
+            f"{report_title} - {title_suffix}"
+        )
+
+    return {
+        "summary_rows": summary_rows,
+        "report_title": report_title,
+        "access": access,
+        "selected_company": (
+            selected_company or "ALL"
+        ),
+        "selected_branch": (
+            selected_branch or "ALL"
+        ),
+        "selected_purpose": (
+            selected_purpose or "ALL"
+        ),
+        "date_settings": date_settings,
+        "total_unique_visitors": (
+            total_unique_visitors
+        ),
+        "total_visits": total_visits,
+        "overall_average_duration": (
+            overall_average_duration
+        ),
+        "overall_average_duration_display": (
+            format_duration(
+                overall_average_duration
+            )
+        ),
+    }
+
+
+# =========================================================
+# OLD URL REDIRECTS
+# =========================================================
 
 
 @login_required
-@permission_required("reports.view_reports", raise_exception=True)
-def report_page(request):
-    visits = None
-    report_title = None
-    report_generated = False
+@permission_required(
+    "reports.view_reports",
+    raise_exception=True,
+)
+def report_page_redirect(request):
+    """
+    Redirect the old Reports root to History.
+    Preserve any old query parameters.
+    """
 
-    if request.GET.get("report_type"):
-        visits, report_title = get_filtered_report(request)
-        report_generated = True
+    target_url = reverse(
+        "report_history"
+    )
 
-    return render(request, "reports/report_page.html", {
-        "visits": visits,
-        "report_title": report_title,
+    if request.GET:
+        target_url = (
+            f"{target_url}?"
+            f"{request.GET.urlencode()}"
+        )
+
+    return redirect(target_url)
+
+
+@login_required
+@permission_required(
+    "reports.download_reports",
+    raise_exception=True,
+)
+def download_report_pdf_redirect(request):
+    """
+    Redirect the old PDF download route to History PDF.
+    """
+
+    target_url = reverse(
+        "download_history_pdf"
+    )
+
+    if request.GET:
+        target_url = (
+            f"{target_url}?"
+            f"{request.GET.urlencode()}"
+        )
+
+    return redirect(target_url)
+
+
+# =========================================================
+# SUMMARY PAGE
+# =========================================================
+
+
+@login_required
+@permission_required(
+    "reports.view_reports",
+    raise_exception=True,
+)
+def report_summary(request):
+    access = get_report_access_settings(
+        request
+    )
+
+    selected_company, selected_branch = (
+        get_selected_company_branch(
+            request,
+            access,
+        )
+    )
+
+    filter_options = get_report_filter_options(
+        access=access,
+        selected_company=selected_company,
+        selected_branch=selected_branch,
+    )
+
+    date_settings = get_report_date_range(
+        request
+    )
+
+    report_generated = bool(
+        date_settings["report_type"]
+    )
+
+    summary_data = None
+
+    if report_generated:
+        summary_data = (
+            get_filtered_summary_queryset(
+                request
+            )
+        )
+
+    context = {
         "report_generated": report_generated,
-        "published_date": timezone.localtime().strftime("%d %B %Y"),
-        "published_time": timezone.localtime().strftime("%I:%M %p"),
-        "generated_by": request.user.username,
-        "selected_report_type": request.GET.get("report_type", ""),
-        "selected_date": request.GET.get("date", ""),
-        "selected_week_start": request.GET.get("week_start", ""),
-        "selected_month": request.GET.get("month", ""),
-    })
+        "has_report_access": access[
+            "has_access"
+        ],
+        "can_select_company": access[
+            "can_select_company"
+        ],
+        "can_select_branch": access[
+            "can_select_branch"
+        ],
+        "companies": filter_options[
+            "companies"
+        ],
+        "branches": filter_options[
+            "branches"
+        ],
+        "purposes": (
+            sys_pur_master.objects
+            .filter(pur_active=True)
+            .order_by("pur_purpose")
+        ),
+        "selected_company": (
+            selected_company or "ALL"
+        ),
+        "selected_branch": (
+            selected_branch or "ALL"
+        ),
+        "selected_purpose": (
+            request.GET.get("purpose")
+            or "ALL"
+        ),
+        "published_date": (
+            timezone.localtime()
+            .strftime("%d %B %Y")
+        ),
+        "published_time": (
+            timezone.localtime()
+            .strftime("%I:%M %p")
+        ),
+        "generated_by": (
+            request.user.username
+        ),
+        **date_settings,
+    }
+
+    if summary_data:
+        context.update(summary_data)
+
+    return render(
+        request,
+        "reports/report_summary.html",
+        context,
+    )
+
+
+# =========================================================
+# HISTORY PAGE
+# =========================================================
 
 
 @login_required
-@permission_required("reports.download_reports", raise_exception=True)
-def download_report_pdf(request):
-    visits, report_title = get_filtered_report(request)
+@permission_required(
+    "reports.view_reports",
+    raise_exception=True,
+)
+def report_history(request):
+    access = get_report_access_settings(
+        request
+    )
 
-    template = get_template("reports/pdf_reports.html")
+    selected_company, selected_branch = (
+        get_selected_company_branch(
+            request,
+            access,
+        )
+    )
 
-    html = template.render({
-        "visits": visits,
-        "report_title": report_title,
-        "published_date": timezone.localtime().strftime("%d %B %Y"),
-        "published_time": timezone.localtime().strftime("%I:%M %p"),
-        "generated_by": request.user.username,
-    })
+    filter_options = get_report_filter_options(
+        access=access,
+        selected_company=selected_company,
+        selected_branch=selected_branch,
+    )
 
-    response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = 'attachment; filename="visit_report.pdf"'
+    date_settings = get_report_date_range(
+        request
+    )
 
-    pisa_status = pisa.CreatePDF(html, dest=response)
+    report_generated = bool(
+        date_settings["report_type"]
+    )
+
+    history_data = None
+
+    if report_generated:
+        history_data = (
+            get_filtered_history_queryset(
+                request
+            )
+        )
+
+    context = {
+        "report_generated": report_generated,
+        "has_report_access": access[
+            "has_access"
+        ],
+        "can_select_company": access[
+            "can_select_company"
+        ],
+        "can_select_branch": access[
+            "can_select_branch"
+        ],
+        "companies": filter_options[
+            "companies"
+        ],
+        "branches": filter_options[
+            "branches"
+        ],
+        "employees": filter_options[
+            "employees"
+        ],
+        "visitors": (
+            visitor.objects
+            .all()
+            .order_by("visitor_name")
+        ),
+        "purposes": (
+            sys_pur_master.objects
+            .filter(pur_active=True)
+            .order_by("pur_purpose")
+        ),
+        "cards": (
+            visitor_card.objects
+            .all()
+            .order_by("CRD_No")
+        ),
+        "selected_company": (
+            selected_company or "ALL"
+        ),
+        "selected_branch": (
+            selected_branch or "ALL"
+        ),
+        "selected_visitor": (
+            request.GET.get("visitor")
+            or "ALL"
+        ),
+        "selected_employee": (
+            request.GET.get("employee")
+            or "ALL"
+        ),
+        "selected_purpose": (
+            request.GET.get("purpose")
+            or "ALL"
+        ),
+        "selected_status": (
+            request.GET.get("status")
+            or "ALL"
+        ),
+        "selected_card": (
+            request.GET.get("card")
+            or "ALL"
+        ),
+        "published_date": (
+            timezone.localtime()
+            .strftime("%d %B %Y")
+        ),
+        "published_time": (
+            timezone.localtime()
+            .strftime("%I:%M %p")
+        ),
+        "generated_by": (
+            request.user.username
+        ),
+        **date_settings,
+    }
+
+    if history_data:
+        context.update(history_data)
+
+    return render(
+        request,
+        "reports/report_history.html",
+        context,
+    )
+
+
+# =========================================================
+# PDF HELPERS
+# =========================================================
+
+
+def render_pdf_response(
+    template_name,
+    context,
+    filename,
+):
+    template = get_template(
+        template_name
+    )
+
+    html = template.render(
+        context
+    )
+
+    response = HttpResponse(
+        content_type="application/pdf"
+    )
+
+    response[
+        "Content-Disposition"
+    ] = (
+        f'attachment; filename="{filename}"'
+    )
+
+    pisa_status = pisa.CreatePDF(
+        html,
+        dest=response,
+    )
 
     if pisa_status.err:
-        return HttpResponse("Error generating PDF", status=500)
+        return HttpResponse(
+            "Error generating PDF.",
+            status=500,
+        )
+
+    return response
+
+
+# =========================================================
+# SUMMARY PDF
+# =========================================================
+
+
+@login_required
+@permission_required(
+    "reports.download_reports",
+    raise_exception=True,
+)
+def download_summary_pdf(request):
+    summary_data = (
+        get_filtered_summary_queryset(
+            request
+        )
+    )
+
+    context = {
+        **summary_data,
+        "published_date": (
+            timezone.localtime()
+            .strftime("%d %B %Y")
+        ),
+        "published_time": (
+            timezone.localtime()
+            .strftime("%I:%M %p")
+        ),
+        "generated_by": (
+            request.user.username
+        ),
+    }
+
+    return render_pdf_response(
+        template_name=(
+            "reports/pdf_summary_report.html"
+        ),
+        context=context,
+        filename="visit_summary_report.pdf",
+    )
+
+
+# =========================================================
+# HISTORY PDF
+# =========================================================
+
+
+
+def reportlab_safe_text(value, default="-"):
+    """
+    Convert a value into safe display text for ReportLab.
+    """
+    if value is None:
+        return default
+
+    text = str(value).strip()
+    return text if text else default
+
+
+def reportlab_filter_label(value, all_label):
+    """
+    Display a readable label for an ALL filter.
+    """
+    if not value or str(value).upper() == "ALL":
+        return all_label
+
+    return str(value)
+
+
+def draw_history_pdf_header_footer(canvas, doc):
+    """
+    Draw page number and footer on every A4 landscape page.
+    """
+    canvas.saveState()
+
+    page_width, page_height = landscape(A4)
+
+    canvas.setStrokeColor(colors.HexColor("#CBD5E1"))
+    canvas.setLineWidth(0.5)
+
+    canvas.line(
+        12 * mm,
+        10 * mm,
+        page_width - 12 * mm,
+        10 * mm,
+    )
+
+    canvas.setFillColor(colors.HexColor("#64748B"))
+    canvas.setFont("Helvetica", 7)
+
+    canvas.drawString(
+        12 * mm,
+        6 * mm,
+        "Generated by the Highnoon Visitor Management System",
+    )
+
+    canvas.drawRightString(
+        page_width - 12 * mm,
+        6 * mm,
+        f"Page {doc.page}",
+    )
+
+    canvas.restoreState()
+
+@login_required
+@permission_required(
+    "reports.download_reports",
+    raise_exception=True,
+)
+def download_history_pdf(request):
+    history_data = get_filtered_history_queryset(request)
+
+    visits = history_data["visits"]
+    report_title = history_data["report_title"]
+
+    selected_company = history_data["selected_company"]
+    selected_branch = history_data["selected_branch"]
+    selected_visitor = history_data["selected_visitor"]
+    selected_employee = history_data["selected_employee"]
+    selected_purpose = history_data["selected_purpose"]
+    selected_status = history_data["selected_status"]
+    selected_card = history_data["selected_card"]
+
+    buffer = BytesIO()
+
+    page_width, page_height = landscape(A4)
+
+    doc = BaseDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        leftMargin=10 * mm,
+        rightMargin=10 * mm,
+        topMargin=10 * mm,
+        bottomMargin=14 * mm,
+        title=report_title,
+        author=request.user.username,
+    )
+
+    content_frame = Frame(
+        doc.leftMargin,
+        doc.bottomMargin,
+        doc.width,
+        doc.height,
+        id="history_report_frame",
+    )
+
+    doc.addPageTemplates([
+        PageTemplate(
+            id="history_report_template",
+            pagesize=landscape(A4),
+            frames=[content_frame],
+            onPage=draw_history_pdf_header_footer,
+        )
+    ])
+
+    styles = getSampleStyleSheet()
+
+    company_style = ParagraphStyle(
+        name="HistoryCompany",
+        parent=styles["Heading2"],
+        alignment=TA_CENTER,
+        fontName="Helvetica-Bold",
+        fontSize=11,
+        leading=13,
+        spaceAfter=3,
+        textColor=colors.HexColor("#111827"),
+    )
+
+    title_style = ParagraphStyle(
+        name="HistoryTitle",
+        parent=styles["Heading1"],
+        alignment=TA_CENTER,
+        fontName="Helvetica-Bold",
+        fontSize=14,
+        leading=16,
+        spaceAfter=8,
+        textColor=colors.HexColor("#111827"),
+    )
+
+    normal_style = ParagraphStyle(
+        name="HistoryNormal",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=7,
+        leading=8.5,
+        textColor=colors.HexColor("#1F2937"),
+    )
+
+    small_style = ParagraphStyle(
+        name="HistorySmall",
+        parent=normal_style,
+        fontSize=6.5,
+        leading=7.5,
+    )
+
+    header_cell_style = ParagraphStyle(
+        name="HistoryHeaderCell",
+        parent=normal_style,
+        fontName="Helvetica-Bold",
+        fontSize=6.7,
+        leading=7.5,
+        textColor=colors.HexColor("#111827"),
+    )
+
+    story = []
+
+    # -----------------------------------------------------
+    # Report heading
+    # -----------------------------------------------------
+
+    story.append(
+        Paragraph(
+            "Highnoon Laboratories Limited",
+            company_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            report_title,
+            title_style,
+        )
+    )
+
+    published_date = timezone.localtime().strftime("%d %B %Y")
+    published_time = timezone.localtime().strftime("%I:%M %p")
+
+    publication_table = Table(
+        [[
+            Paragraph(
+                f"<b>Published Date:</b> {published_date}",
+                normal_style,
+            ),
+            Paragraph(
+                f"<b>Published Time:</b> {published_time}",
+                normal_style,
+            ),
+            Paragraph(
+                f"<b>Generated By:</b> "
+                f"{reportlab_safe_text(request.user.username)}",
+                normal_style,
+            ),
+        ]],
+        colWidths=[
+            doc.width / 3,
+            doc.width / 3,
+            doc.width / 3,
+        ],
+    )
+
+    publication_table.setStyle(TableStyle([
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, -1),
+            colors.HexColor("#F8FAFC"),
+        ),
+        (
+            "BOX",
+            (0, 0),
+            (-1, -1),
+            0.5,
+            colors.HexColor("#CBD5E1"),
+        ),
+        (
+            "INNERGRID",
+            (0, 0),
+            (-1, -1),
+            0.5,
+            colors.HexColor("#CBD5E1"),
+        ),
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "MIDDLE",
+        ),
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+    ]))
+
+    story.append(publication_table)
+    story.append(Spacer(1, 5))
+
+    # -----------------------------------------------------
+    # Applied filters
+    # -----------------------------------------------------
+
+    filter_data = [
+        [
+            Paragraph(
+                "<b>Company:</b> "
+                + reportlab_filter_label(
+                    selected_company,
+                    "All Companies",
+                ),
+                normal_style,
+            ),
+            Paragraph(
+                "<b>Branch:</b> "
+                + reportlab_filter_label(
+                    selected_branch,
+                    "All Branches",
+                ),
+                normal_style,
+            ),
+            Paragraph(
+                "<b>Visitor:</b> "
+                + reportlab_filter_label(
+                    selected_visitor,
+                    "All Visitors",
+                ),
+                normal_style,
+            ),
+            Paragraph(
+                "<b>Employee:</b> "
+                + reportlab_filter_label(
+                    selected_employee,
+                    "All Employees",
+                ),
+                normal_style,
+            ),
+        ],
+        [
+            Paragraph(
+                "<b>Purpose:</b> "
+                + reportlab_filter_label(
+                    selected_purpose,
+                    "All Purposes",
+                ),
+                normal_style,
+            ),
+            Paragraph(
+                "<b>Status:</b> "
+                + reportlab_filter_label(
+                    selected_status,
+                    "All Statuses",
+                ),
+                normal_style,
+            ),
+            Paragraph(
+                "<b>Card:</b> "
+                + reportlab_filter_label(
+                    selected_card,
+                    "All Cards",
+                ),
+                normal_style,
+            ),
+            Paragraph(
+                f"<b>Total Records:</b> {visits.count()}",
+                normal_style,
+            ),
+        ],
+    ]
+
+    filter_table = Table(
+        filter_data,
+        colWidths=[doc.width / 4] * 4,
+    )
+
+    filter_table.setStyle(TableStyle([
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, -1),
+            colors.HexColor("#F8FAFC"),
+        ),
+        (
+            "BOX",
+            (0, 0),
+            (-1, -1),
+            0.5,
+            colors.HexColor("#94A3B8"),
+        ),
+        (
+            "INNERGRID",
+            (0, 0),
+            (-1, -1),
+            0.5,
+            colors.HexColor("#CBD5E1"),
+        ),
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "TOP",
+        ),
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+    ]))
+
+    story.append(filter_table)
+    story.append(Spacer(1, 7))
+
+    # -----------------------------------------------------
+    # History table
+    # -----------------------------------------------------
+
+    table_data = [[
+        Paragraph("ID", header_cell_style),
+        Paragraph("Visitor", header_cell_style),
+        Paragraph("Phone", header_cell_style),
+        Paragraph("CNIC", header_cell_style),
+        Paragraph("Employee", header_cell_style),
+        Paragraph("Dept.", header_cell_style),
+        Paragraph("Company", header_cell_style),
+        Paragraph("Branch", header_cell_style),
+        Paragraph("Card", header_cell_style),
+        Paragraph("Purpose", header_cell_style),
+        Paragraph("Check In", header_cell_style),
+        Paragraph("Check Out", header_cell_style),
+        Paragraph("Status", header_cell_style),
+    ]]
+
+    for visit_obj in visits:
+        employee = visit_obj.employee
+        visitor_obj = visit_obj.visitor
+        card_obj = visit_obj.visitor_card
+
+        employee_text = reportlab_safe_text(
+            employee.emp_name
+        )
+
+        if employee.emp_pno:
+            employee_text += (
+                f"<br/><font size='6'>"
+                f"PNO: {employee.emp_pno}"
+                f"</font>"
+            )
+
+        department_code = (
+            employee.emp_dep_code.dep_code
+            if employee.emp_dep_code
+            else "-"
+        )
+
+        company_code = (
+            employee.emp_cmp.cmp_code
+            if employee.emp_cmp
+            else "-"
+        )
+
+        branch_code = (
+            employee.emp_bra_code.bra_code
+            if employee.emp_bra_code
+            else "-"
+        )
+
+        card_number = (
+            card_obj.CRD_No
+            if card_obj
+            else "-"
+        )
+
+        check_in_display = (
+            timezone.localtime(
+                visit_obj.check_in_time
+            ).strftime("%d %b %Y, %I:%M %p")
+            if visit_obj.check_in_time
+            else "-"
+        )
+
+        check_out_display = (
+            timezone.localtime(
+                visit_obj.check_out_time
+            ).strftime("%d %b %Y, %I:%M %p")
+            if visit_obj.check_out_time
+            else "-"
+        )
+
+        table_data.append([
+            Paragraph(
+                str(visit_obj.visit_id),
+                small_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    visitor_obj.visitor_name
+                ),
+                small_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    visitor_obj.visitor_phone
+                ),
+                small_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    visitor_obj.visitor_cnic
+                ),
+                small_style,
+            ),
+            Paragraph(
+                employee_text,
+                small_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    department_code
+                ),
+                small_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    company_code
+                ),
+                small_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    branch_code
+                ),
+                small_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    card_number
+                ),
+                small_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    visit_obj.visit_purpose
+                ),
+                small_style,
+            ),
+            Paragraph(
+                check_in_display,
+                small_style,
+            ),
+            Paragraph(
+                check_out_display,
+                small_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    visit_obj.status
+                ),
+                small_style,
+            ),
+        ])
+
+    if len(table_data) == 1:
+        table_data.append([
+            Paragraph(
+                "No visit records were found for the selected filters.",
+                normal_style,
+            ),
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+        ])
+
+    column_widths = [
+        9 * mm,    # ID
+        24 * mm,   # Visitor
+        20 * mm,   # Phone
+        23 * mm,   # CNIC
+        31 * mm,   # Employee
+        13 * mm,   # Department
+        14 * mm,   # Company
+        15 * mm,   # Branch
+        14 * mm,   # Card
+        27 * mm,   # Purpose
+        31 * mm,   # Check In
+        31 * mm,   # Check Out
+        19 * mm,   # Status
+    ]
+
+    history_table = Table(
+        table_data,
+        colWidths=column_widths,
+        repeatRows=1,
+        hAlign="LEFT",
+    )
+
+    table_style_commands = [
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, 0),
+            colors.HexColor("#E2E8F0"),
+        ),
+        (
+            "TEXTCOLOR",
+            (0, 0),
+            (-1, 0),
+            colors.HexColor("#111827"),
+        ),
+        (
+            "BOX",
+            (0, 0),
+            (-1, -1),
+            0.5,
+            colors.HexColor("#64748B"),
+        ),
+        (
+            "INNERGRID",
+            (0, 0),
+            (-1, -1),
+            0.35,
+            colors.HexColor("#94A3B8"),
+        ),
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "TOP",
+        ),
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            3,
+        ),
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            3,
+        ),
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            4,
+        ),
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            4,
+        ),
+        (
+            "ALIGN",
+            (0, 0),
+            (0, -1),
+            "CENTER",
+        ),
+        (
+            "ALIGN",
+            (5, 0),
+            (8, -1),
+            "CENTER",
+        ),
+        (
+            "ALIGN",
+            (12, 0),
+            (12, -1),
+            "CENTER",
+        ),
+    ]
+
+    if len(table_data) == 2 and not visits.exists():
+        table_style_commands.append(
+            (
+                "SPAN",
+                (0, 1),
+                (-1, 1),
+            )
+        )
+
+        table_style_commands.append(
+            (
+                "ALIGN",
+                (0, 1),
+                (-1, 1),
+                "CENTER",
+            )
+        )
+
+    history_table.setStyle(
+        TableStyle(table_style_commands)
+    )
+
+    story.append(history_table)
+
+    doc.build(story)
+
+    pdf_value = buffer.getvalue()
+    buffer.close()
+
+    response = HttpResponse(
+        pdf_value,
+        content_type="application/pdf",
+    )
+
+    response["Content-Disposition"] = (
+        'attachment; filename="visit_history_report.pdf"'
+    )
+
+    return response
+
+
+# =========================================================
+# HISTORY PDF — REPORTLAB A4 LANDSCAPE
+# =========================================================
+
+
+def reportlab_safe_text(value, default="-"):
+    if value is None:
+        return default
+
+    text = str(value).strip()
+    return text if text else default
+
+
+def reportlab_filter_label(value, all_label):
+    if not value or str(value).upper() == "ALL":
+        return all_label
+
+    return str(value)
+
+
+def draw_history_pdf_footer(canvas, doc):
+    page_width, _ = landscape(A4)
+
+    canvas.saveState()
+
+    canvas.setStrokeColor(
+        colors.HexColor("#CBD5E1")
+    )
+    canvas.setLineWidth(0.5)
+
+    canvas.line(
+        10 * mm,
+        10 * mm,
+        page_width - 10 * mm,
+        10 * mm,
+    )
+
+    canvas.setFillColor(
+        colors.HexColor("#64748B")
+    )
+    canvas.setFont(
+        "Helvetica",
+        7,
+    )
+
+    canvas.drawString(
+        10 * mm,
+        6 * mm,
+        "Generated by the Highnoon Visitor Management System",
+    )
+
+    canvas.drawRightString(
+        page_width - 10 * mm,
+        6 * mm,
+        f"Page {doc.page}",
+    )
+
+    canvas.restoreState()
+
+
+@login_required
+@permission_required(
+    "reports.download_reports",
+    raise_exception=True,
+)
+def download_history_pdf(request):
+    history_data = get_filtered_history_queryset(
+        request
+    )
+
+    # Evaluate the queryset once.
+    visits = list(history_data["visits"])
+
+    report_title = history_data["report_title"]
+
+    selected_company = history_data[
+        "selected_company"
+    ]
+    selected_branch = history_data[
+        "selected_branch"
+    ]
+    selected_visitor = history_data[
+        "selected_visitor"
+    ]
+    selected_employee = history_data[
+        "selected_employee"
+    ]
+    selected_purpose = history_data[
+        "selected_purpose"
+    ]
+    selected_status = history_data[
+        "selected_status"
+    ]
+    selected_card = history_data[
+        "selected_card"
+    ]
+
+    buffer = BytesIO()
+
+    # True A4 landscape:
+    # 841.89 × 595.28 points.
+    pdf_page_size = landscape(A4)
+
+    doc = BaseDocTemplate(
+        buffer,
+        pagesize=pdf_page_size,
+        leftMargin=9 * mm,
+        rightMargin=9 * mm,
+        topMargin=9 * mm,
+        bottomMargin=15 * mm,
+        title=report_title,
+        author=request.user.username,
+        subject="Visitor history report",
+    )
+
+    frame = Frame(
+        doc.leftMargin,
+        doc.bottomMargin,
+        doc.width,
+        doc.height,
+        leftPadding=0,
+        rightPadding=0,
+        topPadding=0,
+        bottomPadding=0,
+        id="history_frame",
+    )
+
+    doc.addPageTemplates([
+        PageTemplate(
+            id="a4_landscape_history",
+            pagesize=pdf_page_size,
+            frames=[frame],
+            onPage=draw_history_pdf_footer,
+        )
+    ])
+
+    styles = getSampleStyleSheet()
+
+    company_style = ParagraphStyle(
+        name="HistoryCompanyName",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=12,
+        leading=14,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#111827"),
+        spaceAfter=3,
+    )
+
+    title_style = ParagraphStyle(
+        name="HistoryReportTitle",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=15,
+        leading=18,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#111827"),
+        spaceAfter=8,
+    )
+
+    normal_style = ParagraphStyle(
+        name="HistoryNormalText",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=7.5,
+        leading=9,
+        textColor=colors.HexColor("#1F2937"),
+    )
+
+    table_text_style = ParagraphStyle(
+        name="HistoryTableText",
+        parent=normal_style,
+        fontSize=7.2,
+        leading=8.4,
+    )
+
+    header_style = ParagraphStyle(
+        name="HistoryTableHeader",
+        parent=normal_style,
+        fontName="Helvetica-Bold",
+        fontSize=7.2,
+        leading=8.4,
+        textColor=colors.HexColor("#111827"),
+    )
+
+    story = []
+
+    # -----------------------------------------------------
+    # Heading
+    # -----------------------------------------------------
+
+    story.append(
+        Paragraph(
+            "Highnoon Laboratories Limited",
+            company_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            report_title,
+            title_style,
+        )
+    )
+
+    current_time = timezone.localtime()
+
+    publication_data = [[
+        Paragraph(
+            (
+                f"<b>Published Date:</b> "
+                f"{current_time.strftime('%d %B %Y')}"
+            ),
+            normal_style,
+        ),
+        Paragraph(
+            (
+                f"<b>Published Time:</b> "
+                f"{current_time.strftime('%I:%M %p')}"
+            ),
+            normal_style,
+        ),
+        Paragraph(
+            (
+                f"<b>Generated By:</b> "
+                f"{reportlab_safe_text(request.user.username)}"
+            ),
+            normal_style,
+        ),
+    ]]
+
+    publication_table = Table(
+        publication_data,
+        colWidths=[doc.width / 3] * 3,
+        hAlign="LEFT",
+    )
+
+    publication_table.setStyle(
+        TableStyle([
+            (
+                "BACKGROUND",
+                (0, 0),
+                (-1, -1),
+                colors.HexColor("#F8FAFC"),
+            ),
+            (
+                "BOX",
+                (0, 0),
+                (-1, -1),
+                0.6,
+                colors.HexColor("#94A3B8"),
+            ),
+            (
+                "INNERGRID",
+                (0, 0),
+                (-1, -1),
+                0.4,
+                colors.HexColor("#CBD5E1"),
+            ),
+            (
+                "VALIGN",
+                (0, 0),
+                (-1, -1),
+                "MIDDLE",
+            ),
+            (
+                "LEFTPADDING",
+                (0, 0),
+                (-1, -1),
+                6,
+            ),
+            (
+                "RIGHTPADDING",
+                (0, 0),
+                (-1, -1),
+                6,
+            ),
+            (
+                "TOPPADDING",
+                (0, 0),
+                (-1, -1),
+                6,
+            ),
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                6,
+            ),
+        ])
+    )
+
+    story.append(publication_table)
+    story.append(Spacer(1, 6))
+
+    # -----------------------------------------------------
+    # Filters
+    # -----------------------------------------------------
+
+    filter_data = [
+        [
+            Paragraph(
+                (
+                    "<b>Company:</b> "
+                    + reportlab_filter_label(
+                        selected_company,
+                        "All Companies",
+                    )
+                ),
+                normal_style,
+            ),
+            Paragraph(
+                (
+                    "<b>Branch:</b> "
+                    + reportlab_filter_label(
+                        selected_branch,
+                        "All Branches",
+                    )
+                ),
+                normal_style,
+            ),
+            Paragraph(
+                (
+                    "<b>Visitor:</b> "
+                    + reportlab_filter_label(
+                        selected_visitor,
+                        "All Visitors",
+                    )
+                ),
+                normal_style,
+            ),
+            Paragraph(
+                (
+                    "<b>Employee:</b> "
+                    + reportlab_filter_label(
+                        selected_employee,
+                        "All Employees",
+                    )
+                ),
+                normal_style,
+            ),
+        ],
+        [
+            Paragraph(
+                (
+                    "<b>Purpose:</b> "
+                    + reportlab_filter_label(
+                        selected_purpose,
+                        "All Purposes",
+                    )
+                ),
+                normal_style,
+            ),
+            Paragraph(
+                (
+                    "<b>Status:</b> "
+                    + reportlab_filter_label(
+                        selected_status,
+                        "All Statuses",
+                    )
+                ),
+                normal_style,
+            ),
+            Paragraph(
+                (
+                    "<b>Card:</b> "
+                    + reportlab_filter_label(
+                        selected_card,
+                        "All Cards",
+                    )
+                ),
+                normal_style,
+            ),
+            Paragraph(
+                f"<b>Total Records:</b> {len(visits)}",
+                normal_style,
+            ),
+        ],
+    ]
+
+    filter_table = Table(
+        filter_data,
+        colWidths=[doc.width / 4] * 4,
+        hAlign="LEFT",
+    )
+
+    filter_table.setStyle(
+        TableStyle([
+            (
+                "BACKGROUND",
+                (0, 0),
+                (-1, -1),
+                colors.HexColor("#F8FAFC"),
+            ),
+            (
+                "BOX",
+                (0, 0),
+                (-1, -1),
+                0.6,
+                colors.HexColor("#94A3B8"),
+            ),
+            (
+                "INNERGRID",
+                (0, 0),
+                (-1, -1),
+                0.4,
+                colors.HexColor("#CBD5E1"),
+            ),
+            (
+                "VALIGN",
+                (0, 0),
+                (-1, -1),
+                "TOP",
+            ),
+            (
+                "LEFTPADDING",
+                (0, 0),
+                (-1, -1),
+                6,
+            ),
+            (
+                "RIGHTPADDING",
+                (0, 0),
+                (-1, -1),
+                6,
+            ),
+            (
+                "TOPPADDING",
+                (0, 0),
+                (-1, -1),
+                5,
+            ),
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                5,
+            ),
+        ])
+    )
+
+    story.append(filter_table)
+    story.append(Spacer(1, 8))
+
+    # -----------------------------------------------------
+    # History rows
+    # -----------------------------------------------------
+
+    table_data = [[
+        Paragraph("ID", header_style),
+        Paragraph("Visitor", header_style),
+        Paragraph("Phone", header_style),
+        Paragraph("CNIC", header_style),
+        Paragraph("Employee", header_style),
+        Paragraph("Dept.", header_style),
+        Paragraph("Company", header_style),
+        Paragraph("Branch", header_style),
+        Paragraph("Card", header_style),
+        Paragraph("Purpose", header_style),
+        Paragraph("Check In", header_style),
+        Paragraph("Check Out", header_style),
+        Paragraph("Status", header_style),
+    ]]
+
+    for visit_obj in visits:
+        visitor_obj = visit_obj.visitor
+        employee_obj = visit_obj.employee
+        card_obj = visit_obj.visitor_card
+
+        employee_text = reportlab_safe_text(
+            employee_obj.emp_name
+        )
+
+        if employee_obj.emp_pno:
+            employee_text += (
+                f"<br/><font size='6.4'>"
+                f"PNO: {employee_obj.emp_pno}"
+                f"</font>"
+            )
+
+        department_code = (
+            employee_obj.emp_dep_code.dep_code
+            if employee_obj.emp_dep_code
+            else "-"
+        )
+
+        company_code = (
+            employee_obj.emp_cmp.cmp_code
+            if employee_obj.emp_cmp
+            else "-"
+        )
+
+        branch_code = (
+            employee_obj.emp_bra_code.bra_code
+            if employee_obj.emp_bra_code
+            else "-"
+        )
+
+        card_number = (
+            card_obj.CRD_No
+            if card_obj
+            else "-"
+        )
+
+        check_in_text = "-"
+
+        if visit_obj.check_in_time:
+            check_in_text = timezone.localtime(
+                visit_obj.check_in_time
+            ).strftime(
+                "%d %b %Y, %I:%M %p"
+            )
+
+        check_out_text = "-"
+
+        if visit_obj.check_out_time:
+            check_out_text = timezone.localtime(
+                visit_obj.check_out_time
+            ).strftime(
+                "%d %b %Y, %I:%M %p"
+            )
+
+        table_data.append([
+            Paragraph(
+                str(visit_obj.visit_id),
+                table_text_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    visitor_obj.visitor_name
+                ),
+                table_text_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    visitor_obj.visitor_phone
+                ),
+                table_text_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    visitor_obj.visitor_cnic
+                ),
+                table_text_style,
+            ),
+            Paragraph(
+                employee_text,
+                table_text_style,
+            ),
+            Paragraph(
+                department_code,
+                table_text_style,
+            ),
+            Paragraph(
+                company_code,
+                table_text_style,
+            ),
+            Paragraph(
+                branch_code,
+                table_text_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    card_number
+                ),
+                table_text_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    visit_obj.visit_purpose
+                ),
+                table_text_style,
+            ),
+            Paragraph(
+                check_in_text,
+                table_text_style,
+            ),
+            Paragraph(
+                check_out_text,
+                table_text_style,
+            ),
+            Paragraph(
+                reportlab_safe_text(
+                    visit_obj.status
+                ),
+                table_text_style,
+            ),
+        ])
+
+    if not visits:
+        table_data.append([
+            Paragraph(
+                (
+                    "No visit records were found "
+                    "for the selected filters."
+                ),
+                normal_style,
+            ),
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+        ])
+
+    # These widths total 277 mm, matching the printable width:
+    # 297 mm page - 18 mm horizontal margins = 279 mm.
+    column_widths = [
+        8 * mm,     # ID
+        25 * mm,    # Visitor
+        20 * mm,    # Phone
+        24 * mm,    # CNIC
+        32 * mm,    # Employee
+        13 * mm,    # Department
+        15 * mm,    # Company
+        15 * mm,    # Branch
+        14 * mm,    # Card
+        27 * mm,    # Purpose
+        31 * mm,    # Check In
+        31 * mm,    # Check Out
+        20 * mm,    # Status
+    ]
+
+    history_table = Table(
+        table_data,
+        colWidths=column_widths,
+        repeatRows=1,
+        hAlign="LEFT",
+    )
+
+    history_style = [
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, 0),
+            colors.HexColor("#E2E8F0"),
+        ),
+        (
+            "TEXTCOLOR",
+            (0, 0),
+            (-1, 0),
+            colors.HexColor("#111827"),
+        ),
+        (
+            "BOX",
+            (0, 0),
+            (-1, -1),
+            0.6,
+            colors.HexColor("#64748B"),
+        ),
+        (
+            "INNERGRID",
+            (0, 0),
+            (-1, -1),
+            0.35,
+            colors.HexColor("#94A3B8"),
+        ),
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "TOP",
+        ),
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            3,
+        ),
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            3,
+        ),
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+        (
+            "ALIGN",
+            (0, 0),
+            (0, -1),
+            "CENTER",
+        ),
+        (
+            "ALIGN",
+            (5, 0),
+            (8, -1),
+            "CENTER",
+        ),
+        (
+            "ALIGN",
+            (12, 0),
+            (12, -1),
+            "CENTER",
+        ),
+    ]
+
+    if not visits:
+        history_style.extend([
+            (
+                "SPAN",
+                (0, 1),
+                (-1, 1),
+            ),
+            (
+                "ALIGN",
+                (0, 1),
+                (-1, 1),
+                "CENTER",
+            ),
+        ])
+
+    history_table.setStyle(
+        TableStyle(history_style)
+    )
+
+    story.append(history_table)
+
+    doc.build(story)
+
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+
+    # Timestamp prevents the browser from displaying an old cached copy.
+    filename_timestamp = current_time.strftime(
+        "%Y%m%d_%H%M%S"
+    )
+
+    response = HttpResponse(
+        pdf_bytes,
+        content_type="application/pdf",
+    )
+
+    response["Content-Disposition"] = (
+        f'attachment; filename="visit_history_'
+        f'{filename_timestamp}.pdf"'
+    )
+
+    response["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, max-age=0"
+    )
+    response["Pragma"] = "no-cache"
+    response["Expires"] = "0"
+
+    # Useful for confirming the correct generator in browser dev tools.
+    response["X-PDF-Generator"] = (
+        "ReportLab-A4-Landscape"
+    )
 
     return response
