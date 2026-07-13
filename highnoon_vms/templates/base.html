@@ -237,14 +237,72 @@
         {% endif %}
 
         {% if perms.reports.view_reports %}
-        <li class="nav-item">
-          <a class="nav-link {% if request.resolver_match.url_name == 'report_page' %}active{% endif %}"
-             href="{% url 'report_page' %}">
-            <i class="fa-solid fa-file-lines"></i>
-            <span class="nav-link-text">Reports</span>
-          </a>
-        </li>
-        {% endif %}
+<li class="nav-item">
+
+  <a
+    class="nav-link d-flex justify-content-between align-items-center
+    {% if request.resolver_match.url_name == 'report_summary'
+       or request.resolver_match.url_name == 'report_history' %}
+       active
+    {% endif %}"
+    data-bs-toggle="collapse"
+    href="#reportsSubmenu"
+    role="button"
+    aria-expanded="
+      {% if request.resolver_match.url_name == 'report_summary'
+         or request.resolver_match.url_name == 'report_history' %}
+         true
+      {% else %}
+         false
+      {% endif %}
+    "
+    aria-controls="reportsSubmenu">
+
+    <span>
+      <i class="fa-solid fa-file-lines me-2"></i>
+      Reports
+    </span>
+
+    <i class="fa-solid fa-chevron-down text-xs"></i>
+  </a>
+
+  <div
+    class="collapse
+    {% if request.resolver_match.url_name == 'report_summary'
+       or request.resolver_match.url_name == 'report_history' %}
+       show
+    {% endif %}"
+    id="reportsSubmenu">
+
+    <ul class="nav flex-column ms-3">
+
+      <li class="nav-item">
+        <a
+          class="nav-link
+          {% if request.resolver_match.url_name == 'report_summary' %}
+            active
+          {% endif %}"
+          href="{% url 'report_summary' %}">
+          Summary
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a
+          class="nav-link
+          {% if request.resolver_match.url_name == 'report_history' %}
+            active
+          {% endif %}"
+          href="{% url 'report_history' %}">
+          History
+        </a>
+      </li>
+
+    </ul>
+  </div>
+
+</li>
+{% endif %}
 
       </ul>
     </div>

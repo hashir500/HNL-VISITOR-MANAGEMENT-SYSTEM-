@@ -6,6 +6,9 @@ from openpyxl import load_workbook
 from django.contrib import messages
 from .models import visitor_card, visitor
 import os
+from urllib.parse import urlencode
+from django.db.models import Q
+from django.db.models.deletion import ProtectedError
 from django.conf import settings
 
 
@@ -78,33 +81,109 @@ def visitor_card_delete(request, pk):
     return redirect("visitor_card_list")
 
 # visitor views
+
 @login_required
 @permission_required("visitors.view_visitor", raise_exception=True)
 def visitor_list(request):
-    visitors = visitor.objects.all()
+    search = (request.GET.get("search") or "").strip()
 
-    return render(request, "visitors/visitor_list.html", {
-        "visitors": visitors,
-    })
+    visitors = visitor.objects.all().order_by("-visitor_created_at")
+
+    if search:
+        visitors = visitors.filter(
+            Q(visitor_name__icontains=search)
+            | Q(visitor_phone__icontains=search)
+            | Q(visitor_cnic__icontains=search)
+            | Q(visitor_address__icontains=search)
+        )
+
+    return render(
+        request,
+        "visitors/visitor_list.html",
+        {
+            "visitors": visitors,
+            "search": search,
+            "open_add_visitor": request.GET.get("open_add_visitor"),
+            "next_page": request.GET.get("next", ""),
+        },
+    )
 
 
 @login_required
 @permission_required("visitors.add_visitor", raise_exception=True)
 def visitor_create(request):
-    if request.method == "POST":
-        new_visitor = visitor.objects.create(
-            visitor_name=request.POST.get("visitor_name"),
-            visitor_email=request.POST.get("visitor_email") or None,
-            visitor_phone=request.POST.get("visitor_phone"),
-            visitor_address=request.POST.get("visitor_address") or None,
+    if request.method != "POST":
+        return redirect("visitor_list")
+
+    visitor_name = (
+        request.POST.get("visitor_name") or ""
+    ).strip()
+
+    visitor_phone = (
+        request.POST.get("visitor_phone") or ""
+    ).strip()
+
+    visitor_cnic = (
+        request.POST.get("visitor_cnic") or ""
+    ).strip()
+
+    visitor_address = (
+        request.POST.get("visitor_address") or ""
+    ).strip()
+
+    next_page = (
+        request.POST.get("next") or ""
+    ).strip()
+
+    # All four fields are compulsory.
+    if not visitor_name:
+        messages.error(request, "Visitor name is required.")
+        return _visitor_form_redirect(next_page)
+
+    if not visitor_phone:
+        messages.error(request, "Visitor phone is required.")
+        return _visitor_form_redirect(next_page)
+
+    if not visitor_cnic:
+        messages.error(request, "Visitor CNIC is required.")
+        return _visitor_form_redirect(next_page)
+
+    if not visitor_address:
+        messages.error(request, "Visitor address is required.")
+        return _visitor_form_redirect(next_page)
+
+    normalized_cnic = normalize_cnic(visitor_cnic)
+
+    if visitor.objects.filter(
+        visitor_cnic=normalized_cnic
+    ).exists():
+        messages.error(
+            request,
+            f"A visitor with CNIC {normalized_cnic} already exists.",
         )
+        return _visitor_form_redirect(next_page)
 
-        next_page = request.POST.get("next")
+    new_visitor = visitor.objects.create(
+        visitor_name=visitor_name,
+        visitor_phone=visitor_phone,
+        visitor_cnic=normalized_cnic,
+        visitor_address=visitor_address,
+    )
 
-        if next_page == "visits":
-            return redirect(
-                f"{reverse('visit_list')}?open_add_visit=1&visitor_id={new_visitor.visitor_id}"
-            )
+    messages.success(
+        request,
+        "Visitor created successfully.",
+    )
+
+    if next_page == "visits":
+        query_string = urlencode({
+            "open_add_visit": "1",
+            "visitor_id": new_visitor.visitor_id,
+        })
+
+        return redirect(
+            f"{reverse('visit_list')}?{query_string}"
+        )
 
     return redirect("visitor_list")
 
@@ -112,14 +191,80 @@ def visitor_create(request):
 @login_required
 @permission_required("visitors.change_visitor", raise_exception=True)
 def visitor_update(request, visitor_id):
-    v = get_object_or_404(visitor, visitor_id=visitor_id)
+    visitor_obj = get_object_or_404(
+        visitor,
+        visitor_id=visitor_id,
+    )
 
-    if request.method == "POST":
-        v.visitor_name = request.POST.get("visitor_name")
-        v.visitor_email = request.POST.get("visitor_email") or None
-        v.visitor_phone = request.POST.get("visitor_phone")
-        v.visitor_address = request.POST.get("visitor_address") or None
-        v.save()
+    if request.method != "POST":
+        return redirect("visitor_list")
+
+    visitor_name = (
+        request.POST.get("visitor_name") or ""
+    ).strip()
+
+    visitor_phone = (
+        request.POST.get("visitor_phone") or ""
+    ).strip()
+
+    visitor_cnic = (
+        request.POST.get("visitor_cnic") or ""
+    ).strip()
+
+    visitor_address = (
+        request.POST.get("visitor_address") or ""
+    ).strip()
+
+    if not visitor_name:
+        messages.error(request, "Visitor name is required.")
+        return redirect("visitor_list")
+
+    if not visitor_phone:
+        messages.error(request, "Visitor phone is required.")
+        return redirect("visitor_list")
+
+    if not visitor_cnic:
+        messages.error(request, "Visitor CNIC is required.")
+        return redirect("visitor_list")
+
+    if not visitor_address:
+        messages.error(request, "Visitor address is required.")
+        return redirect("visitor_list")
+
+    normalized_cnic = normalize_cnic(visitor_cnic)
+
+    duplicate_cnic = (
+        visitor.objects
+        .filter(visitor_cnic=normalized_cnic)
+        .exclude(visitor_id=visitor_obj.visitor_id)
+        .exists()
+    )
+
+    if duplicate_cnic:
+        messages.error(
+            request,
+            f"Another visitor with CNIC {normalized_cnic} already exists.",
+        )
+        return redirect("visitor_list")
+
+    visitor_obj.visitor_name = visitor_name
+    visitor_obj.visitor_phone = visitor_phone
+    visitor_obj.visitor_cnic = normalized_cnic
+    visitor_obj.visitor_address = visitor_address
+
+    visitor_obj.save(
+        update_fields=[
+            "visitor_name",
+            "visitor_phone",
+            "visitor_cnic",
+            "visitor_address",
+        ]
+    )
+
+    messages.success(
+        request,
+        "Visitor updated successfully.",
+    )
 
     return redirect("visitor_list")
 
@@ -127,12 +272,62 @@ def visitor_update(request, visitor_id):
 @login_required
 @permission_required("visitors.delete_visitor", raise_exception=True)
 def visitor_delete(request, visitor_id):
-    v = get_object_or_404(visitor, visitor_id=visitor_id)
+    visitor_obj = get_object_or_404(
+        visitor,
+        visitor_id=visitor_id,
+    )
 
     if request.method == "POST":
-        v.delete()
+        visitor_name = visitor_obj.visitor_name
+
+        try:
+            visitor_obj.delete()
+
+            messages.success(
+                request,
+                f"{visitor_name} deleted successfully.",
+            )
+
+        except ProtectedError:
+            messages.error(
+                request,
+                "This visitor cannot be deleted because visit records "
+                "are linked to them.",
+            )
 
     return redirect("visitor_list")
+
+
+def normalize_cnic(cnic):
+    """
+    Store CNIC consistently.
+
+    Examples:
+    35202-1234567-1 -> 3520212345671
+    35202 1234567 1 -> 3520212345671
+    """
+    return "".join(
+        character
+        for character in str(cnic)
+        if character.isdigit()
+    )
+
+
+def _visitor_form_redirect(next_page):
+    """
+    Reopen the Add Visitor modal when validation fails.
+    """
+    query_parameters = {
+        "open_add_visitor": "1",
+    }
+
+    if next_page:
+        query_parameters["next"] = next_page
+
+    return redirect(
+        f"{reverse('visitor_list')}?"
+        f"{urlencode(query_parameters)}"
+    )
 
 
 
