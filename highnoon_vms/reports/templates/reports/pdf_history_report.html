@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    /* FORCE VERTICAL ORIENTATION */
+    @page {
+      size: A4 portrait;
+      margin: 15mm 10mm 15mm 15mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 8pt;
+      color: #000;
+      margin: 0;
+    }
+
+    .report-box {
+      border: 2px solid #555;
+      min-height: 267mm; /* Scaled perfectly for portrait A4 dimensions */
+      padding: 6px 8mm;
+    }
+
+    /* ---------- Header Layout Structure ---------- */
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+    }
+
+    .header-table td {
+      border: none;
+      padding: 8px 10px;
+    }
+
+    .header-table .divider-row td {
+      border-bottom: 2px solid #555;
+      padding: 10px 10px 12px 10px;
+    }
+
+    .published {
+      width: 45mm;
+      font-size: 8pt;
+      line-height: 1.7;
+      text-align: left;
+      vertical-align: top;
+      padding-left: 6px;
+    }
+
+    .published .label {
+      font-weight: bold;
+    }
+
+    .title-cell {
+      text-align: center;
+      vertical-align: middle;
+      padding: 6px 20px;
+    }
+
+    .company-name {
+      font-size: 12pt;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .report-title {
+      font-size: 15pt;
+      font-weight: bold;
+      margin-top: 6px;
+    }
+
+    .page-cell {
+      width: 35mm;
+      font-size: 8pt;
+      font-weight: bold;
+      text-align: right;
+      vertical-align: bottom;
+      padding-right: 6px;
+    }
+
+    /* ---------- Data Logging Table ---------- */
+    table.history-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 8pt;
+    }
+
+    table.history-table th, 
+    table.history-table td {
+      border: 1px solid #999;
+      padding: 5px;
+      text-align: left;
+      white-space: normal;
+      word-break: break-all;
+    }
+
+    table.history-table th {
+      font-weight: bold;
+      background: #f2f2f2;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="report-box">
+
+    <table class="header-table">
+      <tr class="divider-row">
+        <!-- Meta Generation Details -->
+        <td class="published">
+          <span class="label">Published</span><br>
+          <span class="label">Date</span>&nbsp;&nbsp;: {{ published_date }}<br>
+          <span class="label">At</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ published_time }}<br>
+          <span class="label">By</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ generated_by }}
+        </td>
+
+        <!-- Center Branding Elements -->
+        <td class="title-cell">
+          <div class="company-name">Highnoon Laboratories Limited</div>
+          <div class="report-title">{{ report_title }}</div>
+        </td>
+
+        <!-- Pagination Counters -->
+        <td class="page-cell">
+          Page {{ current_page|default:1 }} of {{ total_pages|default:1 }}
+        </td>
+      </tr>
+    </table>
+
+    <!-- Vertical Optimized Grid -->
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th style="width: 6%;">ID</th>
+          <th style="width: 15%;">Visitor Name</th>
+          <th style="width: 15%;">Host Employee</th>
+          <th style="width: 12%;">Department</th>
+          <th style="width: 10%;">Card No</th>
+          <th style="width: 14%;">Visit Purpose</th>
+          <th style="width: 11%;">Check In</th>
+          <th style="width: 11%;">Check Out</th>
+          <th style="width: 6%;">Status</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for v in visits %}
+        <tr>
+          <td>{{ v.visit_id }}</td>
+          <td>{{ v.visitor.visitor_name }}</td>
+          <td>{{ v.employee.emp_name }}</td>
+          <td>{{ v.employee.emp_dep_code }}</td>
+          <td>
+            {% if v.visitor_card %}
+              {{ v.visitor_card.CRD_No }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>{{ v.visit_purpose }}</td>
+          <td>{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
+          <td>
+            {% if v.check_out_time %}
+              {{ v.check_out_time|date:"d M Y, h:i A" }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>{{ v.status }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9" style="text-align: center; color: #555;">No visit history records found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  </div>
+</body>
+</html>
