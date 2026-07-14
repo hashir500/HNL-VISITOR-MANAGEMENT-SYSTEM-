@@ -38,7 +38,7 @@ from io import BytesIO
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
-from reportlab.lib.pagesizes import A4  # FIX: Removed landscape wrapper import
+from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import (
@@ -397,14 +397,12 @@ def get_report_date_range(request):
     """
     today = timezone.localdate()
 
-    # Fetch explicit inputs or default natively to today's date string
     selected_start_date = request.GET.get("start_date") or today.strftime("%Y-%m-%d")
     selected_end_date = request.GET.get("end_date") or today.strftime("%Y-%m-%d")
 
     start_date = safe_parse_date(selected_start_date, today)
     end_date = safe_parse_date(selected_end_date, today)
 
-    # Prevent inverted selections safely
     if end_date < start_date:
         start_date, end_date = end_date, start_date
 
@@ -417,7 +415,7 @@ def get_report_date_range(request):
         title_suffix = f"{start_date.strftime('%d %B %Y')} to {end_date.strftime('%d %B %Y')}"
 
     return {
-        "report_type": request.GET.get("report_type", "custom"), # FIX: Restored key to prevent KeyError on summary view load
+        "report_type": request.GET.get("report_type", "custom"),
         "start_datetime": start_datetime,
         "end_datetime": end_datetime,
         "title_suffix": title_suffix,
@@ -610,15 +608,15 @@ def get_filtered_summary_queryset(request):
     # Resolve dynamic Group By mapping configurations
     group_by_param = (request.GET.get("group_by") or "purpose").strip().lower()
     
-    # Map selection flags directly to your query relations
+    # FIX: Remapped dictionary keys to output user-friendly master table text values
     mapping = {
+        "purpose": ("visit_purpose", "Purpose"),
         "company": ("employee__emp_cmp__cmp_desc", "Company"),
         "branch": ("employee__emp_bra_code__bra_desc", "Branch"),
         "department": ("employee__emp_dep_code__dep_desc", "Department"),
-        "employee": ("employee__emp_name", "Host Employee"),
-        "card": ("visitor_card__CRD_No", "Visitor Card No"),
-        "visitor": ("visitor__visitor_name", "Visitor Name"),
-        "purpose": ("visit_purpose", "Visit Purpose"),
+        "division": ("employee__emp_dep_code__dep_div_code__div_desc", "Division"), 
+        "employee": ("employee__emp_name", "Employee"),
+        "visitor": ("visitor__visitor_name", "Visitor"),
     }
     
     group_field, group_label = mapping.get(group_by_param, mapping["purpose"])
@@ -683,25 +681,6 @@ def get_filtered_summary_queryset(request):
 
 @login_required
 @permission_required(
-    "reports.view_reports",
-    raise_exception=True,
-)
-def report_page_redirect(request):
-    target_url = reverse(
-        "report_history"
-    )
-
-    if request.GET:
-        target_url = (
-            f"{target_url}?"
-            f"{request.GET.urlencode()}"
-        )
-
-    return redirect(target_url)
-
-
-@login_required
-@permission_required(
     "reports.download_reports",
     raise_exception=True,
 )
@@ -732,7 +711,6 @@ def report_summary(request):
     filter_options = get_report_filter_options(access, selected_company, selected_branch)
     date_settings = get_report_date_range(request)
 
-    # Force continuous generation based on default tracking range parameters
     summary_data = get_filtered_summary_queryset(request)
 
     context = {
@@ -770,7 +748,6 @@ def report_history(request):
     
     date_settings = get_report_date_range(request)
     
-    # Report runs automatically on page view using default date parameters
     report_generated = True
     history_data = get_filtered_history_queryset(request)
 
@@ -907,7 +884,7 @@ def draw_history_pdf_footer(canvas, doc):
     """
     Draw page number and footer on every A4 Portrait page.
     """
-    page_width, page_height = A4  # FIX: Configured for Portrait layout boundary tracking
+    page_width, page_height = A4
 
     canvas.saveState()
 
@@ -971,7 +948,7 @@ def download_history_pdf(request):
     selected_card = history_data["selected_card"]
 
     buffer = BytesIO()
-    pdf_page_size = A4  # FIX: Swapped to direct A4 portrait orientation specs
+    pdf_page_size = A4
 
     doc = BaseDocTemplate(
         buffer,
@@ -1228,7 +1205,6 @@ def download_history_pdf(request):
             "", "", "", "", "", "", "", "", "", "", "", "",
         ])
 
-    # FIX: Optimized column dimensions to total exactly 190mm grid widths to fit A4 Portrait
     column_widths = [
         7 * mm,     # ID
         18 * mm,    # Visitor
