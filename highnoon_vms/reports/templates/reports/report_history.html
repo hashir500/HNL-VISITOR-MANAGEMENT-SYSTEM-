@@ -7,172 +7,89 @@
 {% block content %}
 
 <div class="card mb-4">
-  <div class="card-header px-4 py-3">
-    <div>
-      <h6 class="mb-1">Generate History Report</h6>
-      <p class="text-sm text-secondary mb-0">
-        View detailed visit records using date, company, branch, visitor,
-        employee, purpose, status, and card filters
-      </p>
-    </div>
+  <div class="card-header pb-0">
+    <h6>Generate History Report</h6>
+    <p class="text-xs text-secondary">View detailed visit records using date, company, branch, visitor, employee, purpose, status, and card filters</p>
   </div>
 
-  <div class="card-body pt-0">
+  <div class="card-body">
+    <form method="GET" action="{% url 'report_history' %}">
+      <div class="row">
 
-    {% if not has_report_access %}
-    <div class="alert alert-warning mb-4">
-      <i class="fa-solid fa-triangle-exclamation me-2"></i>
-      Your account is not linked with a valid User Master record.
-      Contact an administrator to assign Company and Branch access.
-    </div>
-    {% endif %}
-
-    <form method="GET" action="{% url 'report_history' %}" id="historyReportForm">
-      <div class="row g-3">
-
-        <div class="col-xl-3 col-lg-4 col-md-6">
-          <label class="form-label">
-            Report Type <span class="text-danger">*</span>
-          </label>
-          <select name="report_type" id="reportType" class="form-control report-select" required>
-            <option value="">Select Report Type</option>
-            <option value="daily" {% if report_type == "daily" %}selected{% endif %}>Daily</option>
-            <option value="weekly" {% if report_type == "weekly" %}selected{% endif %}>Weekly</option>
-            <option value="monthly" {% if report_type == "monthly" %}selected{% endif %}>Monthly</option>
-            <option value="yearly" {% if report_type == "yearly" %}selected{% endif %}>Yearly</option>
-            <option value="custom" {% if report_type == "custom" %}selected{% endif %}>Custom Date Range</option>
-          </select>
-        </div>
-
-        <div class="col-xl-3 col-lg-4 col-md-6 report-date-field" id="dailyField">
-          <label class="form-label">Select Date <span class="text-danger">*</span></label>
-          <input type="date" name="date" id="dailyDate" class="form-control" value="{{ selected_date }}">
-        </div>
-
-        <div class="col-xl-3 col-lg-4 col-md-6 report-date-field" id="weeklyField">
-          <label class="form-label">Week Start Date <span class="text-danger">*</span></label>
-          <input type="date" name="week_start" id="weekStart" class="form-control" value="{{ selected_week_start }}">
-          <small class="text-muted">The report covers seven days from this date.</small>
-        </div>
-
-        <div class="col-xl-3 col-lg-4 col-md-6 report-date-field" id="monthlyField">
-          <label class="form-label">Select Month <span class="text-danger">*</span></label>
-          <input type="month" name="month" id="selectedMonth" class="form-control" value="{{ selected_month }}">
-        </div>
-
-        <div class="col-xl-3 col-lg-4 col-md-6 report-date-field" id="yearlyField">
-          <label class="form-label">Select Year <span class="text-danger">*</span></label>
-          <input type="number" name="year" id="selectedYear" class="form-control" value="{{ selected_year }}" min="2000" max="2100" step="1">
-        </div>
-
-        <div class="col-xl-3 col-lg-4 col-md-6 report-date-field" id="customStartField">
-          <label class="form-label">Start Date <span class="text-danger">*</span></label>
-          <input type="date" name="start_date" id="customStartDate" class="form-control" value="{{ selected_start_date }}">
-        </div>
-
-        <div class="col-xl-3 col-lg-4 col-md-6 report-date-field" id="customEndField">
-          <label class="form-label">End Date <span class="text-danger">*</span></label>
-          <input type="date" name="end_date" id="customEndDate" class="form-control" value="{{ selected_end_date }}">
-        </div>
-
-        {% if can_select_company %}
-        <div class="col-xl-3 col-lg-4 col-md-6">
-          <label class="form-label">Company</label>
-          <select name="company" id="companyFilter" class="form-control report-select">
-            <option value="ALL">All Companies</option>
-            {% for company in companies %}
-            <option value="{{ company.cmp_code }}" {% if selected_company == company.cmp_code %}selected{% endif %}>
-              {{ company.cmp_code }} - {{ company.cmp_desc }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-        {% else %}
-        <input type="hidden" name="company" value="{{ selected_company }}">
-        {% endif %}
-
-        {% if can_select_branch %}
-        <div class="col-xl-3 col-lg-4 col-md-6">
-          <label class="form-label">Branch</label>
-          <select name="branch" id="branchFilter" class="form-control report-select">
-            <option value="ALL">All Branches</option>
-            {% for branch in branches %}
-            <option value="{{ branch.bra_code }}" {% if selected_branch == branch.bra_code %}selected{% endif %}>
-              {{ branch.bra_code }} - {{ branch.bra_desc }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-        {% else %}
-        <input type="hidden" name="branch" value="{{ selected_branch }}">
-        {% endif %}
-
-        <div class="col-xl-3 col-lg-4 col-md-6">
+        <!-- Row 1: Core Target Selectors -->
+        <div class="col-md-4 mb-3">
           <label class="form-label">Visitor</label>
-          <select name="visitor" id="visitorFilter" class="form-control report-select">
-            <option value="ALL">All Visitors</option>
-            {% for visitor in visitors %}
-            <option value="{{ visitor.visitor_id }}" {% if selected_visitor == visitor.visitor_id|stringformat:"s" %}selected{% endif %}>
-              {{ visitor.visitor_name }} - {{ visitor.visitor_phone }}
-            </option>
+          <select name="visitor" class="form-control select2">
+            <option value="ALL" {% if selected_visitor == "ALL" %}selected{% endif %}>All Visitors</option>
+            {% for v in visitors %}
+              <option value="{{ v.id }}" {% if selected_visitor == v.id|stringformat:"s" %}selected{% endif %}>{{ v.visitor_name }}</option>
             {% endfor %}
           </select>
         </div>
 
-        <div class="col-xl-3 col-lg-4 col-md-6">
+        <div class="col-md-4 mb-3">
           <label class="form-label">Employee</label>
-          <select name="employee" id="employeeFilter" class="form-control report-select">
-            <option value="ALL">All Employees</option>
-            {% for employee in employees %}
-            <option value="{{ employee.pk }}" {% if selected_employee == employee.pk|stringformat:"s" %}selected{% endif %}>
-              {{ employee.emp_pno }} - {{ employee.emp_name }}{% if employee.emp_dep_code %} - {{ employee.emp_dep_code.dep_code }}{% endif %}
-            </option>
+          <select name="employee" class="form-control select2">
+            <option value="ALL" {% if selected_employee == "ALL" %}selected{% endif %}>All Employees</option>
+            {% for emp in employees %}
+              <option value="{{ emp.id }}" {% if selected_employee == emp.id|stringformat:"s" %}selected{% endif %}>{{ emp.emp_name }}</option>
             {% endfor %}
           </select>
         </div>
 
-        <div class="col-xl-3 col-lg-4 col-md-6">
+        <div class="col-md-4 mb-3">
           <label class="form-label">Purpose</label>
-          <select name="purpose" id="purposeFilter" class="form-control report-select">
-            <option value="ALL">All Purposes</option>
-            {% for purpose in purposes %}
-            <option value="{{ purpose.pur_id }}" {% if selected_purpose == purpose.pur_id|stringformat:"s" %}selected{% endif %}>
-              {{ purpose.pur_purpose }}
-            </option>
+          <select name="purpose" class="form-control select2">
+            <option value="ALL" {% if selected_purpose == "ALL" %}selected{% endif %}>All Purposes</option>
+            {% for pur in purposes %}
+              <option value="{{ pur.pur_id }}" {% if selected_purpose == pur.pur_id %}selected{% endif %}>{{ pur.pur_purpose }}</option>
             {% endfor %}
           </select>
         </div>
 
-        <div class="col-xl-3 col-lg-4 col-md-6">
+        <!-- Row 2: Secondary Identifiers -->
+        <div class="col-md-4 mb-3">
           <label class="form-label">Status</label>
-          <select name="status" id="statusFilter" class="form-control report-select">
-            <option value="ALL">All Statuses</option>
+          <select name="status" class="form-control select2">
+            <option value="ALL" {% if selected_status == "ALL" %}selected{% endif %}>All Statuses</option>
             <option value="Checked In" {% if selected_status == "Checked In" %}selected{% endif %}>Checked In</option>
             <option value="Checked Out" {% if selected_status == "Checked Out" %}selected{% endif %}>Checked Out</option>
           </select>
         </div>
 
-        <div class="col-xl-3 col-lg-4 col-md-6">
+        <div class="col-md-4 mb-3">
           <label class="form-label">Visitor Card</label>
-          <select name="card" id="cardFilter" class="form-control report-select">
-            <option value="ALL">All Cards</option>
-            {% for card in cards %}
-            <option value="{{ card.id }}" {% if selected_card == card.id|stringformat:"s" %}selected{% endif %}>
-              {{ card.CRD_No }}{% if card.CRD_Desc %} - {{ card.CRD_Desc }}{% endif %}
-            </option>
+          <select name="card" class="form-control select2">
+            <option value="ALL" {% if selected_card == "ALL" %}selected{% endif %}>All Cards</option>
+            {% for c in cards %}
+              <option value="{{ c.id }}" {% if selected_card == c.id|stringformat:"s" %}selected{% endif %}>{{ c.CRD_No }}</option>
             {% endfor %}
           </select>
         </div>
 
-        <div class="col-12">
-          <div class="d-flex justify-content-end flex-wrap gap-2">
-            <a href="{% url 'report_history' %}" class="btn btn-secondary btn-sm mb-0 px-4">
-              <i class="fa-solid fa-rotate-left me-1"></i> Reset
-            </a>
-            <button type="submit" class="btn btn-primary btn-sm mb-0 px-4" {% if not has_report_access %}disabled{% endif %}>
-              <i class="fa-solid fa-file-lines me-1"></i> Generate History
-            </button>
-          </div>
+        <div class="col-md-4 mb-3 d-none d-md-block">
+          <!-- Column placeholder spacer to align grid rows symmetrically -->
+        </div>
+
+        <!-- Row 3: Explicit Date Boundaries (Placed Directly Below Parameters) -->
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Start Date</label>
+          <input type="date" name="start_date" class="form-control" value="{{ selected_start_date }}" required>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <label class="form-label">End Date</label>
+          <input type="date" name="end_date" class="form-control" value="{{ selected_end_date }}" required>
+        </div>
+
+        <!-- Form Dispatch Controls -->
+        <div class="col-md-4 mb-3 d-flex align-items-end justify-content-end gap-2">
+          <a href="{% url 'report_history' %}" class="btn btn-secondary btn-sm mb-0 py-2 px-4">
+            <i class="fa-solid fa-rotate-left me-1"></i> Reset
+          </a>
+          <button type="submit" class="btn btn-primary btn-sm mb-0 py-2 px-4">
+            <i class="fa-solid fa-file-invoice me-1"></i> Generate History
+          </button>
         </div>
 
       </div>
@@ -182,99 +99,58 @@
 
 {% if report_generated %}
 <div class="card">
-
-  <div class="card-header px-4 py-3">
-    <div class="history-result-header">
-      <div>
-        <h6 class="mb-1">{{ report_title }}</h6>
-        <p class="text-sm text-secondary mb-0">
-          Published {{ published_date }} at {{ published_time }}
-          &nbsp;|&nbsp; Generated by {{ generated_by }}
-        </p>
-      </div>
-
-      {% if perms.reports.download_reports %}
-      <a
-  href="{% url 'download_history_pdf' %}?{{ request.GET.urlencode }}"
-  class="btn btn-primary btn-sm mb-0">
-
-  <i class="fa-solid fa-download me-1"></i>
-  Download PDF
-</a>
-      {% endif %}
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>
+      <h6 class="mb-0">{{ report_title }}</h6>
+      <p class="text-xs text-secondary mb-0">
+        Published: {{ published_date }} at {{ published_time }} | By: {{ generated_by }}
+      </p>
     </div>
-  </div>
 
-  {% if not can_select_company or not can_select_branch %}
-  <div class="px-4 pb-3">
-    <div class="report-access-summary">
-      <i class="fa-solid fa-lock me-2"></i>
-      <span class="text-sm">
-        Showing records for
-        {% if not can_select_company %}<strong>Company {{ selected_company }}</strong>{% else %}<strong>All Companies</strong>{% endif %}
-        <span class="mx-1">•</span>
-        {% if not can_select_branch %}<strong>Branch {{ selected_branch }}</strong>{% else %}<strong>All Branches</strong>{% endif %}
-      </span>
-    </div>
+    {% if perms.reports.download_reports %}
+    <a href="{% url 'download_history_pdf' %}?start_date={{ selected_start_date }}&end_date={{ selected_end_date }}&visitor={{ selected_visitor }}&employee={{ selected_employee }}&purpose={{ selected_purpose }}&status={{ selected_status }}&card={{ selected_card }}"
+       class="btn btn-primary btn-sm mb-0">
+      <i class="fa-solid fa-download me-1"></i> Download PDF
+    </a>
+    {% endif %}
   </div>
-  {% endif %}
 
   <div class="card-body px-0 pt-0 pb-2">
     <div class="table-responsive p-3">
-      <table class="table table-hover align-middle text-nowrap mb-0 history-table">
+      <table class="table align-items-center mb-0">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Visitor</th>
-            <th>Phone</th>
-            <th>CNIC</th>
-            <th>Employee</th>
-            <th>Department</th>
-            <th>Company</th>
-            <th>Branch</th>
-            <th>Card</th>
-            <th>Purpose</th>
-            <th>Check In</th>
-            <th>Check Out</th>
-            <th>Duration</th>
-            <th>Status</th>
+            <th class="text-xs font-weight-bold">ID</th>
+            <th class="text-xs font-weight-bold">Visitor</th>
+            <th class="text-xs font-weight-bold">Employee</th>
+            <th class="text-xs font-weight-bold">Department</th>
+            <th class="text-xs font-weight-bold">Card No</th>
+            <th class="text-xs font-weight-bold">Purpose</th>
+            <th class="text-xs font-weight-bold">Check In</th>
+            <th class="text-xs font-weight-bold">Check Out</th>
+            <th class="text-xs font-weight-bold">Status</th>
           </tr>
         </thead>
-
         <tbody>
           {% for v in visits %}
           <tr>
-            <td>{{ v.visit_id }}</td>
-            <td><strong class="text-sm">{{ v.visitor.visitor_name }}</strong></td>
-            <td>{{ v.visitor.visitor_phone|default:"-" }}</td>
-            <td>{{ v.visitor.visitor_cnic|default:"-" }}</td>
-            <td>
-              <div class="history-employee-cell">
-                <strong>{{ v.employee.emp_name }}</strong>
-                <span>{{ v.employee.emp_pno }}</span>
-              </div>
-            </td>
-            <td>{% if v.employee.emp_dep_code %}{{ v.employee.emp_dep_code.dep_code }}{% else %}-{% endif %}</td>
-            <td>{% if v.employee.emp_cmp %}{{ v.employee.emp_cmp.cmp_code }}{% else %}-{% endif %}</td>
-            <td>{% if v.employee.emp_bra_code %}{{ v.employee.emp_bra_code.bra_code }}{% else %}-{% endif %}</td>
-            <td>{% if v.visitor_card %}<span class="history-card-badge">{{ v.visitor_card.CRD_No }}</span>{% else %}-{% endif %}</td>
-            <td><span class="history-purpose" title="{{ v.visit_purpose }}">{{ v.visit_purpose }}</span></td>
-            <td>{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
-            <td>{% if v.check_out_time %}{{ v.check_out_time|date:"d M Y, h:i A" }}{% else %}-{% endif %}</td>
-            <td>{% if v.check_out_time %}{{ v.check_out_time|timesince:v.check_in_time }}{% else %}Ongoing{% endif %}</td>
-            <td>
-              {% if v.status == "Checked In" %}
-                <span class="badge bg-success">{{ v.status }}</span>
-              {% else %}
-                <span class="badge bg-secondary">{{ v.status }}</span>
-              {% endif %}
+            <td class="text-sm ps-3">{{ v.visit_id }}</td>
+            <td class="text-sm">{{ v.visitor.visitor_name }}</td>
+            <td class="text-sm">{{ v.employee.emp_name }}</td>
+            <td class="text-sm">{{ v.employee.emp_dep_code }}</td>
+            <td class="text-sm">{% if v.visitor_card %}{{ v.visitor_card.CRD_No }}{% else %}-{% endif %}</td>
+            <td class="text-sm">{{ v.visit_purpose }}</td>
+            <td class="text-sm">{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
+            <td class="text-sm">{% if v.check_out_time %}{{ v.check_out_time|date:"d M Y, h:i A" }}{% else %}-{% endif %}</td>
+            <td class="text-sm">
+              <span class="badge {% if v.status == 'Checked In' %}bg-success{% else %}bg-secondary{% endif %} text-xxs">
+                {{ v.status }}
+              </span>
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="14" class="text-center text-muted py-4">
-              No visit records were found for the selected filters.
-            </td>
+            <td colspan="9" class="text-center text-muted text-sm py-4">No historical records matched your selection parameters.</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -284,168 +160,14 @@
 </div>
 {% endif %}
 
-<style>
-  .report-date-field { display: none; }
-
-  .history-result-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-  }
-
-  .report-access-summary {
-    display: inline-flex;
-    align-items: center;
-    padding: 9px 13px;
-    border: 1px solid rgba(242, 99, 34, 0.2);
-    border-radius: 10px;
-    background: rgba(242, 99, 34, 0.06);
-    color: #67748e;
-  }
-
-  .report-access-summary i { color: var(--hn-orange); }
-
-  .history-employee-cell {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .history-employee-cell strong {
-    color: #344767;
-    font-size: 13px;
-  }
-
-  .history-employee-cell span {
-    color: #67748e;
-    font-size: 11px;
-  }
-
-  .history-card-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 48px;
-    padding: 5px 9px;
-    border-radius: 8px;
-    background: rgba(242, 99, 34, 0.1);
-    color: var(--hn-orange);
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .history-purpose {
-    display: inline-block;
-    max-width: 190px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: middle;
-  }
-
-  .report-select + .select2-container { width: 100% !important; }
-
-  .select2-container--default .select2-selection--single {
-    min-height: 42px;
-    border: 1px solid #d2d6da;
-    border-radius: 0.5rem;
-  }
-
-  .select2-container--default .select2-selection--single .select2-selection__rendered {
-    line-height: 42px;
-    padding-left: 14px;
-  }
-
-  .select2-container--default .select2-selection--single .select2-selection__arrow {
-    height: 42px;
-  }
-
-  @media (max-width: 767.98px) {
-    .history-result-header {
-      align-items: flex-start;
-      flex-direction: column;
-    }
-
-    .history-result-header .btn { width: 100%; }
-
-    .report-access-summary {
-      width: 100%;
-      align-items: flex-start;
-    }
-  }
-</style>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
   $(document).ready(function () {
-    $('.report-select').each(function () {
-      if ($(this).hasClass('select2-hidden-accessible')) {
-        $(this).select2('destroy');
-      }
-
-      $(this).select2({
-        width: '100%',
-        minimumResultsForSearch: 8
-      });
+    $('.select2').select2({
+      width: '100%'
     });
-
-    const reportType = document.getElementById('reportType');
-    const dailyField = document.getElementById('dailyField');
-    const weeklyField = document.getElementById('weeklyField');
-    const monthlyField = document.getElementById('monthlyField');
-    const yearlyField = document.getElementById('yearlyField');
-    const customStartField = document.getElementById('customStartField');
-    const customEndField = document.getElementById('customEndField');
-
-    const dailyDate = document.getElementById('dailyDate');
-    const weekStart = document.getElementById('weekStart');
-    const selectedMonth = document.getElementById('selectedMonth');
-    const selectedYear = document.getElementById('selectedYear');
-    const customStartDate = document.getElementById('customStartDate');
-    const customEndDate = document.getElementById('customEndDate');
-
-    function hideAllDateFields() {
-      [dailyField, weeklyField, monthlyField, yearlyField, customStartField, customEndField]
-        .forEach(function (field) { field.style.display = 'none'; });
-
-      [dailyDate, weekStart, selectedMonth, selectedYear, customStartDate, customEndDate]
-        .forEach(function (field) { field.removeAttribute('required'); });
-    }
-
-    function showSelectedDateFields() {
-      hideAllDateFields();
-
-      if (reportType.value === 'daily') {
-        dailyField.style.display = 'block';
-        dailyDate.setAttribute('required', true);
-      }
-
-      if (reportType.value === 'weekly') {
-        weeklyField.style.display = 'block';
-        weekStart.setAttribute('required', true);
-      }
-
-      if (reportType.value === 'monthly') {
-        monthlyField.style.display = 'block';
-        selectedMonth.setAttribute('required', true);
-      }
-
-      if (reportType.value === 'yearly') {
-        yearlyField.style.display = 'block';
-        selectedYear.setAttribute('required', true);
-      }
-
-      if (reportType.value === 'custom') {
-        customStartField.style.display = 'block';
-        customEndField.style.display = 'block';
-        customStartDate.setAttribute('required', true);
-        customEndDate.setAttribute('required', true);
-      }
-    }
-
-    reportType.addEventListener('change', showSelectedDateFields);
-    showSelectedDateFields();
   });
 </script>
 {% endblock %}

@@ -1,16 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html>
 <head>
-
   <meta charset="UTF-8">
-
-  <title>{{ report_title }}</title>
-
   <style>
+    /* Strict corporate Portrait Layout specs */
     @page {
       size: A4 portrait;
-      margin: 12mm;
+      margin: 15mm 10mm 15mm 15mm;
     }
 
     * {
@@ -18,382 +14,202 @@
     }
 
     body {
-      margin: 0;
-      color: #1f2937;
       font-family: Arial, sans-serif;
-      font-size: 8pt;
+      font-size: 9pt;
+      color: #000;
+      margin: 0;
     }
 
-    .report-container {
-      width: 100%;
-      border: 1.5px solid #4b5563;
-      padding: 10px;
+    .report-box {
+      border: 2px solid #555;
+      min-height: 267mm;
+      padding: 6px 8mm;
     }
 
+    /* ---------- Header Layout Structure ---------- */
     .header-table {
       width: 100%;
       border-collapse: collapse;
-      margin: 0 0 10px 0;
+      margin-bottom: 12px;
     }
 
     .header-table td {
       border: none;
+      padding: 8px 10px;
+    }
+
+    .header-table .divider-row td {
+      border-bottom: 2px solid #555;
+      padding: 10px 10px 12px 10px;
+    }
+
+    .published {
+      width: 45mm;
+      font-size: 8pt;
+      line-height: 1.7;
+      text-align: left;
       vertical-align: top;
+      padding-left: 6px;
     }
 
-    .published-cell {
-      width: 28%;
-      padding: 5px 8px;
-      font-size: 7.5pt;
-      line-height: 1.6;
-    }
-
-    .title-cell {
-      width: 44%;
-      padding: 5px 8px;
-      text-align: center;
-    }
-
-    .page-cell {
-      width: 28%;
-      padding: 5px 8px;
-      text-align: right;
-      font-size: 7.5pt;
+    .published .label {
       font-weight: bold;
     }
 
+    .title-cell {
+      text-align: center;
+      vertical-align: middle;
+      padding: 6px 20px;
+    }
+
     .company-name {
-      font-size: 11pt;
+      font-size: 12pt;
       font-weight: bold;
       text-transform: uppercase;
     }
 
     .report-title {
-      margin-top: 5px;
-      font-size: 13pt;
+      font-size: 14pt;
       font-weight: bold;
+      margin-top: 6px;
     }
 
-    .header-divider {
-      border-bottom: 2px solid #4b5563;
-      padding-bottom: 10px;
-    }
-
-    .meta-label {
+    .page-cell {
+      width: 35mm;
+      font-size: 8pt;
       font-weight: bold;
+      text-align: right;
+      vertical-align: bottom;
+      padding-right: 6px;
     }
 
-    .filter-table {
+    /* ---------- Summary Stat Strip Cards ---------- */
+    .stat-strip-table {
       width: 100%;
-      margin: 8px 0 12px 0;
       border-collapse: collapse;
-      background: #f8fafc;
+      margin-top: 10px;
+      margin-bottom: 15px;
     }
 
-    .filter-table td {
-      padding: 6px 8px;
-      border: 1px solid #d1d5db;
-      font-size: 7.5pt;
-    }
-
-    .filter-label {
-      font-weight: bold;
-      color: #374151;
-    }
-
-    .stats-table {
-      width: 100%;
-      margin: 0 0 12px 0;
-      border-collapse: collapse;
-    }
-
-    .stats-table td {
+    .stat-strip-table td {
       width: 33.33%;
+      border: 1px dashed #cbd5e1;
       padding: 8px;
-      border: 1px solid #d1d5db;
       text-align: center;
       background: #f8fafc;
     }
 
     .stat-label {
-      display: block;
-      margin-bottom: 4px;
-      color: #6b7280;
       font-size: 7.5pt;
+      color: #64748b;
+      font-weight: bold;
+      text-transform: uppercase;
     }
 
     .stat-value {
-      display: block;
-      color: #111827;
       font-size: 12pt;
       font-weight: bold;
+      color: #111827;
+      margin-top: 3px;
     }
 
-    .summary-table {
+    /* ---------- Data Table Grid ---------- */
+    table.summary-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 6px;
-      font-size: 8pt;
+      margin-top: 10px;
+      font-size: 9pt;
     }
 
-    .summary-table th,
-    .summary-table td {
-      padding: 6px;
-      border: 1px solid #9ca3af;
-    }
-
-    .summary-table th {
-      background: #e5e7eb;
-      font-weight: bold;
+    table.summary-table th, 
+    table.summary-table td {
+      border: 1px solid #999;
+      padding: 6px 8px;
       text-align: left;
     }
 
-    .summary-table .number-column {
-      text-align: center;
+    table.summary-table th {
+      font-weight: bold;
+      background: #f2f2f2;
+      color: #111827;
     }
 
-    .empty-row {
-      padding: 14px !important;
-      color: #6b7280;
-      text-align: center;
-    }
-
-    .footer-note {
-      margin-top: 12px;
-      padding-top: 8px;
-      border-top: 1px solid #d1d5db;
-      color: #6b7280;
-      font-size: 7pt;
-      text-align: center;
+    table.summary-table td {
+      color: #344767;
     }
   </style>
-
 </head>
 
 <body>
+  <div class="report-box">
 
-  <div class="report-container">
-
-    <!-- Header -->
-    <div class="header-divider">
-
-      <table class="header-table">
-
-        <tr>
-
-          <td class="published-cell">
-
-            <span class="meta-label">
-              Published
-            </span>
-
-            <br>
-
-            <span class="meta-label">
-              Date:
-            </span>
-
-            {{ published_date }}
-
-            <br>
-
-            <span class="meta-label">
-              Time:
-            </span>
-
-            {{ published_time }}
-
-            <br>
-
-            <span class="meta-label">
-              By:
-            </span>
-
-            {{ generated_by }}
-
-          </td>
-
-          <td class="title-cell">
-
-            <div class="company-name">
-              Highnoon Laboratories Limited
-            </div>
-
-            <div class="report-title">
-              {{ report_title }}
-            </div>
-
-          </td>
-
-          <td class="page-cell">
-            Page
-            <pdf:pagenumber>
-            of
-            <pdf:pagecount>
-          </td>
-
-        </tr>
-
-      </table>
-
-    </div>
-
-    <!-- Applied Filters -->
-    <table class="filter-table">
-
-      <tr>
-
-        <td>
-          <span class="filter-label">
-            Company:
-          </span>
-
-          {% if selected_company == "ALL" %}
-            All Companies
-          {% else %}
-            {{ selected_company }}
-          {% endif %}
+    <!-- Top Generation Meta Branding Bar -->
+    <table class="header-table">
+      <tr class="divider-row">
+        <td class="published">
+          <span class="label">Published</span><br>
+          <span class="label">Date</span>&nbsp;&nbsp;: {{ published_date }}<br>
+          <span class="label">At</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ published_time }}<br>
+          <span class="label">By</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ generated_by }}
         </td>
 
-        <td>
-          <span class="filter-label">
-            Branch:
-          </span>
-
-          {% if selected_branch == "ALL" %}
-            All Branches
-          {% else %}
-            {{ selected_branch }}
-          {% endif %}
+        <td class="title-cell">
+          <div class="company-name">Highnoon Laboratories Limited</div>
+          <div class="report-title">{{ report_title }}</div>
         </td>
 
-        <td>
-          <span class="filter-label">
-            Purpose:
-          </span>
-
-          {% if selected_purpose == "ALL" %}
-            All Purposes
-          {% else %}
-            Filtered Purpose
-          {% endif %}
+        <td class="page-cell">
+          Page {{ current_page|default:1 }} of {{ total_pages|default:1 }}
         </td>
-
       </tr>
-
     </table>
 
-    <!-- Report Totals -->
-    <table class="stats-table">
-
+    <!-- Consolidated Symmetrical Analytics Metric Strip -->
+    <table class="stat-strip-table">
       <tr>
-
         <td>
-
-          <span class="stat-label">
-            Unique Visitors
-          </span>
-
-          <span class="stat-value">
-            {{ total_unique_visitors|default:0 }}
-          </span>
-
+          <div class="stat-label">Total Unique Visitors</div>
+          <div class="stat-value">{{ total_unique_visitors }}</div>
         </td>
-
         <td>
-
-          <span class="stat-label">
-            Total Visits
-          </span>
-
-          <span class="stat-value">
-            {{ total_visits|default:0 }}
-          </span>
-
+          <div class="stat-label">Total Formed Visits</div>
+          <div class="stat-value">{{ total_visits }}</div>
         </td>
-
         <td>
-
-          <span class="stat-label">
-            Overall Average Visit Time
-          </span>
-
-          <span class="stat-value">
-            {{ overall_average_duration_display|default:"-" }}
-          </span>
-
+          <div class="stat-label">Overall Avg Duration</div>
+          <div class="stat-value">{{ overall_average_duration_display }}</div>
         </td>
-
       </tr>
-
     </table>
 
-    <!-- Summary Table -->
+    <!-- Main Segmented Matrix Grid -->
     <table class="summary-table">
-
       <thead>
-
         <tr>
-          <th>Purpose</th>
-          <th class="number-column">
-            No. of Visitors
-          </th>
-          <th class="number-column">
-            Total Visits
-          </th>
-          <th class="number-column">
-            Average Visit Time
-          </th>
+          <!-- Dynamically prints the precise category group heading constraint context -->
+          <th style="width: 46%;">{{ group_label }} Category</th>
+          <th style="width: 18%;">Distinct Visitors</th>
+          <th style="width: 18%;">Total Logged Visits</th>
+          <th style="width: 18%;">Avg Session Duration</th>
         </tr>
-
       </thead>
 
       <tbody>
-
         {% for row in summary_rows %}
         <tr>
-
-          <td>
-            {{ row.purpose }}
-          </td>
-
-          <td class="number-column">
-            {{ row.visitor_count }}
-          </td>
-
-          <td class="number-column">
-            {{ row.total_visits }}
-          </td>
-
-          <td class="number-column">
-            {{ row.average_duration_display }}
-          </td>
-
+          <td style="font-weight: bold; color: #111827;">{{ row.dimension_value }}</td>
+          <td>{{ row.visitor_count }}</td>
+          <td>{{ row.total_visits }}</td>
+          <td style="font-weight: bold; color: #111827;">{{ row.average_duration_display }}</td>
         </tr>
-
         {% empty %}
         <tr>
-
-          <td
-            colspan="4"
-            class="empty-row">
-
-            No visit records were found for the selected filters.
-          </td>
-
+          <td colspan="4" style="text-align: center; color: #555; padding: 15px;">No active system transactions match this summary date range scope window.</td>
         </tr>
         {% endfor %}
-
       </tbody>
-
     </table>
 
-    <div class="footer-note">
-      This report was generated by the Highnoon Visitor Management System.
-    </div>
-
   </div>
-
 </body>
-
 </html>

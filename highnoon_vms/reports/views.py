@@ -392,207 +392,43 @@ def get_report_filter_options(
 
 
 def get_report_date_range(request):
+    """
+    Resolve explicit Start Date and End Date periods, defaulting to today.
+    """
     today = timezone.localdate()
 
-    report_type = (
-        request.GET.get("report_type")
-        or ""
-    ).strip().lower()
+    # Fetch explicit inputs or default natively to today's date string
+    selected_start_date = request.GET.get("start_date") or today.strftime("%Y-%m-%d")
+    selected_end_date = request.GET.get("end_date") or today.strftime("%Y-%m-%d")
 
-    selected_date = (
-        request.GET.get("date")
-        or today.strftime("%Y-%m-%d")
-    )
+    start_date = safe_parse_date(selected_start_date, today)
+    end_date = safe_parse_date(selected_end_date, today)
 
-    selected_week_start = (
-        request.GET.get("week_start")
-        or (
-            today - timedelta(
-                days=today.weekday()
-            )
-        ).strftime("%Y-%m-%d")
-    )
+    # Prevent inverted selections safely
+    if end_date < start_date:
+        start_date, end_date = end_date, start_date
 
-    selected_month = (
-        request.GET.get("month")
-        or today.strftime("%Y-%m")
-    )
+    start_datetime = make_start_datetime(start_date)
+    end_datetime = make_end_datetime(end_date)
 
-    selected_year = (
-        request.GET.get("year")
-        or str(today.year)
-    )
-
-    selected_start_date = (
-        request.GET.get("start_date")
-        or today.strftime("%Y-%m-%d")
-    )
-
-    selected_end_date = (
-        request.GET.get("end_date")
-        or today.strftime("%Y-%m-%d")
-    )
-
-    start_datetime = None
-    end_datetime = None
-    title_suffix = ""
-
-    if report_type == "daily":
-        date_obj = safe_parse_date(
-            selected_date,
-            today,
-        )
-
-        start_datetime = make_start_datetime(
-            date_obj
-        )
-
-        end_datetime = make_end_datetime(
-            date_obj
-        )
-
-        title_suffix = date_obj.strftime(
-            "%d %B %Y"
-        )
-
-    elif report_type == "weekly":
-        start_date = safe_parse_date(
-            selected_week_start,
-            today - timedelta(
-                days=today.weekday()
-            ),
-        )
-
-        end_date = start_date + timedelta(days=6)
-
-        start_datetime = make_start_datetime(
-            start_date
-        )
-
-        end_datetime = make_end_datetime(
-            end_date
-        )
-
-        title_suffix = (
-            f"{start_date.strftime('%d %B %Y')} "
-            f"to {end_date.strftime('%d %B %Y')}"
-        )
-
-    elif report_type == "monthly":
-        year, month = safe_parse_month(
-            selected_month,
-            today,
-        )
-
-        first_date = date(
-            year,
-            month,
-            1,
-        )
-
-        last_day = monthrange(
-            year,
-            month,
-        )[1]
-
-        last_date = date(
-            year,
-            month,
-            last_day,
-        )
-
-        start_datetime = make_start_datetime(
-            first_date
-        )
-
-        end_datetime = make_end_datetime(
-            last_date
-        )
-
-        title_suffix = first_date.strftime(
-            "%B %Y"
-        )
-
-    elif report_type == "yearly":
-        year = safe_parse_year(
-            selected_year,
-            today.year,
-        )
-
-        first_date = date(
-            year,
-            1,
-            1,
-        )
-
-        last_date = date(
-            year,
-            12,
-            31,
-        )
-
-        start_datetime = make_start_datetime(
-            first_date
-        )
-
-        end_datetime = make_end_datetime(
-            last_date
-        )
-
-        title_suffix = str(year)
-
-    elif report_type == "custom":
-        start_date = safe_parse_date(
-            selected_start_date,
-            today,
-        )
-
-        end_date = safe_parse_date(
-            selected_end_date,
-            today,
-        )
-
-        if end_date < start_date:
-            start_date, end_date = (
-                end_date,
-                start_date,
-            )
-
-        start_datetime = make_start_datetime(
-            start_date
-        )
-
-        end_datetime = make_end_datetime(
-            end_date
-        )
-
-        title_suffix = (
-            f"{start_date.strftime('%d %B %Y')} "
-            f"to {end_date.strftime('%d %B %Y')}"
-        )
+    if start_date == end_date:
+        title_suffix = start_date.strftime("%d %B %Y")
+    else:
+        title_suffix = f"{start_date.strftime('%d %B %Y')} to {end_date.strftime('%d %B %Y')}"
 
     return {
-        "report_type": report_type,
+        "report_type": request.GET.get("report_type", "custom"), # FIX: Restored key to prevent KeyError on summary view load
         "start_datetime": start_datetime,
         "end_datetime": end_datetime,
         "title_suffix": title_suffix,
-        "selected_date": selected_date,
-        "selected_week_start": selected_week_start,
-        "selected_month": selected_month,
-        "selected_year": selected_year,
         "selected_start_date": selected_start_date,
         "selected_end_date": selected_end_date,
     }
 
 
 def apply_date_filter(queryset, date_settings):
-    start_datetime = date_settings[
-        "start_datetime"
-    ]
-
-    end_datetime = date_settings[
-        "end_datetime"
-    ]
+    start_datetime = date_settings["start_datetime"]
+    end_datetime = date_settings["end_datetime"]
 
     if start_datetime and end_datetime:
         queryset = queryset.filter(
@@ -601,7 +437,6 @@ def apply_date_filter(queryset, date_settings):
                 end_datetime,
             )
         )
-
     return queryset
 
 
@@ -756,167 +591,88 @@ def get_filtered_history_queryset(request):
 
 
 def get_filtered_summary_queryset(request):
-    access = get_report_access_settings(
-        request
-    )
-
-    selected_company, selected_branch = (
-        get_selected_company_branch(
-            request,
-            access,
-        )
-    )
-
-    date_settings = get_report_date_range(
-        request
-    )
+    """
+    Return dynamically grouped summary metrics based on the selected dimensional field.
+    """
+    access = get_report_access_settings(request)
+    selected_company, selected_branch = get_selected_company_branch(request, access)
+    date_settings = get_report_date_range(request)
 
     visits = get_base_report_queryset()
-
     visits = apply_report_access_filter(
         queryset=visits,
         access=access,
         selected_company=selected_company,
         selected_branch=selected_branch,
     )
+    visits = apply_date_filter(visits, date_settings)
 
-    visits = apply_date_filter(
-        visits,
-        date_settings,
-    )
-
-    selected_purpose = normalize_filter_value(
-        request.GET.get("purpose")
-    )
-
-    if selected_purpose:
-        purpose_obj = (
-            sys_pur_master.objects
-            .filter(
-                pur_id=selected_purpose
-            )
-            .first()
-        )
-
-        if purpose_obj:
-            visits = visits.filter(
-                visit_purpose__iexact=(
-                    purpose_obj.pur_purpose
-                )
-            )
+    # Resolve dynamic Group By mapping configurations
+    group_by_param = (request.GET.get("group_by") or "purpose").strip().lower()
+    
+    # Map selection flags directly to your query relations
+    mapping = {
+        "company": ("employee__emp_cmp__cmp_desc", "Company"),
+        "branch": ("employee__emp_bra_code__bra_desc", "Branch"),
+        "department": ("employee__emp_dep_code__dep_desc", "Department"),
+        "employee": ("employee__emp_name", "Host Employee"),
+        "card": ("visitor_card__CRD_No", "Visitor Card No"),
+        "visitor": ("visitor__visitor_name", "Visitor Name"),
+        "purpose": ("visit_purpose", "Visit Purpose"),
+    }
+    
+    group_field, group_label = mapping.get(group_by_param, mapping["purpose"])
 
     visit_duration = ExpressionWrapper(
-        F("check_out_time")
-        - F("check_in_time"),
+        F("check_out_time") - F("check_in_time"),
         output_field=DurationField(),
     )
 
     summary_queryset = (
         visits
-        .values("visit_purpose")
+        .values(group_field)
         .annotate(
-            visitor_count=Count(
-                "visitor_id",
-                distinct=True,
-            ),
-            total_visits=Count(
-                "visit_id"
-            ),
+            visitor_count=Count("visitor_id", distinct=True),
+            total_visits=Count("visit_id"),
             average_duration=Avg(
                 visit_duration,
-                filter=Q(
-                    check_out_time__isnull=False
-                ),
+                filter=Q(check_out_time__isnull=False),
             ),
         )
-        .order_by(
-            "-visitor_count",
-            "visit_purpose",
-        )
+        .order_by("-visitor_count", group_field)
     )
 
     summary_rows = []
-
     for item in summary_queryset:
         summary_rows.append({
-            "purpose": (
-                item["visit_purpose"]
-                or "Not Specified"
-            ),
-            "visitor_count": (
-                item["visitor_count"]
-            ),
-            "total_visits": (
-                item["total_visits"]
-            ),
-            "average_duration": (
-                item["average_duration"]
-            ),
-            "average_duration_display": (
-                format_duration(
-                    item["average_duration"]
-                )
-            ),
+            "dimension_value": item[group_field] or "Not Specified / Others",
+            "visitor_count": item["visitor_count"],
+            "total_visits": item["total_visits"],
+            "average_duration": item["average_duration"],
+            "average_duration_display": format_duration(item["average_duration"]),
         })
 
-    total_unique_visitors = (
-        visits
-        .values("visitor_id")
-        .distinct()
-        .count()
-    )
-
+    total_unique_visitors = visits.values("visitor_id").distinct().count()
     total_visits = visits.count()
+    overall_average_duration = visits.filter(check_out_time__isnull=False).aggregate(average=Avg(visit_duration))["average"]
 
-    overall_average_duration = (
-        visits
-        .filter(
-            check_out_time__isnull=False
-        )
-        .aggregate(
-            average=Avg(
-                visit_duration
-            )
-        )["average"]
-    )
-
-    title_suffix = (
-        date_settings["title_suffix"]
-    )
-
-    report_title = "Visit Summary Report"
-
+    title_suffix = date_settings["title_suffix"]
+    report_title = f"Visit Summary Report (Grouped by {group_label})"
     if title_suffix:
-        report_title = (
-            f"{report_title} - {title_suffix}"
-        )
+        report_title = f"{report_title} - {title_suffix}"
 
     return {
         "summary_rows": summary_rows,
         "report_title": report_title,
+        "group_label": group_label,
+        "selected_group_by": group_by_param,
         "access": access,
-        "selected_company": (
-            selected_company or "ALL"
-        ),
-        "selected_branch": (
-            selected_branch or "ALL"
-        ),
-        "selected_purpose": (
-            selected_purpose or "ALL"
-        ),
+        "selected_company": selected_company or "ALL",
+        "selected_branch": selected_branch or "ALL",
         "date_settings": date_settings,
-        "total_unique_visitors": (
-            total_unique_visitors
-        ),
+        "total_unique_visitors": total_unique_visitors,
         "total_visits": total_visits,
-        "overall_average_duration": (
-            overall_average_duration
-        ),
-        "overall_average_duration_display": (
-            format_duration(
-                overall_average_duration
-            )
-        ),
+        "overall_average_duration_display": format_duration(overall_average_duration),
     }
 
 
@@ -969,99 +725,35 @@ def download_report_pdf_redirect(request):
 
 
 @login_required
-@permission_required(
-    "reports.view_reports",
-    raise_exception=True,
-)
+@permission_required("reports.view_reports", raise_exception=True)
 def report_summary(request):
-    access = get_report_access_settings(
-        request
-    )
+    access = get_report_access_settings(request)
+    selected_company, selected_branch = get_selected_company_branch(request, access)
+    filter_options = get_report_filter_options(access, selected_company, selected_branch)
+    date_settings = get_report_date_range(request)
 
-    selected_company, selected_branch = (
-        get_selected_company_branch(
-            request,
-            access,
-        )
-    )
-
-    filter_options = get_report_filter_options(
-        access=access,
-        selected_company=selected_company,
-        selected_branch=selected_branch,
-    )
-
-    date_settings = get_report_date_range(
-        request
-    )
-
-    report_generated = bool(
-        date_settings["report_type"]
-    )
-
-    summary_data = None
-
-    if report_generated:
-        summary_data = (
-            get_filtered_summary_queryset(
-                request
-            )
-        )
+    # Force continuous generation based on default tracking range parameters
+    summary_data = get_filtered_summary_queryset(request)
 
     context = {
-        "report_generated": report_generated,
-        "has_report_access": access[
-            "has_access"
-        ],
-        "can_select_company": access[
-            "can_select_company"
-        ],
-        "can_select_branch": access[
-            "can_select_branch"
-        ],
-        "companies": filter_options[
-            "companies"
-        ],
-        "branches": filter_options[
-            "branches"
-        ],
-        "purposes": (
-            sys_pur_master.objects
-            .filter(pur_active=True)
-            .order_by("pur_purpose")
-        ),
-        "selected_company": (
-            selected_company or "ALL"
-        ),
-        "selected_branch": (
-            selected_branch or "ALL"
-        ),
-        "selected_purpose": (
-            request.GET.get("purpose")
-            or "ALL"
-        ),
-        "published_date": (
-            timezone.localtime()
-            .strftime("%d %B %Y")
-        ),
-        "published_time": (
-            timezone.localtime()
-            .strftime("%I:%M %p")
-        ),
-        "generated_by": (
-            request.user.username
-        ),
+        "report_generated": True,
+        "has_report_access": access["has_access"],
+        "can_select_company": access["can_select_company"],
+        "can_select_branch": access["can_select_branch"],
+        "companies": filter_options["companies"],
+        "branches": filter_options["branches"],
+        "selected_company": selected_company or "ALL",
+        "selected_branch": selected_branch or "ALL",
+        "published_date": timezone.localtime().strftime("%d %B %Y"),
+        "published_time": timezone.localtime().strftime("%I:%M %p"),
+        "generated_by": request.user.username,
         **date_settings,
     }
-
+    
     if summary_data:
         context.update(summary_data)
 
-    return render(
-        request,
-        "reports/report_summary.html",
-        context,
-    )
+    return render(request, "reports/report_summary.html", context)
 
 
 # =========================================================
@@ -1070,129 +762,46 @@ def report_summary(request):
 
 
 @login_required
-@permission_required(
-    "reports.view_reports",
-    raise_exception=True,
-)
+@permission_required("reports.view_reports", raise_exception=True)
 def report_history(request):
-    access = get_report_access_settings(
-        request
-    )
-
-    selected_company, selected_branch = (
-        get_selected_company_branch(
-            request,
-            access,
-        )
-    )
-
-    filter_options = get_report_filter_options(
-        access=access,
-        selected_company=selected_company,
-        selected_branch=selected_branch,
-    )
-
-    date_settings = get_report_date_range(
-        request
-    )
-
-    report_generated = bool(
-        date_settings["report_type"]
-    )
-
-    history_data = None
-
-    if report_generated:
-        history_data = (
-            get_filtered_history_queryset(
-                request
-            )
-        )
+    access = get_report_access_settings(request)
+    selected_company, selected_branch = get_selected_company_branch(request, access)
+    filter_options = get_report_filter_options(access, selected_company, selected_branch)
+    
+    date_settings = get_report_date_range(request)
+    
+    # Report runs automatically on page view using default date parameters
+    report_generated = True
+    history_data = get_filtered_history_queryset(request)
 
     context = {
         "report_generated": report_generated,
-        "has_report_access": access[
-            "has_access"
-        ],
-        "can_select_company": access[
-            "can_select_company"
-        ],
-        "can_select_branch": access[
-            "can_select_branch"
-        ],
-        "companies": filter_options[
-            "companies"
-        ],
-        "branches": filter_options[
-            "branches"
-        ],
-        "employees": filter_options[
-            "employees"
-        ],
-        "visitors": (
-            visitor.objects
-            .all()
-            .order_by("visitor_name")
-        ),
-        "purposes": (
-            sys_pur_master.objects
-            .filter(pur_active=True)
-            .order_by("pur_purpose")
-        ),
-        "cards": (
-            visitor_card.objects
-            .all()
-            .order_by("CRD_No")
-        ),
-        "selected_company": (
-            selected_company or "ALL"
-        ),
-        "selected_branch": (
-            selected_branch or "ALL"
-        ),
-        "selected_visitor": (
-            request.GET.get("visitor")
-            or "ALL"
-        ),
-        "selected_employee": (
-            request.GET.get("employee")
-            or "ALL"
-        ),
-        "selected_purpose": (
-            request.GET.get("purpose")
-            or "ALL"
-        ),
-        "selected_status": (
-            request.GET.get("status")
-            or "ALL"
-        ),
-        "selected_card": (
-            request.GET.get("card")
-            or "ALL"
-        ),
-        "published_date": (
-            timezone.localtime()
-            .strftime("%d %B %Y")
-        ),
-        "published_time": (
-            timezone.localtime()
-            .strftime("%I:%M %p")
-        ),
-        "generated_by": (
-            request.user.username
-        ),
+        "has_report_access": access["has_access"],
+        "can_select_company": access["can_select_company"],
+        "can_select_branch": access["can_select_branch"],
+        "companies": filter_options["companies"],
+        "branches": filter_options["branches"],
+        "employees": filter_options["employees"],
+        "visitors": visitor.objects.all().order_by("visitor_name"),
+        "purposes": sys_pur_master.objects.filter(pur_active=True).order_by("pur_purpose"),
+        "cards": visitor_card.objects.all().order_by("CRD_No"),
+        "selected_company": selected_company or "ALL",
+        "selected_branch": selected_branch or "ALL",
+        "selected_visitor": request.GET.get("visitor") or "ALL",
+        "selected_employee": request.GET.get("employee") or "ALL",
+        "selected_purpose": request.GET.get("purpose") or "ALL",
+        "selected_status": request.GET.get("status") or "ALL",
+        "selected_card": request.GET.get("card") or "ALL",
+        "published_date": timezone.localtime().strftime("%d %B %Y"),
+        "published_time": timezone.localtime().strftime("%I:%M %p"),
+        "generated_by": request.user.username,
         **date_settings,
     }
 
     if history_data:
         context.update(history_data)
 
-    return render(
-        request,
-        "reports/report_history.html",
-        context,
-    )
-
+    return render(request, "reports/report_history.html", context)
 
 # =========================================================
 # PDF HELPERS
@@ -1247,21 +856,18 @@ def render_pdf_response(
     raise_exception=True,
 )
 def download_summary_pdf(request):
-    summary_data = (
-        get_filtered_summary_queryset(
-            request
-        )
-    )
+    """
+    Generate vertical, beautifully tracked A4 Portrait Summary PDF Reports based on dynamic Group By fields.
+    """
+    summary_data = get_filtered_summary_queryset(request)
 
     context = {
         **summary_data,
         "published_date": (
-            timezone.localtime()
-            .strftime("%d %B %Y")
+            timezone.localtime().strftime("%d %B %Y")
         ),
         "published_time": (
-            timezone.localtime()
-            .strftime("%I:%M %p")
+            timezone.localtime().strftime("%I:%M %p")
         ),
         "generated_by": (
             request.user.username
