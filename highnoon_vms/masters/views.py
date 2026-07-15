@@ -1635,7 +1635,7 @@ def database_settings_panel(request):
         # ---------------------------------------------------------
         # IF CONNECTION PASSED: Commit configurations to disk
         # ---------------------------------------------------------
-        env_content = f"""# Generated Highnoon VMS Production Environment Settings
+        env_content = f"""# Highnoon database settings
 DB_NAME={db_name}
 DB_USER={db_user}
 DB_PASSWORD={db_password}
