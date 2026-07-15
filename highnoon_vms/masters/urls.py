@@ -57,4 +57,6 @@ urlpatterns = [
     path("access-groups/<int:pk>/edit/", views.access_group_update, name="access_group_update"),
     path("access-groups/<int:pk>/delete/", views.access_group_delete, name="access_group_delete"),
     
+    # database settings
+    path("settings/database/", views.database_settings_panel, name="database_settings_panel"),
 ]

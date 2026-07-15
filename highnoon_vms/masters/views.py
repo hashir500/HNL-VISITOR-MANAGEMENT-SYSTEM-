@@ -13,6 +13,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
 from django.db.models import Q
+from django.contrib.auth.decorators import user_passes_test
+import MySQLdb
 
 from django.contrib.auth.decorators import login_required, permission_required
 from .access import employees_visible_to_user
@@ -1569,3 +1571,91 @@ def access_group_delete(request, pk):
         )
 
     return redirect("access_group_list")
+
+
+# dynamic db panel settings
+def database_settings_panel(request):
+    env_path = os.path.join(settings.BASE_DIR, '.env')
+    
+    current_settings = {
+        'DB_NAME': '', 
+        'DB_USER': '', 
+        'DB_PASSWORD': '', 
+        'DB_HOST': '127.0.0.1', 
+        'DB_PORT': '3306'
+    }
+    
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, 'r') as file:
+                for line in file:
+                    cleaned_line = line.strip()
+                    if '=' in cleaned_line and not cleaned_line.startswith('#'):
+                        key, value = cleaned_line.split('=', 1)
+                        if key in current_settings:
+                            current_settings[key] = value
+        except Exception as e:
+            messages.error(request, f"Error reading system config: {str(e)}")
+
+    if request.method == 'POST':
+        db_name = request.POST.get('db_name', '').strip()
+        db_user = request.POST.get('db_user', '').strip()
+        db_password = request.POST.get('db_password', '').strip()
+        db_host = request.POST.get('db_host', '').strip() or '127.0.0.1'
+        db_port = request.POST.get('db_port', '').strip() or '3306'
+
+        # ---------------------------------------------------------
+        # LIVE HANDSHAKE TEST (Prevents site shutdowns from bad configurations)
+        # ---------------------------------------------------------
+        try:
+            test_conn = MySQLdb.connect(
+                host=db_host,
+                user=db_user,
+                passwd=db_password,
+                db=db_name,
+                port=int(db_port),
+                connect_timeout=5 # Automatically gives up after 5 seconds instead of hanging
+            )
+            test_conn.close() # Connection works! Close it out cleanly.
+            
+        except Exception as db_error:
+            # Trap the connection exception and display it safely to the user
+            messages.error(
+                request, 
+                f"Database Connection Refused! The website would crash if saved. "
+                f"Verify your MySQL credentials or service state. Error: {str(db_error)}"
+            )
+            # Re-render the page with the submitted data so they don't have to retype it
+            submitted_settings = {
+                'DB_NAME': db_name, 'DB_USER': db_user, 
+                'DB_PASSWORD': db_password, 'DB_HOST': db_host, 'DB_PORT': db_port
+            }
+            return render(request, 'masters/database_settings.html', {'current_settings': submitted_settings})
+
+        # ---------------------------------------------------------
+        # IF CONNECTION PASSED: Commit configurations to disk
+        # ---------------------------------------------------------
+        env_content = f"""# Generated Highnoon VMS Production Environment Settings
+DB_NAME={db_name}
+DB_USER={db_user}
+DB_PASSWORD={db_password}
+DB_HOST={db_host}
+DB_PORT={db_port}
+DEBUG=False
+"""
+        try:
+            with open(env_path, 'w') as file:
+                file.write(env_content)
+            
+            messages.success(request, "Database credentials verified and saved successfully!")
+            
+            wsgi_path = os.path.join(settings.BASE_DIR, 'highnoon_vms', 'wsgi.py')
+            if os.path.exists(wsgi_path):
+                os.utime(wsgi_path, None)
+            
+            return redirect('database_settings_panel')
+            
+        except Exception as e:
+            messages.error(request, f"File system write failure: {str(e)}")
+
+    return render(request, 'masters/database_settings.html', {'current_settings': current_settings})

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}System Settings{% endblock %}
+{% block page_heading %}Database Link Configuration{% endblock %}
+
+{% block content %}
+<!-- CSS Override to target and hide ONLY the global outer alert banner -->
+<style>
+  /* Hides any alert that is a direct child of the main content container, leaving our inner card alert untouched */
+  div.container-fluid > div.alert,
+  main > div.alert,
+  body > div.alert {
+    display: none !important;
+  }
+</style>
+
+<div class="row justify-content-center pt-4">
+  <div class="col-lg-8 col-md-10">
+    <div class="card shadow-lg border-0 mb-4" style="border-radius: 1rem;">
+      
+      <!-- Clean Text-Only Header Block -->
+      <div class="card-header pb-0 text-start bg-white border-0" style="border-top-left-radius: 1rem; border-top-right-radius: 1rem;">
+        <div>
+          <h5 class="font-weight-bolder text-dark mb-0" style="letter-spacing: -0.03rem;">Runtime Environment Registry</h5>
+          <p class="text-xs text-secondary mb-0">Modify live MySQL backend communication parameters directly on the server framework</p>
+        </div>
+        <hr class="horizontal text-dark my-3 opacity-1">
+      </div>
+      
+      <!-- Form Container Body -->
+      <div class="card-body pt-0 bg-white" style="border-bottom-left-radius: 1rem; border-bottom-right-radius: 1rem;">
+        
+        <!-- Clean, contained success indicator inside the card design layout -->
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'info' %}info{% else %}success{% endif %} text-white text-sm border-0 alert-dismissible fade show mb-3" role="alert" style="background: {% if message.tags == 'error' %}#ea0606{% elif message.tags == 'info' %}#11cdef{% else %}#82d616{% endif %}; border-radius: 0.5rem;">
+              <span class="alert-text">{{ message }}</span>
+              <button type="button" class="btn-close text-lg py-3 opacity-10" data-bs-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="POST" class="text-start">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label font-weight-bold text-xs text-uppercase text-dark mb-1">Database Name</label>
+              <input type="text" name="db_name" class="form-control border border-2 px-3 py-2 text-sm text-dark bg-white" value="{{ current_settings.DB_NAME }}" required placeholder="e.g., highnoon_vms_db" style="border-radius: 0.5rem; border-color: #d2d6da !important;">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label font-weight-bold text-xs text-uppercase text-dark mb-1">Database User</label>
+              <input type="text" name="db_user" class="form-control border border-2 px-3 py-2 text-sm text-dark bg-white" value="{{ current_settings.DB_USER }}" required placeholder="e.g., dbadmin" style="border-radius: 0.5rem; border-color: #d2d6da !important;">
+            </div>
+            
+            <div class="col-md-12">
+              <label class="form-label font-weight-bold text-xs text-uppercase text-dark mb-1">Database Password</label>
+              <div class="input-group" style="border-radius: 0.5rem;">
+                <input type="password" name="db_password" id="dbPassInput" class="form-control border border-2 px-3 py-2 text-sm text-dark bg-white" value="{{ current_settings.DB_PASSWORD }}" required placeholder="••••••••••••" style="border-top-left-radius: 0.5rem; border-bottom-left-radius: 0.5rem; border-color: #d2d6da !important; border-right: 0 !important; z-index: 1;">
+                <button class="btn btn-outline-secondary mb-0 border border-2 px-3 bg-white text-secondary" type="button" onclick="togglePasswordVisibility()" style="border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem; border-color: #d2d6da !important; border-left: 0 !important; z-index: 1;">
+                  <i class="fa-solid fa-eye" id="togglePassIcon"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div class="col-md-8">
+              <label class="form-label font-weight-bold text-xs text-uppercase text-dark mb-1">Host Address</label>
+              <input type="text" name="db_host" class="form-control border border-2 px-3 py-2 text-sm text-dark bg-white" value="{{ current_settings.DB_HOST }}" required placeholder="127.0.0.1" style="border-radius: 0.5rem; border-color: #d2d6da !important;">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label font-weight-bold text-xs text-uppercase text-dark mb-1">Port Mapping</label>
+              <input type="text" name="db_port" class="form-control border border-2 px-3 py-2 text-sm text-dark bg-white" value="{{ current_settings.DB_PORT }}" required placeholder="3306" style="border-radius: 0.5rem; border-color: #d2d6da !important;">
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end mt-4">
+            <button type="submit" class="btn text-white px-4 py-2.5 font-weight-bold mb-0 shadow-sm" style="background: #f26322; border-radius: 0.5rem; font-size: 0.8rem; letter-spacing: 0.05rem;">
+              <i class="fa-solid fa-floppy-disk me-1.5"></i> Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function togglePasswordVisibility() {
+    const input = document.getElementById('dbPassInput');
+    const icon = document.getElementById('togglePassIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'fa-solid fa-eye-slash';
+    } else {
+      input.type = 'password';
+      icon.className = 'fa-solid fa-eye';
+    }
+  }
+</script>
+{% endblock %}
