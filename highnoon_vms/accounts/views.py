@@ -1,3 +1,4 @@
+import os
 import requests
 
 from django.contrib import messages
@@ -6,10 +7,26 @@ from django.contrib.auth.models import User, Group
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login
 
 from masters.models import sys_usr_system
+from system_settings.models import SystemSettings  # Added to load configuration dynamically
 from .microsoft import build_msal_app, get_auth_url, SCOPES
+
+
+def get_system_sso_credentials():
+    """
+    Helper utility to fetch SSO credentials dynamically.
+    Checks SystemSettings DB configuration first, falling back to os.getenv.
+    """
+    settings = SystemSettings.objects.first()
+    
+    client_id = (settings.ms_client_id if settings else None) or os.getenv("MS_CLIENT_ID", "")
+    tenant_id = (settings.ms_tenant_id if settings else None) or os.getenv("MS_TENANT_ID", "")
+    client_secret = (settings.ms_client_secret if settings else None) or os.getenv("MS_CLIENT_SECRET", "")
+    redirect_uri = (settings.ms_redirect_uri if settings else None) or os.getenv("MS_REDIRECT_URI", "")
+    
+    return client_id, tenant_id, client_secret, redirect_uri
+
 
 def get_redirect_url_after_login(user):
     if not user.groups.exists() and not user.is_superuser:
@@ -28,6 +45,7 @@ def get_redirect_url_after_login(user):
         return reverse("report_page")
 
     return reverse("access_pending")
+
 
 def redirect_after_login(user):
     return redirect(get_redirect_url_after_login(user))
@@ -68,7 +86,7 @@ def login_page(request):
             request.session["show_login_transition"] = True
             request.session["login_transition_target"] = (
                 get_redirect_url_after_login(user)
-                )
+            )
 
             return redirect("login_transition")
 
@@ -83,7 +101,12 @@ def logout_user(request):
 
 
 def microsoft_login(request):
-    return redirect(get_auth_url())
+    # Dynamically grab active config settings
+    client_id, tenant_id, client_secret, redirect_uri = get_system_sso_credentials()
+    
+    # Pass dynamic keys directly to your login URL generator
+    auth_url = get_auth_url(client_id=client_id, tenant_id=tenant_id, redirect_uri=redirect_uri)
+    return redirect(auth_url)
 
 
 def microsoft_callback(request):
@@ -93,14 +116,20 @@ def microsoft_callback(request):
         messages.error(request, "Microsoft login failed.")
         return redirect("login")
 
-    app = build_msal_app()
+    # Dynamically grab active config settings
+    client_id, tenant_id, client_secret, redirect_uri = get_system_sso_credentials()
+
+    # Pass configuration to override settings.py properties inside MSAL wrapper
+    app = build_msal_app(client_id=client_id, client_secret=client_secret, tenant_id=tenant_id)
+
+    # Use the dynamic redirect_uri explicitly during authorization code exchange
+    fallback_redirect = request.build_absolute_uri("/microsoft_sso/callback/")
+    active_redirect_uri = redirect_uri if redirect_uri else fallback_redirect
 
     result = app.acquire_token_by_authorization_code(
         code,
         scopes=SCOPES,
-        redirect_uri=request.build_absolute_uri(
-            "/microsoft_sso/callback/"
-        ),
+        redirect_uri=active_redirect_uri,
     )
 
     if "access_token" not in result:
@@ -176,6 +205,7 @@ def microsoft_callback(request):
 
     return redirect("login_transition")
 
+
 @login_required
 def login_transition(request):
     if not request.session.pop("show_login_transition", False):
@@ -203,6 +233,7 @@ def login_transition(request):
             "display_name": display_name,
         },
     )
+
 
 def access_pending(request):
     return render(request, "accounts/access_pending.html")

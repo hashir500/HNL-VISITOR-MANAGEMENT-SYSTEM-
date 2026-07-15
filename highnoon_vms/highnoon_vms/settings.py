@@ -168,9 +168,3 @@ STATICFILES_DIRS = [
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-load_dotenv()
-
-MS_CLIENT_ID = os.getenv("MS_CLIENT_ID")
-MS_TENANT_ID = os.getenv("MS_TENANT_ID")
-MS_CLIENT_SECRET = os.getenv("MS_CLIENT_SECRET")
-MS_REDIRECT_URI = os.getenv("MS_REDIRECT_URI")

@@ -17,5 +17,11 @@ class SystemSettings(models.Model):
 
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Added Microsoft SSO Fields
+    ms_client_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="MS Client ID")
+    ms_tenant_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="MS Tenant ID")
+    ms_client_secret = models.CharField(max_length=512, blank=True, null=True, verbose_name="MS Client Secret")
+    ms_redirect_uri = models.CharField(max_length=255, blank=True, null=True, verbose_name="MS Redirect URI")
+
     def __str__(self):
         return self.company_name
