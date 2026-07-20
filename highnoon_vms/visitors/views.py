@@ -135,7 +135,7 @@ def visitor_create(request):
         request.POST.get("next") or ""
     ).strip()
 
-    # All four fields are compulsory.
+   
     if not visitor_name:
         messages.error(request, "Visitor name is required.")
         return _visitor_form_redirect(next_page)
@@ -144,17 +144,10 @@ def visitor_create(request):
         messages.error(request, "Visitor phone is required.")
         return _visitor_form_redirect(next_page)
 
-    if not visitor_cnic:
-        messages.error(request, "Visitor CNIC is required.")
-        return _visitor_form_redirect(next_page)
+    normalized_cnic = normalize_cnic(visitor_cnic) if visitor_cnic else None
 
-    if not visitor_address:
-        messages.error(request, "Visitor address is required.")
-        return _visitor_form_redirect(next_page)
-
-    normalized_cnic = normalize_cnic(visitor_cnic)
-
-    if visitor.objects.filter(
+    
+    if normalized_cnic and visitor.objects.filter(
         visitor_cnic=normalized_cnic
     ).exists():
         messages.error(
@@ -166,7 +159,7 @@ def visitor_create(request):
     new_visitor = visitor.objects.create(
         visitor_name=visitor_name,
         visitor_phone=visitor_phone,
-        visitor_cnic=normalized_cnic,
+        visitor_cnic=normalized_cnic,  # Inserts NULL in MySQL if blank
         visitor_address=visitor_address,
     )
 
@@ -175,14 +168,24 @@ def visitor_create(request):
         "Visitor created successfully.",
     )
 
+    
     if next_page == "visits":
         query_string = urlencode({
             "open_add_visit": "1",
             "visitor_id": new_visitor.visitor_id,
         })
-
         return redirect(
             f"{reverse('visit_list')}?{query_string}"
+        )
+
+    
+    if next_page == "backlogs":
+        query_string = urlencode({
+            "open_add_backlog": "1",
+            "selected_visitor_id": new_visitor.visitor_id,
+        })
+        return redirect(
+            f"{reverse('backlog_list_create')}?{query_string}"
         )
 
     return redirect("visitor_list")
@@ -223,29 +226,23 @@ def visitor_update(request, visitor_id):
         messages.error(request, "Visitor phone is required.")
         return redirect("visitor_list")
 
-    if not visitor_cnic:
-        messages.error(request, "Visitor CNIC is required.")
-        return redirect("visitor_list")
+    # Set to None if blank
+    normalized_cnic = normalize_cnic(visitor_cnic) if visitor_cnic else None
 
-    if not visitor_address:
-        messages.error(request, "Visitor address is required.")
-        return redirect("visitor_list")
-
-    normalized_cnic = normalize_cnic(visitor_cnic)
-
-    duplicate_cnic = (
-        visitor.objects
-        .filter(visitor_cnic=normalized_cnic)
-        .exclude(visitor_id=visitor_obj.visitor_id)
-        .exists()
-    )
-
-    if duplicate_cnic:
-        messages.error(
-            request,
-            f"Another visitor with CNIC {normalized_cnic} already exists.",
+    if normalized_cnic:
+        duplicate_cnic = (
+            visitor.objects
+            .filter(visitor_cnic=normalized_cnic)
+            .exclude(visitor_id=visitor_obj.visitor_id)
+            .exists()
         )
-        return redirect("visitor_list")
+
+        if duplicate_cnic:
+            messages.error(
+                request,
+                f"Another visitor with CNIC {normalized_cnic} already exists.",
+            )
+            return redirect("visitor_list")
 
     visitor_obj.visitor_name = visitor_name
     visitor_obj.visitor_phone = visitor_phone

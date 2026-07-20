@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Back Logs{% endblock %}
+{% block breadcrumb %}Back Logs{% endblock %}
+{% block page_heading %}Back Logs{% endblock %}
+
+<!-- SUPPRESS GLOBAL BANNER -->
+{% block alerts %}{% endblock %}
+{% block messages %}{% endblock %}
+{% block message %}{% endblock %}
+
+{% block content %}
+
+<!-- CSS Override: Hides any global alert banner on the page that is NOT inside our card container -->
+<style>
+  .alert:not(.card .alert) {
+    display: none !important;
+  }
+</style>
+
+<div class="card">
+
+  <!-- Header -->
+  <div class="card-header px-4 py-3">
+    <div class="visit-header-layout">
+
+      <!-- Left side -->
+      <div class="visit-header-left">
+        <h6 class="mb-0">Back Logs Log</h6>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm mb-0"
+          style="background: #f26322; border-color: #f26322;"
+          data-bs-toggle="modal"
+          data-bs-target="#addBacklogModal">
+          <i class="fa-solid fa-clock-rotate-left me-1"></i>
+          Add Back Log
+        </button>
+      </div>
+
+      <!-- Right side filters -->
+      <form method="GET" action="{% url 'backlog_list_create' %}" class="visit-header-filters">
+        <div class="visit-search-wrapper">
+          <i class="fa-solid fa-magnifying-glass visit-search-icon"></i>
+          <input
+            type="text"
+            name="search"
+            class="form-control visit-search-input"
+            placeholder="Card no, visitor, employee or PNO"
+            value="{{ search }}">
+        </div>
+
+        {% if can_select_company %}
+        <select name="company" id="companyFilter" class="form-control filter-select visit-filter-select">
+          <option value="ALL">All Companies</option>
+          {% for company in companies %}
+          <option value="{{ company.cmp_code }}" {% if selected_company == company.cmp_code %}selected{% endif %}>
+            {{ company.cmp_code }} - {{ company.cmp_desc }}
+          </option>
+          {% endfor %}
+        </select>
+        {% else %}
+        <input type="hidden" name="company" value="{{ selected_company }}">
+        {% endif %}
+
+        {% if can_select_branch %}
+        <select name="branch" id="branchFilter" class="form-control filter-select visit-filter-select">
+          <option value="ALL">All Branches</option>
+          {% for branch in branches %}
+          <option value="{{ branch.bra_code }}" {% if selected_branch == branch.bra_code %}selected{% endif %}>
+            {{ branch.bra_code }} - {{ branch.bra_desc }}
+          </option>
+          {% endfor %}
+        </select>
+        {% else %}
+        <input type="hidden" name="branch" value="{{ selected_branch }}">
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary btn-sm visit-filter-button mb-0" title="Apply Filters">
+          <i class="fa-solid fa-filter"></i>
+        </button>
+        <a href="{% url 'backlog_list_create' %}" class="btn btn-secondary btn-sm visit-reset-button mb-0" title="Reset Filters">
+          <i class="fa-solid fa-rotate-left"></i>
+        </a>
+      </form>
+
+    </div>
+  </div>
+
+  <div class="card-body px-0 pt-0 pb-2">
+
+    <!-- SINGLE CONTAINED ALERT BLOCK -->
+    {% if messages %}
+      <div class="px-4 pt-3">
+        {% for message in messages %}
+          <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} text-white text-sm border-0 alert-dismissible fade show mb-3" role="alert" style="background: {% if message.tags == 'error' %}#ea0606{% else %}#82d616{% endif %}; border-radius: 0.5rem;">
+            <span class="alert-text">{{ message }}</span>
+            <button type="button" class="btn-close text-lg py-3 opacity-10" data-bs-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Visits Table -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle text-nowrap mb-0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Visitor</th>
+            <th>Employee</th>
+            <th>Department</th>
+            <th>Company</th>
+            <th>Branch</th>
+            <th>Card No</th>
+            <th>Purpose</th>
+            <th>Check In</th>
+            <th>Check Out</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in backlogs %}
+          <tr>
+            <td>{{ v.visit_id }}</td>
+            <td><strong class="text-sm">{{ v.visitor.visitor_name }}</strong></td>
+            <td>
+              <div class="visit-employee-cell">
+                <strong>{{ v.employee.emp_name }}</strong>
+                <span>{{ v.employee.emp_pno }}</span>
+              </div>
+            </td>
+            <td>
+              {% if v.employee.emp_dep_code %}
+                <span title="{{ v.employee.emp_dep_code.dep_desc }}">{{ v.employee.emp_dep_code.dep_code }}</span>
+              {% else %}-{% endif %}
+            </td>
+            <td>
+              {% if v.employee.emp_cmp %}
+                <span title="{{ v.employee.emp_cmp.cmp_desc }}">{{ v.employee.emp_cmp.cmp_code }}</span>
+              {% else %}-{% endif %}
+            </td>
+            <td>
+              {% if v.employee.emp_bra_code %}
+                <span title="{{ v.employee.emp_bra_code.bra_desc }}">{{ v.employee.emp_bra_code.bra_code }}</span>
+              {% else %}-{% endif %}
+            </td>
+            <td>
+              {% if v.visitor_card %}
+                <span class="card-number-badge">{{ v.visitor_card.CRD_No }}</span>
+              {% else %}-{% endif %}
+            </td>
+            <td><span class="visit-purpose" title="{{ v.visit_purpose }}">{{ v.visit_purpose }}</span></td>
+            <td>{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
+            <td>
+              {% if v.check_out_time %}{{ v.check_out_time|date:"d M Y, h:i A" }}{% else %}-{% endif %}
+            </td>
+            <td>
+              {% if v.status == "Checked In" %}
+                <span class="badge bg-success">{{ v.status }}</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ v.status }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="11" class="text-center text-muted py-4">No backlogged visits found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- Add Backlog Modal -->
+<div class="modal fade" id="addBacklogModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <form method="POST" action="{% url 'backlog_list_create' %}">
+        {% csrf_token %}
+
+        <div class="modal-header">
+          <h5 class="modal-title">Add Back Log Entry</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row">
+
+            <!-- Visitor Dropdown -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Visitor</label>
+              <select name="visitor" class="form-control searchable-select" required>
+                <option value="">Search visitor by name or phone</option>
+                {% for visitor in visitors %}
+                <option 
+                  value="{{ visitor.visitor_id }}"
+                  {% if selected_visitor_id == visitor.visitor_id|stringformat:"s" %}selected{% endif %}>
+                  {{ visitor.visitor_name }} - {{ visitor.visitor_phone }}
+                </option>
+                {% endfor %}
+              </select>
+              <a href="{% url 'visitor_list' %}?open_add_visitor=1&next=backlogs" class="btn btn-primary btn-sm py-2 px-3 mt-2 text-white">
+                <i class="fa-solid fa-plus me-1"></i> Add New Visitor
+              </a>
+            </div>
+
+            <!-- Employee Dropdown -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Employee To Visit</label>
+              <select name="employee" class="form-control searchable-select" required>
+                <option value="">Search employee by PNO, name or phone</option>
+                {% for emp in employees %}
+                <option value="{{ emp.pk }}">
+                  {{ emp.emp_pno }} - {{ emp.emp_name }}
+                  {% if emp.emp_dep_code %} - {{ emp.emp_dep_code.dep_code }}{% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Card Dropdown -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Visitor Card</label>
+              <select name="visitor_card" class="form-control searchable-select" required>
+                <option value="">Select Card No</option>
+                {% for card in cards %}
+                <option value="{{ card.id }}">{{ card.CRD_No }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Purpose Dropdown -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Purpose</label>
+              <select name="purpose" id="visitPurposeSelect" class="form-control searchable-select" required>
+                <option value="">Select Purpose</option>
+                {% for purpose in purposes %}
+                <option value="{{ purpose.pur_id }}">{{ purpose.pur_purpose }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Other Custom Purpose Input -->
+            <div class="col-md-6 mb-3 d-none" id="otherPurposeWrapper">
+              <label class="form-label">Write Purpose</label>
+              <input type="text" name="other_purpose" id="otherPurposeInput" class="form-control" placeholder="Enter purpose">
+            </div>
+
+            <!-- Custom Check-In Timestamps -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Custom Check-In Date & Time</label>
+              <input type="datetime-local" name="check_in_time" class="form-control" required>
+            </div>
+
+            <!-- Custom Check-Out Timestamps -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Custom Check-Out Date & Time (Optional)</label>
+              <input type="datetime-local" name="check_out_time" class="form-control">
+              <small class="text-muted text-xxs mt-1 d-block">Leave blank if the visitor has not checked out yet.</small>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">Save Backlog</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .visit-header-layout { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+  .visit-header-left { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+  .visit-header-filters { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 1 1 auto; min-width: 0; }
+  .visit-search-wrapper { position: relative; width: min(330px, 100%); }
+  .visit-search-icon { position: absolute; top: 50%; left: 13px; z-index: 2; color: #8392ab; font-size: 12px; transform: translateY(-50%); pointer-events: none; }
+  .visit-search-input { width: 100%; min-height: 40px; padding-left: 36px !important; }
+  .visit-filter-select { width: 190px; min-height: 40px; }
+  .visit-filter-button, .visit-reset-button { display: inline-flex; align-items: center; justify-content: center; width: 42px; min-width: 42px; height: 40px; padding: 0 !important; }
+  .visit-employee-cell { display: flex; flex-direction: column; }
+  .visit-employee-cell strong { color: #344767; font-size: 13px; }
+  .visit-employee-cell span { color: #67748e; font-size: 11px; }
+  .card-number-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 48px; padding: 5px 9px; border-radius: 8px; background: rgba(242, 99, 34, 0.1); color: #f26322; font-size: 12px; font-weight: 700; }
+  .visit-purpose { display: inline-block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+  .filter-select + .select2-container { width: 190px !important; min-width: 190px; }
+  .visit-header-filters .select2-container .select2-selection--single { min-height: 40px !important; height: 40px !important; }
+  .visit-header-filters .select2-container .select2-selection--single .select2-selection__rendered { line-height: 40px !important; }
+  .visit-header-filters .select2-container .select2-selection--single .select2-selection__arrow { height: 40px !important; }
+  @media (max-width: 1199.98px) {
+    .visit-header-layout { align-items: flex-start; flex-direction: column; }
+    .visit-header-filters { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+    .visit-search-wrapper { flex: 1 1 320px; }
+  }
+  @media (max-width: 767.98px) {
+    .visit-header-left { width: 100%; align-items: flex-start; flex-direction: column; }
+    .visit-header-filters { align-items: stretch; flex-direction: column; }
+    .visit-search-wrapper, .visit-filter-select, .filter-select + .select2-container { width: 100% !important; min-width: 100% !important; }
+    .visit-filter-button, .visit-reset-button { width: 100%; }
+  }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    $('.filter-select').each(function () {
+      if ($(this).hasClass('select2-hidden-accessible')) { $(this).select2('destroy'); }
+      $(this).select2({ width: '190px', minimumResultsForSearch: 8 });
+    });
+
+    $('#addBacklogModal').on('shown.bs.modal', function () {
+      $('#addBacklogModal .searchable-select').each(function () {
+        if ($(this).hasClass('select2-hidden-accessible')) { $(this).select2('destroy'); }
+        $(this).select2({
+          dropdownParent: $('#addBacklogModal'),
+          width: '100%',
+          placeholder: $(this).find('option:first').text()
+        });
+      });
+      $('#visitPurposeSelect').trigger('change');
+    });
+
+    $('#visitPurposeSelect').on('change', function () {
+      const selectedText = $('#visitPurposeSelect option:selected').text().trim().toLowerCase();
+      if (selectedText === 'other' || selectedText === 'others') {
+        $('#otherPurposeWrapper').removeClass('d-none');
+        $('#otherPurposeInput').attr('required', true);
+      } else {
+        $('#otherPurposeWrapper').addClass('d-none');
+        $('#otherPurposeInput').removeAttr('required').val('');
+      }
+    });
+
+    $('#companyFilter, #branchFilter').on('change', function () {
+      $(this).closest('form').submit();
+    });
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('open_add_backlog') === '1') {
+      const modalElement = document.getElementById('addBacklogModal');
+      if (modalElement) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+      }
+    }
+  });
+</script>
+{% endblock %}

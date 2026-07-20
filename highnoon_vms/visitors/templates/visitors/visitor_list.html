@@ -116,7 +116,7 @@
 
             <td>
               <span class="cnic-badge">
-                {{ v.visitor_cnic }}
+                {{ v.visitor_cnic|default:"-" }}
               </span>
             </td>
 
@@ -125,7 +125,7 @@
                 class="visitor-address"
                 title="{{ v.visitor_address }}">
 
-                {{ v.visitor_address }}
+                {{ v.visitor_address|default:"-" }}
               </span>
             </td>
 
@@ -270,12 +270,11 @@
 
             </div>
 
-            <!-- CNIC -->
+            <!-- CNIC (Optional) -->
             <div class="col-md-6 mb-3">
 
               <label class="form-label">
                 CNIC
-                <span class="required-star">*</span>
               </label>
 
               <input
@@ -285,8 +284,7 @@
                 value="{{ v.visitor_cnic }}"
                 maxlength="15"
                 inputmode="numeric"
-                placeholder="Example: 35202-1234567-1"
-                required>
+                placeholder="Example: 35202-1234567-1">
 
               <small class="text-muted">
                 Enter with or without hyphens.
@@ -294,12 +292,11 @@
 
             </div>
 
-            <!-- Address -->
+            <!-- Address (Optional) -->
             <div class="col-md-12 mb-3">
 
               <label class="form-label">
                 Address
-                <span class="required-star">*</span>
               </label>
 
               <textarea
@@ -307,8 +304,7 @@
                 class="form-control"
                 rows="3"
                 maxlength="255"
-                placeholder="Enter complete visitor address"
-                required>{{ v.visitor_address }}</textarea>
+                placeholder="Enter complete visitor address">{{ v.visitor_address }}</textarea>
 
             </div>
 
@@ -504,12 +500,11 @@
 
             </div>
 
-            <!-- CNIC -->
+            <!-- CNIC (Optional) -->
             <div class="col-md-6 mb-3">
 
               <label class="form-label">
                 CNIC
-                <span class="required-star">*</span>
               </label>
 
               <input
@@ -518,8 +513,7 @@
                 class="form-control cnic-input"
                 maxlength="15"
                 inputmode="numeric"
-                placeholder="Example: 35202-1234567-1"
-                required>
+                placeholder="Example: 35202-1234567-1">
 
               <small class="text-muted">
                 Enter with or without hyphens.
@@ -527,12 +521,11 @@
 
             </div>
 
-            <!-- Address -->
+            <!-- Address (Optional) -->
             <div class="col-md-12 mb-3">
 
               <label class="form-label">
                 Address
-                <span class="required-star">*</span>
               </label>
 
               <textarea
@@ -540,8 +533,7 @@
                 class="form-control"
                 rows="3"
                 maxlength="255"
-                placeholder="Enter complete visitor address"
-                required></textarea>
+                placeholder="Enter complete visitor address"></textarea>
 
             </div>
 

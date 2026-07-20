@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 
 from masters.models import sys_usr_system
-from system_settings.models import SystemSettings  # Added to load configuration dynamically
+from system_settings.models import SystemSettings  
 from .microsoft import build_msal_app, get_auth_url, SCOPES
 
 
