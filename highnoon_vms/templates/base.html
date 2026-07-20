@@ -67,8 +67,6 @@
     <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
       <ul class="navbar-nav">
 
-        
-
         {% if perms.visitors.view_visitor or perms.visitors.view_visitor_card or request.user.is_staff %}
         <li class="nav-item admin-folder">
           <button type="button"
@@ -115,7 +113,7 @@
         </li>
         {% endif %}
 
-        {% if perms.masters.view_sys_cmp_master or perms.masters.view_sys_bra_master or perms.masters.view_sys_div_master or perms.masters.view_sys_dep_master or perms.masters.view_sys_emp_master or perms.masters.view_sys_pur_master or perms.masters.view_sys_usr_master %}
+        {% if perms.masters.view_sys_cmp_master or perms.masters.view_sys_bra_master or perms.masters.view_sys_div_master or perms.masters.view_sys_dep_master or perms.masters.view_sys_emp_master or perms.masters.view_sys_pur_master or perms.masters.view_sys_usr_system or perms.auth.view_group %}
         <li class="nav-item admin-folder">
           <button type="button"
                   class="nav-link sidebar-folder-toggle {% if request.resolver_match.url_name == 'company_list' or request.resolver_match.url_name == 'branch_list' or request.resolver_match.url_name == 'division_list' or request.resolver_match.url_name == 'department_master_list' or request.resolver_match.url_name == 'employee_master_list' or request.resolver_match.url_name == 'purpose_list' or request.resolver_match.url_name == 'user_master_list' or request.resolver_match.url_name == 'access_group_list' %}is-open{% endif %}"
@@ -166,7 +164,7 @@
               </li>
               {% endif %}
 
-               {% if perms.masters.view_sys_emp_master %}
+              {% if perms.masters.view_sys_emp_master %}
               <li class="nav-item">
                 <a class="nav-link {% if request.resolver_match.url_name == 'employee_master_list' %}active{% endif %}"
                    href="{% url 'employee_master_list' %}">
@@ -175,36 +173,29 @@
               </li>
               {% endif %}
 
-              
-
               {% if perms.masters.view_sys_pur_master %}
               <li class="nav-item">
                 <a class="nav-link {% if request.resolver_match.url_name == 'purpose_list' %}active{% endif %}"
-                   href="{%url 'purpose_list' %}">
+                   href="{% url 'purpose_list' %}">
                   <span class="nav-link-text">Purpose</span>
                 </a>
               </li>
               {% endif %}
 
-              {% if perms.users.view_users %}
-               <li class="nav-item">
+              {% if perms.masters.view_sys_usr_system %}
+              <li class="nav-item">
                 <a class="nav-link {% if request.resolver_match.url_name == 'user_master_list' or request.resolver_match.url_name == 'user_master_create' or request.resolver_match.url_name == 'user_master_update' %}active{% endif %}"
                   href="{% url 'user_master_list' %}">
                   <span class="nav-link-text">Users</span>
                 </a>
-               </li>
+              </li>
               {% endif %}
 
-
               {% if perms.auth.view_group %}
-               <li class="nav-item">
-                <a
-                  class="nav-link {% if request.resolver_match.url_name == 'access_group_list' %}active{% endif %}"
-                    href="{% url 'access_group_list' %}">
-
-                    <span class="nav-link-text">
-                      Access Groups
-                    </span>
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'access_group_list' %}active{% endif %}"
+                   href="{% url 'access_group_list' %}">
+                  <span class="nav-link-text">Access Groups</span>
                 </a>
               </li>
               {% endif %}
@@ -215,57 +206,37 @@
         {% endif %}
 
         {% if perms.reports.view_reports %}
-<li class="nav-item admin-folder">
+        <li class="nav-item admin-folder">
+          <button
+            type="button"
+            class="nav-link sidebar-folder-toggle {% if request.resolver_match.url_name == 'report_summary' or request.resolver_match.url_name == 'report_history' %}is-open{% endif %}"
+            data-target="reportsMenu"
+            aria-expanded="{% if request.resolver_match.url_name == 'report_summary' or request.resolver_match.url_name == 'report_history' %}true{% else %}false{% endif %}">
+            <i class="fa-solid fa-file-lines"></i>
+            <span class="nav-link-text">Reports</span>
+            <i class="fa-solid fa-chevron-right folder-chevron"></i>
+          </button>
 
-  <button
-    type="button"
-    class="nav-link sidebar-folder-toggle {% if request.resolver_match.url_name == 'report_summary' or request.resolver_match.url_name == 'report_history' %}is-open{% endif %}"
-    data-target="reportsMenu"
-    aria-expanded="{% if request.resolver_match.url_name == 'report_summary' or request.resolver_match.url_name == 'report_history' %}true{% else %}false{% endif %}">
-
-    <i class="fa-solid fa-file-lines"></i>
-
-    <span class="nav-link-text">
-      Reports
-    </span>
-
-    <i class="fa-solid fa-chevron-right folder-chevron"></i>
-  </button>
-
-  <div
-    id="reportsMenu"
-    class="admin-submenu-wrap {% if request.resolver_match.url_name == 'report_summary' or request.resolver_match.url_name == 'report_history' %}is-open{% endif %}">
-
-    <ul class="admin-submenu">
-
-      <li class="nav-item">
-        <a
-          class="nav-link {% if request.resolver_match.url_name == 'report_summary' %}active{% endif %}"
-          href="{% url 'report_summary' %}">
-
-          <span class="nav-link-text">
-            Summary
-          </span>
-        </a>
-      </li>
-
-      <li class="nav-item">
-        <a
-          class="nav-link {% if request.resolver_match.url_name == 'report_history' %}active{% endif %}"
-          href="{% url 'report_history' %}">
-
-          <span class="nav-link-text">
-            History
-          </span>
-        </a>
-      </li>
-
-    </ul>
-  </div>
-
-</li>
-{% endif %}
-        
+          <div
+            id="reportsMenu"
+            class="admin-submenu-wrap {% if request.resolver_match.url_name == 'report_summary' or request.resolver_match.url_name == 'report_history' %}is-open{% endif %}">
+            <ul class="admin-submenu">
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'report_summary' %}active{% endif %}"
+                   href="{% url 'report_summary' %}">
+                  <span class="nav-link-text">Summary</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'report_history' %}active{% endif %}"
+                   href="{% url 'report_history' %}">
+                  <span class="nav-link-text">History</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </li>
+        {% endif %}
 
         <div class="sidebar-divider-soft"></div>
 
@@ -289,7 +260,6 @@
         </li>
         {% endif %}
 
-
         {% if perms.visits.can_view_backlogs %}
         <li class="nav-item">
           <a class="nav-link {% if request.resolver_match.url_name == 'backlog_list_create' %}active{% endif %}"
@@ -299,8 +269,6 @@
           </a>
         </li>
         {% endif %}
-
-        
 
       </ul>
     </div>
@@ -421,20 +389,6 @@
   </script>
 
   {% block extra_js %}{% endblock %}
-
-<script>
-$(document).ready(function () {
-    $('#department').select2({
-        placeholder: "Search Department by Code or Name",
-        allowClear: true,
-        width: "100%"
-    });
-});
-</script>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
 
 </body>
 </html>

@@ -1,3 +1,4 @@
+from urllib.parse import urlencode
 from django.shortcuts import render, redirect, get_object_or_404
 import requests
 import openpyxl
@@ -32,10 +33,10 @@ from .forms import EmployeeMasterForm
 from .models import sys_pur_master
 from .forms import PurposeMasterForm
 from django.http import JsonResponse
-from .models import sys_emp_master
 
 
-# company views
+@login_required
+@permission_required("masters.view_sys_cmp_master", raise_exception=True)
 def company_list(request):
     companies = sys_cmp_master.objects.all().order_by("id")
     form = CompanyMasterForm()
@@ -46,6 +47,8 @@ def company_list(request):
     })
 
 
+@login_required
+@permission_required("masters.add_sys_cmp_master", raise_exception=True)
 def company_create(request):
     if request.method == "POST":
         form = CompanyMasterForm(request.POST)
@@ -55,6 +58,8 @@ def company_create(request):
     return redirect("company_list")
 
 
+@login_required
+@permission_required("masters.change_sys_cmp_master", raise_exception=True)
 def company_update(request, pk):
     company = get_object_or_404(sys_cmp_master, pk=pk)
 
@@ -66,6 +71,8 @@ def company_update(request, pk):
     return redirect("company_list")
 
 
+@login_required
+@permission_required("masters.delete_sys_cmp_master", raise_exception=True)
 def company_delete(request, pk):
     company = get_object_or_404(sys_cmp_master, pk=pk)
 
@@ -74,7 +81,9 @@ def company_delete(request, pk):
 
     return redirect("company_list")
 
-# branch views
+
+@login_required
+@permission_required("masters.view_sys_bra_master", raise_exception=True)
 def branch_list(request):
     branches = sys_bra_master.objects.all().order_by("bra_code")
 
@@ -83,6 +92,8 @@ def branch_list(request):
     })
 
 
+@login_required
+@permission_required("masters.add_sys_bra_master", raise_exception=True)
 def branch_create(request):
     if request.method == "POST":
         form = BranchMasterForm(request.POST)
@@ -92,6 +103,8 @@ def branch_create(request):
     return redirect("branch_list")
 
 
+@login_required
+@permission_required("masters.change_sys_bra_master", raise_exception=True)
 def branch_update(request, pk):
     branch = get_object_or_404(sys_bra_master, pk=pk)
 
@@ -103,6 +116,8 @@ def branch_update(request, pk):
     return redirect("branch_list")
 
 
+@login_required
+@permission_required("masters.delete_sys_bra_master", raise_exception=True)
 def branch_delete(request, pk):
     branch = get_object_or_404(sys_bra_master, pk=pk)
 
@@ -112,7 +127,8 @@ def branch_delete(request, pk):
     return redirect("branch_list")
 
 
-# division views
+@login_required
+@permission_required("masters.view_sys_div_master", raise_exception=True)
 def division_list(request):
     divisions = sys_div_master.objects.all().order_by("div_code")
 
@@ -121,6 +137,8 @@ def division_list(request):
     })
 
 
+@login_required
+@permission_required("masters.add_sys_div_master", raise_exception=True)
 def division_create(request):
     if request.method == "POST":
         form = DivisionMasterForm(request.POST)
@@ -130,6 +148,8 @@ def division_create(request):
     return redirect("division_list")
 
 
+@login_required
+@permission_required("masters.change_sys_div_master", raise_exception=True)
 def division_update(request, pk):
     division = get_object_or_404(sys_div_master, pk=pk)
 
@@ -141,6 +161,8 @@ def division_update(request, pk):
     return redirect("division_list")
 
 
+@login_required
+@permission_required("masters.delete_sys_div_master", raise_exception=True)
 def division_delete(request, pk):
     division = get_object_or_404(sys_div_master, pk=pk)
 
@@ -149,7 +171,9 @@ def division_delete(request, pk):
 
     return redirect("division_list")
 
-# department views
+
+@login_required
+@permission_required("masters.view_sys_dep_master", raise_exception=True)
 def department_master_list(request):
     departments = (
         sys_dep_master.objects
@@ -166,6 +190,8 @@ def department_master_list(request):
     })
 
 
+@login_required
+@permission_required("masters.add_sys_dep_master", raise_exception=True)
 def department_master_create(request):
     if request.method == "POST":
         form = DepartmentMasterForm(request.POST)
@@ -175,6 +201,8 @@ def department_master_create(request):
     return redirect("department_master_list")
 
 
+@login_required
+@permission_required("masters.change_sys_dep_master", raise_exception=True)
 def department_master_update(request, pk):
     department = get_object_or_404(sys_dep_master, pk=pk)
 
@@ -186,6 +214,8 @@ def department_master_update(request, pk):
     return redirect("department_master_list")
 
 
+@login_required
+@permission_required("masters.delete_sys_dep_master", raise_exception=True)
 def department_master_delete(request, pk):
     department = get_object_or_404(sys_dep_master, pk=pk)
 
@@ -195,6 +225,8 @@ def department_master_delete(request, pk):
     return redirect("department_master_list")
 
 
+@login_required
+@permission_required("masters.add_sys_dep_master", raise_exception=True)
 def department_import_upload(request):
     if request.method == "POST":
         excel_file = request.FILES.get("excel_file")
@@ -236,6 +268,8 @@ def department_import_upload(request):
     return redirect("department_master_list")
 
 
+@login_required
+@permission_required("masters.add_sys_dep_master", raise_exception=True)
 def department_import_process(request):
     if request.method == "POST":
         file_path = request.session.get("department_import_file")
@@ -321,7 +355,8 @@ def department_import_process(request):
     return redirect("department_master_list")
 
 
-
+@login_required
+@permission_required("masters.delete_sys_dep_master", raise_exception=True)
 def department_delete_all(request):
     if request.method == "POST":
         deleted = sys_dep_master.objects.count()
@@ -335,7 +370,8 @@ def department_delete_all(request):
     return redirect("department_master_list")
 
 
-# employee views 
+@login_required
+@permission_required("masters.view_sys_emp_master", raise_exception=True)
 def employee_master_list(request):
     search = (request.GET.get("search") or "").strip()
 
@@ -374,6 +410,9 @@ def employee_master_list(request):
         "search": search,
     })
 
+
+@login_required
+@permission_required("masters.add_sys_emp_master", raise_exception=True)
 def employee_master_create(request):
     if request.method == "POST":
         form = EmployeeMasterForm(request.POST)
@@ -386,11 +425,13 @@ def employee_master_create(request):
     return redirect("employee_master_list")
 
 
+@login_required
+@permission_required("masters.change_sys_emp_master", raise_exception=True)
 def employee_master_update(request, pk):
     employee = get_object_or_404(
-    employees_visible_to_user(request.user),
-    pk=pk,
-)
+        employees_visible_to_user(request.user),
+        pk=pk,
+    )
 
     if request.method == "POST":
         form = EmployeeMasterForm(request.POST, instance=employee)
@@ -403,11 +444,13 @@ def employee_master_update(request, pk):
     return redirect("employee_master_list")
 
 
+@login_required
+@permission_required("masters.delete_sys_emp_master", raise_exception=True)
 def employee_master_delete(request, pk):
     employee = get_object_or_404(
-    employees_visible_to_user(request.user),
-    pk=pk,
-)
+        employees_visible_to_user(request.user),
+        pk=pk,
+    )
 
     if request.method == "POST":
         employee.delete()
@@ -416,7 +459,8 @@ def employee_master_delete(request, pk):
     return redirect("employee_master_list")
 
 
-
+@login_required
+@permission_required("masters.add_sys_emp_master", raise_exception=True)
 def employee_import_upload(request):
     if request.method == "POST":
         excel_file = request.FILES.get("excel_file")
@@ -466,6 +510,8 @@ def employee_import_upload(request):
     return redirect("employee_master_list")
 
 
+@login_required
+@permission_required("masters.add_sys_emp_master", raise_exception=True)
 def employee_import_process(request):
     if request.method == "POST":
         file_path = request.session.get("employee_import_file")
@@ -578,6 +624,8 @@ def employee_import_process(request):
     return redirect("employee_master_list")
 
 
+@login_required
+@permission_required("masters.delete_sys_emp_master", raise_exception=True)
 def employee_delete_all(request):
     if request.method == "POST":
         deleted = sys_emp_master.objects.count()
@@ -591,7 +639,9 @@ def employee_delete_all(request):
 
     return redirect("employee_master_list")
 
-# purpose views
+
+@login_required
+@permission_required("masters.view_sys_pur_master", raise_exception=True)
 def purpose_list(request):
     purposes = sys_pur_master.objects.all().order_by("pur_id")
 
@@ -600,6 +650,8 @@ def purpose_list(request):
     })
 
 
+@login_required
+@permission_required("masters.add_sys_pur_master", raise_exception=True)
 def purpose_create(request):
     if request.method == "POST":
         form = PurposeMasterForm(request.POST)
@@ -612,6 +664,8 @@ def purpose_create(request):
     return redirect("purpose_list")
 
 
+@login_required
+@permission_required("masters.change_sys_pur_master", raise_exception=True)
 def purpose_update(request, pk):
     purpose = get_object_or_404(sys_pur_master, pk=pk)
 
@@ -626,6 +680,8 @@ def purpose_update(request, pk):
     return redirect("purpose_list")
 
 
+@login_required
+@permission_required("masters.delete_sys_pur_master", raise_exception=True)
 def purpose_delete(request, pk):
     purpose = get_object_or_404(sys_pur_master, pk=pk)
 
@@ -635,13 +691,6 @@ def purpose_delete(request, pk):
 
     return redirect("purpose_list")
 
-# user views
-
-
-# =========================================================
-# USER MASTER
-# =========================================================
-
 
 @login_required
 @permission_required(
@@ -649,10 +698,6 @@ def purpose_delete(request, pk):
     raise_exception=True,
 )
 def fetch_employee_details(request, emp_pno):
-    """
-    Return employee information for the User Master employee lookup.
-    """
-
     employee = (
         sys_emp_master.objects
         .select_related(
@@ -703,11 +748,6 @@ def fetch_employee_details(request, emp_pno):
 
 
 def get_optional_company(company_code):
-    """
-    Return None when All Companies is selected.
-    Otherwise, return the selected company object.
-    """
-
     company_code = (company_code or "").strip()
 
     if not company_code or company_code.upper() == "ALL":
@@ -720,11 +760,6 @@ def get_optional_company(company_code):
 
 
 def get_optional_branch(branch_code):
-    """
-    Return None when All Branches is selected.
-    Otherwise, return the selected branch object.
-    """
-
     branch_code = (branch_code or "").strip()
 
     if not branch_code or branch_code.upper() == "ALL":
@@ -737,10 +772,6 @@ def get_optional_branch(branch_code):
 
 
 def get_user_master_context():
-    """
-    Shared dropdown data for User Master list and form templates.
-    """
-
     return {
         "departments": (
             sys_dep_master.objects
@@ -766,14 +797,6 @@ def get_user_master_context():
 
 
 def get_submitted_system_privileges(request):
-    """
-    Read Active, Staff and Superuser values from the submitted form.
-
-    Only an existing superuser may grant or remove Staff/Superuser
-    privileges. A normal user-manager can still activate/deactivate
-    accounts but cannot elevate system-level privileges.
-    """
-
     is_active = request.POST.get("is_active") == "on"
 
     if request.user.is_superuser:
@@ -783,7 +806,6 @@ def get_submitted_system_privileges(request):
         is_staff = False
         is_superuser = False
 
-    # A Django superuser should also be staff.
     if is_superuser:
         is_staff = True
 
@@ -797,17 +819,6 @@ def sync_django_auth_user(
     raw_password=None,
     old_login_id=None,
 ):
-    """
-    Create or update the corresponding django.contrib.auth User.
-
-    This synchronizes:
-    - username and email
-    - first and last name
-    - active/staff/superuser flags
-    - password or unusable password
-    - assigned Django Group
-    """
-
     login_id = (user_obj.usr_loginID or "").strip().lower()
 
     django_user = None
@@ -851,12 +862,10 @@ def sync_django_auth_user(
             django_user.set_unusable_password()
 
     else:
-        # SSO users do not authenticate using a local password.
         django_user.set_unusable_password()
 
     django_user.save()
 
-    # One access group per VMS user.
     django_user.groups.clear()
 
     if user_obj.usr_access_group:
@@ -959,10 +968,6 @@ def user_master_create(request):
         request.POST.get("access_group") or ""
     ).strip()
 
-    # -----------------------------------------------------
-    # Validation
-    # -----------------------------------------------------
-
     if not login_id:
         messages.error(request, "Login ID is required.")
         return redirect("user_master_list")
@@ -1058,10 +1063,6 @@ def user_master_create(request):
                 "The selected Access Group does not exist.",
             )
             return redirect("user_master_list")
-
-    # -----------------------------------------------------
-    # Create VMS user
-    # -----------------------------------------------------
 
     user_obj = sys_usr_system(
         usr_pno=usr_pno,
@@ -1162,7 +1163,6 @@ def user_master_update(request, pk):
         request.POST.get("is_active") == "on"
     )
 
-    # Only superusers can modify Staff and Superuser flags.
     if request.user.is_superuser:
         submitted_staff = (
             request.POST.get("is_staff") == "on"
@@ -1176,10 +1176,6 @@ def user_master_update(request, pk):
 
     if submitted_superuser:
         submitted_staff = True
-
-    # -----------------------------------------------------
-    # Protect the currently logged-in account
-    # -----------------------------------------------------
 
     editing_own_account = (
         linked_django_user is not None
@@ -1237,10 +1233,6 @@ def user_master_update(request, pk):
     access_group_id = (
         request.POST.get("access_group") or ""
     ).strip()
-
-    # -----------------------------------------------------
-    # Validation
-    # -----------------------------------------------------
 
     if not login_id:
         messages.error(request, "Login ID is required.")
@@ -1359,10 +1351,6 @@ def user_master_update(request, pk):
             )
             return redirect("user_master_list")
 
-    # -----------------------------------------------------
-    # Update VMS user
-    # -----------------------------------------------------
-
     user_obj.usr_pno = usr_pno
     user_obj.usr_name = full_name
     user_obj.usr_designation = (
@@ -1463,7 +1451,6 @@ def user_master_delete(request, pk):
 
     return redirect("user_master_list")
 
-# access group views
 
 @login_required
 @permission_required("auth.view_group", raise_exception=True)
@@ -1514,11 +1501,11 @@ def access_group_list(request):
         },
     )
 
+
 @login_required
 @permission_required("auth.add_group", raise_exception=True)
 def access_group_create(request):
     if request.method == "POST":
-
         group_name = request.POST.get("group_name", "").strip()
 
         if Group.objects.filter(name=group_name).exists():
@@ -1537,13 +1524,13 @@ def access_group_create(request):
 
     return redirect("access_group_list")
 
+
 @login_required
 @permission_required("auth.change_group", raise_exception=True)
 def access_group_update(request, pk):
     group = get_object_or_404(Group, pk=pk)
 
     if request.method == "POST":
-
         group.name = request.POST.get("group_name").strip()
         group.save()
 
@@ -1556,6 +1543,7 @@ def access_group_update(request, pk):
         messages.success(request, "Access group updated successfully.")
 
     return redirect("access_group_list")
+
 
 @login_required
 @permission_required("auth.delete_group", raise_exception=True)
@@ -1573,7 +1561,8 @@ def access_group_delete(request, pk):
     return redirect("access_group_list")
 
 
-# dynamic db panel settings
+@login_required
+@permission_required("masters.change_sys_usr_system", raise_exception=True)
 def database_settings_panel(request):
     env_path = os.path.join(settings.BASE_DIR, '.env')
     
@@ -1604,9 +1593,6 @@ def database_settings_panel(request):
         db_host = request.POST.get('db_host', '').strip() or '127.0.0.1'
         db_port = request.POST.get('db_port', '').strip() or '3306'
 
-        # ---------------------------------------------------------
-        # LIVE HANDSHAKE TEST (Prevents site shutdowns from bad configurations)
-        # ---------------------------------------------------------
         try:
             test_conn = MySQLdb.connect(
                 host=db_host,
@@ -1614,27 +1600,22 @@ def database_settings_panel(request):
                 passwd=db_password,
                 db=db_name,
                 port=int(db_port),
-                connect_timeout=5 # Automatically gives up after 5 seconds instead of hanging
+                connect_timeout=5
             )
-            test_conn.close() # Connection works! Close it out cleanly.
+            test_conn.close()
             
         except Exception as db_error:
-            # Trap the connection exception and display it safely to the user
             messages.error(
                 request, 
                 f"Database Connection Refused! The website would crash if saved. "
                 f"Verify your MySQL credentials or service state. Error: {str(db_error)}"
             )
-            # Re-render the page with the submitted data so they don't have to retype it
             submitted_settings = {
                 'DB_NAME': db_name, 'DB_USER': db_user, 
                 'DB_PASSWORD': db_password, 'DB_HOST': db_host, 'DB_PORT': db_port
             }
             return render(request, 'masters/database_settings.html', {'current_settings': submitted_settings})
 
-        # ---------------------------------------------------------
-        # IF CONNECTION PASSED: Commit configurations to disk
-        # ---------------------------------------------------------
         env_content = f"""# Highnoon database settings
 DB_NAME={db_name}
 DB_USER={db_user}
