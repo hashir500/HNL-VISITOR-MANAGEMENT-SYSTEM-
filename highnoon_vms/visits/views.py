@@ -327,7 +327,6 @@ def backlog_list_create(request):
     """
     Renders, filters, and saves manual backlog visits straight into the main 'visit' table.
     """
-    # 1. HANDLE POST (SUBMISSION LOGIC)
     if request.method == 'POST':
         visitor_id = request.POST.get('visitor')
         employee_id = request.POST.get('employee')
@@ -379,7 +378,7 @@ def backlog_list_create(request):
             except Exception as e:
                 messages.error(request, f"Database Write Error: {str(e)}")
 
-    # 2. HANDLE GET (DISPLAY & FILTERS LOGIC)
+
     search = (request.GET.get('search') or '').strip()
     selected_visitor_id = request.GET.get('selected_visitor_id')
 
@@ -432,3 +431,92 @@ def backlog_list_create(request):
         'open_add_backlog': request.GET.get('open_add_backlog'),
     }
     return render(request, 'visits/backlogs.html', context)
+
+
+@login_required
+@permission_required("visits.can_view_backlogs", raise_exception=True)
+def backlog_edit(request, visit_id):
+    """
+    Updates an existing backlogged visit record.
+    """
+    visit_obj = get_object_or_404(visit, visit_id=visit_id, is_backlog=True)
+
+    if not user_can_access_employee(request, visit_obj.employee):
+        messages.error(request, "You do not have permission to edit this backlog entry.")
+        return redirect('backlog_list_create')
+
+    if request.method == "POST":
+        visitor_id = request.POST.get('visitor')
+        employee_id = request.POST.get('employee')
+        card_id = request.POST.get('visitor_card')
+        purpose_id = request.POST.get('purpose')
+        other_purpose = request.POST.get('other_purpose', '').strip()
+
+        checkin_str = request.POST.get('check_in_time')
+        checkout_str = request.POST.get('check_out_time')
+
+        check_in_time = parse_datetime(checkin_str) if checkin_str else None
+        check_out_time = parse_datetime(checkout_str) if checkout_str else None
+
+        if not visitor_id or not employee_id or not card_id or not purpose_id or not check_in_time:
+            messages.error(request, "Visitor, Host Employee, Card, Purpose, and Check-In time are required.")
+            return redirect('backlog_list_create')
+
+        if check_out_time and check_out_time <= check_in_time:
+            messages.error(request, "Error: Checkout time must be chronologically after Check-In time.")
+            return redirect('backlog_list_create')
+
+        try:
+            visitor_obj = get_object_or_404(visitor, visitor_id=visitor_id)
+            employee_obj = get_object_or_404(sys_emp_master, pk=employee_id)
+            selected_card = get_object_or_404(visitor_card, id=card_id)
+            purpose_obj = get_object_or_404(sys_pur_master, pur_id=purpose_id)
+
+            purpose_name = (purpose_obj.pur_purpose or "").strip()
+            if purpose_name.lower() in ["other", "others"]:
+                visit_purpose = other_purpose
+                if not visit_purpose:
+                    messages.error(request, "Please specify the custom purpose.")
+                    return redirect('backlog_list_create')
+            else:
+                visit_purpose = purpose_name
+
+            final_status = "Checked Out" if check_out_time else "Checked In"
+
+            visit_obj.visitor = visitor_obj
+            visit_obj.employee = employee_obj
+            visit_obj.visitor_card = selected_card
+            visit_obj.visit_purpose = visit_purpose
+            visit_obj.check_in_time = check_in_time
+            visit_obj.check_out_time = check_out_time
+            visit_obj.status = final_status
+            visit_obj.save()
+
+            messages.success(request, f"Backlog entry #{visit_obj.visit_id} updated successfully!")
+        except Exception as e:
+            messages.error(request, f"Database Update Error: {str(e)}")
+
+    return redirect('backlog_list_create')
+
+
+@login_required
+@permission_required("visits.can_view_backlogs", raise_exception=True)
+def backlog_delete(request, visit_id):
+    """
+    Deletes a backlogged visit record.
+    """
+    visit_obj = get_object_or_404(visit, visit_id=visit_id, is_backlog=True)
+
+    if not user_can_access_employee(request, visit_obj.employee):
+        messages.error(request, "You do not have permission to delete this backlog entry.")
+        return redirect('backlog_list_create')
+
+    if request.method == "POST":
+        try:
+            visit_id_num = visit_obj.visit_id
+            visit_obj.delete()
+            messages.success(request, f"Backlog record #{visit_id_num} deleted successfully.")
+        except Exception as e:
+            messages.error(request, f"Delete Error: {str(e)}")
+
+    return redirect('backlog_list_create')
