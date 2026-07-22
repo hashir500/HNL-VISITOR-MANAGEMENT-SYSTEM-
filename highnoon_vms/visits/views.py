@@ -168,6 +168,56 @@ def get_visit_list_redirect(request):
 
 @login_required
 @permission_required("visits.view_visit", raise_exception=True)
+def get_employees_by_branch(request):
+    branch_code = (request.GET.get("branch") or "").strip()
+    search_term = (request.GET.get("q") or "").strip()
+    search_all = request.GET.get("search_all") == "1"
+    save_session = request.GET.get("save_session") == "1"
+
+    if save_session and branch_code:
+        request.session["vms_modal_selected_branch"] = branch_code
+
+    access = get_visit_access_settings(request)
+    employees = sys_emp_master.objects.select_related("emp_cmp", "emp_bra_code", "emp_dep_code").filter(emp_active=True)
+
+    if not search_all and branch_code and branch_code != "ALL":
+        employees = employees.filter(emp_bra_code__bra_code=branch_code)
+    else:
+        selected_company = access["assigned_company_code"] if not access["can_select_company"] else None
+        employees = apply_employee_access_filter(employees, access, selected_company=selected_company)
+
+    if search_term:
+        employees = employees.filter(
+            Q(emp_name__icontains=search_term)
+            | Q(emp_pno__icontains=search_term)
+        )
+
+    employees = employees.order_by("emp_name")[:50]
+
+    data = []
+    for emp in employees:
+        dep_str = f" - {emp.emp_dep_code.dep_code}" if emp.emp_dep_code else ""
+        cmp_str = f" - {emp.emp_cmp.cmp_code}" if emp.emp_cmp else ""
+        bra_str = f" - {emp.emp_bra_code.bra_code}" if emp.emp_bra_code else ""
+        data.append({
+            "id": emp.pk,
+            "text": f"{emp.emp_pno} - {emp.emp_name}{dep_str}{cmp_str}{bra_str}"
+        })
+
+    return JsonResponse({"employees": data})
+
+
+@login_required
+@permission_required("visits.can_view_backlogs", raise_exception=True)
+def get_last_employee_for_visitor(request, visitor_id):
+    last_visit = visit.objects.filter(visitor_id=visitor_id).order_by('-check_in_time').first()
+    if last_visit and last_visit.employee:
+        return JsonResponse({'employee_id': last_visit.employee.pk})
+    return JsonResponse({'employee_id': None})
+
+
+@login_required
+@permission_required("visits.view_visit", raise_exception=True)
 def visit_list(request):
     search = (request.GET.get("search") or "").strip()
     today = timezone.localdate()
@@ -229,6 +279,7 @@ def visit_list(request):
             "has_visit_access": access["has_user_master"],
             "selected_visitor_id": request.GET.get("visitor_id"),
             "open_add_visit": request.GET.get("open_add_visit"),
+            "saved_modal_branch": request.session.get("vms_modal_selected_branch", ""),
         },
     )
 
@@ -317,9 +368,6 @@ def visit_create(request):
 @login_required
 @permission_required("visits.can_view_backlogs", raise_exception=True)
 def backlog_list_create(request):
-    """
-    Renders, filters, and saves manual backlog visits with auto-modal persistence and date carryover.
-    """
     if request.method == 'POST':
         visitor_id = request.POST.get('visitor')
         employee_id = request.POST.get('employee')
@@ -367,7 +415,6 @@ def backlog_list_create(request):
                 )
                 messages.success(request, f"Backlogged visit for {visitor_obj.visitor_name} recorded successfully!")
                 
-                # Store timestamps in session to carry forward to the next entry
                 request.session['last_backlog_checkin'] = checkin_str
                 request.session['last_backlog_checkout'] = checkout_str or ''
 
@@ -428,20 +475,9 @@ def backlog_list_create(request):
         'open_add_backlog': request.GET.get('open_add_backlog'),
         'last_checkin': request.session.get('last_backlog_checkin', ''),
         'last_checkout': request.session.get('last_backlog_checkout', ''),
+        'saved_modal_branch': request.session.get("vms_modal_selected_branch", ""),
     }
     return render(request, 'visits/backlogs.html', context)
-
-
-@login_required
-@permission_required("visits.can_view_backlogs", raise_exception=True)
-def get_last_employee_for_visitor(request, visitor_id):
-    """
-    JSON endpoint to return the ID of the last employee visited by this visitor.
-    """
-    last_visit = visit.objects.filter(visitor_id=visitor_id).order_by('-check_in_time').first()
-    if last_visit and last_visit.employee:
-        return JsonResponse({'employee_id': last_visit.employee.pk})
-    return JsonResponse({'employee_id': None})
 
 
 @login_required

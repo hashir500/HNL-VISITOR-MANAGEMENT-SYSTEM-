@@ -11,9 +11,7 @@
 {% block content %}
 
 <style>
-  .alert:not(.card .alert) {
-    display: none !important;
-  }
+  .alert:not(.card .alert) { display: none !important; }
 </style>
 
 <div class="card">
@@ -132,31 +130,13 @@
                 <span>{{ v.employee.emp_pno }}</span>
               </div>
             </td>
-            <td>
-              {% if v.employee.emp_dep_code %}
-                <span title="{{ v.employee.emp_dep_code.dep_desc }}">{{ v.employee.emp_dep_code.dep_code }}</span>
-              {% else %}-{% endif %}
-            </td>
-            <td>
-              {% if v.employee.emp_cmp %}
-                <span title="{{ v.employee.emp_cmp.cmp_desc }}">{{ v.employee.emp_cmp.cmp_code }}</span>
-              {% else %}-{% endif %}
-            </td>
-            <td>
-              {% if v.employee.emp_bra_code %}
-                <span title="{{ v.employee.emp_bra_code.bra_desc }}">{{ v.employee.emp_bra_code.bra_code }}</span>
-              {% else %}-{% endif %}
-            </td>
-            <td>
-              {% if v.visitor_card %}
-                <span class="card-number-badge">{{ v.visitor_card.CRD_No }}</span>
-              {% else %}-{% endif %}
-            </td>
+            <td>{% if v.employee.emp_dep_code %}<span title="{{ v.employee.emp_dep_code.dep_desc }}">{{ v.employee.emp_dep_code.dep_code }}</span>{% else %}-{% endif %}</td>
+            <td>{% if v.employee.emp_cmp %}<span title="{{ v.employee.emp_cmp.cmp_desc }}">{{ v.employee.emp_cmp.cmp_code }}</span>{% else %}-{% endif %}</td>
+            <td>{% if v.employee.emp_bra_code %}<span title="{{ v.employee.emp_bra_code.bra_desc }}">{{ v.employee.emp_bra_code.bra_code }}</span>{% else %}-{% endif %}</td>
+            <td>{% if v.visitor_card %}<span class="card-number-badge">{{ v.visitor_card.CRD_No }}</span>{% else %}-{% endif %}</td>
             <td><span class="visit-purpose" title="{{ v.visit_purpose }}">{{ v.visit_purpose }}</span></td>
             <td>{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
-            <td>
-              {% if v.check_out_time %}{{ v.check_out_time|date:"d M Y, h:i A" }}{% else %}-{% endif %}
-            </td>
+            <td>{% if v.check_out_time %}{{ v.check_out_time|date:"d M Y, h:i A" }}{% else %}-{% endif %}</td>
             <td>
               {% if v.status == "Checked In" %}
                 <span class="badge bg-success">{{ v.status }}</span>
@@ -202,7 +182,7 @@
   </div>
 </div>
 
-<!-- Add Backlog Modal -->
+<!-- Add Backlog Multi-Step Modal -->
 <div class="modal fade" id="addBacklogModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
@@ -210,94 +190,124 @@
         {% csrf_token %}
 
         <div class="modal-header">
-          <h5 class="modal-title">Add Back Log Entry</h5>
+          <h5 class="modal-title" id="backlogModalTitle">Add Back Log - Select Branch</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
 
         <div class="modal-body">
-          <div class="row">
 
-            <!-- Visitor Dropdown -->
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Visitor</label>
-              <select name="visitor" id="addVisitorSelect" class="form-control searchable-select" required>
-                <option value="">Search visitor by name or phone</option>
-                {% for visitor in visitors %}
-                <option 
-                  value="{{ visitor.visitor_id }}"
-                  {% if selected_visitor_id == visitor.visitor_id|stringformat:"s" %}selected{% endif %}>
-                  {{ visitor.visitor_name }} - {{ visitor.visitor_phone }}
-                </option>
-                {% endfor %}
-              </select>
-              <a href="{% url 'visitor_list' %}?open_add_visitor=1&next=backlogs" class="btn btn-primary btn-sm py-2 px-3 mt-2 text-white">
-                <i class="fa-solid fa-plus me-1"></i> Add New Visitor
-              </a>
+          <!-- STEP 1: BRANCH SELECTION -->
+          <div id="backlogModalStep1">
+            <div class="p-3 bg-light border-radius-lg mb-3">
+              <label class="form-label fw-bold">Select Backlog Branch</label>
+              {% if can_select_branch %}
+                <select id="backlogStep1BranchSelect" class="form-control searchable-select">
+                  <option value="ALL">All Branches</option>
+                  {% for branch in branches %}
+                    <option value="{{ branch.bra_code }}" {% if selected_branch == branch.bra_code %}selected{% endif %}>
+                      {{ branch.bra_code }} - {{ branch.bra_desc }}
+                    </option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input type="text" class="form-control" value="Branch: {{ selected_branch }}" readonly>
+                <input type="hidden" id="backlogStep1BranchSelect" value="{{ selected_branch }}">
+              {% endif %}
             </div>
-
-            <!-- Employee Dropdown -->
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Employee To Visit</label>
-              <select name="employee" id="addEmployeeSelect" class="form-control searchable-select" required>
-                <option value="">Search employee by PNO, name or phone</option>
-                {% for emp in employees %}
-                <option value="{{ emp.pk }}">
-                  {{ emp.emp_pno }} - {{ emp.emp_name }}
-                  {% if emp.emp_dep_code %} - {{ emp.emp_dep_code.dep_code }}{% endif %}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <!-- Card Dropdown -->
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Visitor Card</label>
-              <select name="visitor_card" class="form-control searchable-select" required>
-                <option value="">Select Card No</option>
-                {% for card in cards %}
-                <option value="{{ card.id }}">{{ card.CRD_No }}</option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <!-- Purpose Dropdown -->
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Purpose</label>
-              <select name="purpose" id="visitPurposeSelect" class="form-control searchable-select" required>
-                <option value="">Select Purpose</option>
-                {% for purpose in purposes %}
-                <option value="{{ purpose.pur_id }}" {% if purpose.pur_purpose|lower == 'meeting' %}selected{% endif %}>
-                  {{ purpose.pur_purpose }}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <!-- Other Custom Purpose Input -->
-            <div class="col-md-6 mb-3 d-none" id="otherPurposeWrapper">
-              <label class="form-label">Write Purpose</label>
-              <input type="text" name="other_purpose" id="otherPurposeInput" class="form-control" placeholder="Enter purpose">
-            </div>
-
-            <!-- Custom Check-In Timestamps -->
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Custom Check-In Date & Time</label>
-              <input type="datetime-local" name="check_in_time" id="addCheckInInput" value="{{ last_checkin }}" class="form-control" required>
-            </div>
-
-            <!-- Custom Check-Out Timestamps -->
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Custom Check-Out Date & Time (Optional)</label>
-              <input type="datetime-local" name="check_out_time" id="addCheckOutInput" value="{{ last_checkout }}" class="form-control">
-              <small class="text-muted text-xxs mt-1 d-block">Leave blank if the visitor has not checked out yet.</small>
-            </div>
-
           </div>
+
+          <!-- STEP 2: MAIN FORM -->
+          <div id="backlogModalStep2" class="d-none">
+            <div class="row">
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Visitor</label>
+                <select name="visitor" id="addVisitorSelect" class="form-control searchable-select" required>
+                  <option value="">Search visitor by name or phone</option>
+                  {% for visitor in visitors %}
+                  <option value="{{ visitor.visitor_id }}" {% if selected_visitor_id == visitor.visitor_id|stringformat:"s" %}selected{% endif %}>
+                    {{ visitor.visitor_name }} - {{ visitor.visitor_phone }}
+                  </option>
+                  {% endfor %}
+                </select>
+                <a href="{% url 'visitor_list' %}?open_add_visitor=1&next=backlogs" class="btn btn-primary btn-sm py-2 px-3 mt-2 text-white">
+                  <i class="fa-solid fa-plus me-1"></i> Add New Visitor
+                </a>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label mb-0">Employee To Visit</label>
+                  <button type="button" class="btn btn-find-global-employee">
+                    <i class="fa-solid fa-magnifying-glass me-1"></i> Find Elsewhere
+                  </button>
+                </div>
+                <select name="employee" id="addEmployeeSelect" class="form-control searchable-select employee-select" required>
+                  <option value="">Search employee by PNO or name</option>
+                  {% for emp in employees %}
+                  <option value="{{ emp.pk }}">{{ emp.emp_pno }} - {{ emp.emp_name }}</option>
+                  {% endfor %}
+                </select>
+                <small class="employee-branch-notice text-muted text-xxs mt-1 d-block">Showing employees for selected branch.</small>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Visitor Card</label>
+                <select name="visitor_card" class="form-control searchable-select" required>
+                  <option value="">Select Card No</option>
+                  {% for card in cards %}
+                  <option value="{{ card.id }}">{{ card.CRD_No }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Purpose</label>
+                <select name="purpose" id="visitPurposeSelect" class="form-control searchable-select" required>
+                  <option value="">Select Purpose</option>
+                  {% for purpose in purposes %}
+                  <option value="{{ purpose.pur_id }}" {% if purpose.pur_purpose|lower == 'meeting' %}selected{% endif %}>
+                    {{ purpose.pur_purpose }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-md-6 mb-3 d-none" id="otherPurposeWrapper">
+                <label class="form-label">Write Purpose</label>
+                <input type="text" name="other_purpose" id="otherPurposeInput" class="form-control" placeholder="Enter purpose">
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Custom Check-In Date & Time</label>
+                <input type="datetime-local" name="check_in_time" id="addCheckInInput" value="{{ last_checkin }}" class="form-control" required>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Custom Check-Out Date & Time (Optional)</label>
+                <input type="datetime-local" name="check_out_time" id="addCheckOutInput" value="{{ last_checkout }}" class="form-control">
+                <small class="text-muted text-xxs mt-1 d-block">Leave blank if the visitor has not checked out yet.</small>
+              </div>
+
+            </div>
+          </div>
+
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">Save & Next</button>
+          <div id="backlogModalStep1Footer" class="w-100 d-flex justify-content-between">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" id="btnBacklogGoToStep2" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">
+              Next <i class="fa-solid fa-arrow-right ms-1"></i>
+            </button>
+          </div>
+
+          <div id="backlogModalStep2Footer" class="w-100 d-flex justify-content-between d-none">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">
+              Save & Next
+            </button>
+          </div>
         </div>
 
       </form>
@@ -325,9 +335,7 @@
               <select name="visitor" id="editVisitorSelect" class="form-control searchable-select" required>
                 <option value="">Search visitor by name or phone</option>
                 {% for visitor in visitors %}
-                <option value="{{ visitor.visitor_id }}">
-                  {{ visitor.visitor_name }} - {{ visitor.visitor_phone }}
-                </option>
+                <option value="{{ visitor.visitor_id }}">{{ visitor.visitor_name }} - {{ visitor.visitor_phone }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -335,12 +343,9 @@
             <div class="col-md-6 mb-3">
               <label class="form-label">Employee To Visit</label>
               <select name="employee" id="editEmployeeSelect" class="form-control searchable-select" required>
-                <option value="">Search employee by PNO, name or phone</option>
+                <option value="">Search employee by PNO or name</option>
                 {% for emp in employees %}
-                <option value="{{ emp.pk }}">
-                  {{ emp.emp_pno }} - {{ emp.emp_name }}
-                  {% if emp.emp_dep_code %} - {{ emp.emp_dep_code.dep_code }}{% endif %}
-                </option>
+                <option value="{{ emp.pk }}">{{ emp.emp_pno }} - {{ emp.emp_name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -417,190 +422,54 @@
 </div>
 
 <style>
-  .visit-header-layout {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    width: 100%;
-  }
+  .visit-header-layout { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; }
+  .visit-header-left { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+  .visit-header-filters { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 1 1 auto; min-width: 0; }
+  .visit-search-wrapper { position: relative !important; width: 280px; max-width: 100%; height: 40px !important; display: flex !important; align-items: center !important; margin: 0 !important; }
+  .visit-search-input { width: 100% !important; height: 40px !important; min-height: 40px !important; padding-left: 38px !important; margin-bottom: 0 !important; }
+  .visit-search-wrapper .visit-search-icon, .visit-search-icon { position: absolute !important; left: 14px !important; top: 50% !important; transform: translateY(-50%) !important; z-index: 10 !important; color: #8392ab !important; font-size: 13px !important; pointer-events: none !important; }
+  .visit-filter-select { width: 180px; height: 40px !important; }
+  .visit-filter-buttons-wrapper { display: flex; gap: 6px; }
+  .visit-filter-button, .visit-reset-button { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 42px !important; height: 40px !important; min-width: 42px !important; padding: 0 !important; margin: 0 !important; }
+  .visit-employee-cell { display: flex; flex-direction: column; }
+  .visit-employee-cell strong { color: #344767; font-size: 13px; }
+  .visit-employee-cell span { color: #67748e; font-size: 11px; }
+  .card-number-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 48px; padding: 5px 9px; border-radius: 8px; background: rgba(242, 99, 34, 0.1); color: #f26322; font-size: 12px; font-weight: 700; }
+  .visit-purpose { display: inline-block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+  .visit-header-filters span.select2-container, .visit-header-filters .select2-container--default { width: 180px !important; min-width: 180px !important; }
+  .visit-header-filters .select2-container .select2-selection--single { min-height: 40px !important; height: 40px !important; }
+  .visit-header-filters .select2-container .select2-selection--single .select2-selection__rendered { line-height: 40px !important; }
+  .visit-header-filters .select2-container .select2-selection--single .select2-selection__arrow { height: 40px !important; }
 
-  .visit-header-left {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex: 0 0 auto;
-  }
-
-  .visit-header-filters {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  .visit-search-wrapper {
-    position: relative !important;
-    width: 280px;
-    max-width: 100%;
-    height: 40px !important;
-    display: flex !important;
-    align-items: center !important;
-    margin: 0 !important;
-  }
-
-  .visit-search-input {
-    width: 100% !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    padding-left: 38px !important;
-    margin-bottom: 0 !important;
-  }
-
-  .visit-search-wrapper .visit-search-icon,
-  .visit-search-icon {
-    position: absolute !important;
-    left: 14px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    z-index: 10 !important;
-    color: #8392ab !important;
-    font-size: 13px !important;
-    pointer-events: none !important;
-    margin: 0 !important;
+  /* Locked button dimensions to prevent shape deformation */
+  .btn-find-global-employee {
+    background-color: #f26322 !important;
+    color: #ffffff !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    height: 26px !important;
+    width: 125px !important;
+    min-width: 125px !important;
+    max-width: 125px !important;
     padding: 0 !important;
-    line-height: 1 !important;
-  }
-
-  .visit-filter-select {
-    width: 180px;
-    height: 40px !important;
-  }
-
-  .visit-filter-buttons-wrapper {
-    display: flex;
-    gap: 6px;
-  }
-
-  .visit-filter-button,
-  .visit-reset-button {
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 4px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 42px !important;
-    height: 40px !important;
-    min-width: 42px !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    white-space: nowrap !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    flex-shrink: 0 !important;
+  }
+  .btn-find-global-employee:hover {
+    background-color: #d9531e !important;
+    color: #ffffff !important;
   }
 
-  .visit-employee-cell {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .visit-employee-cell strong {
-    color: #344767;
-    font-size: 13px;
-  }
-
-  .visit-employee-cell span {
-    color: #67748e;
-    font-size: 11px;
-  }
-
-  .card-number-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 48px;
-    padding: 5px 9px;
-    border-radius: 8px;
-    background: rgba(242, 99, 34, 0.1);
-    color: #f26322;
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .visit-purpose {
-    display: inline-block;
-    max-width: 180px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: middle;
-  }
-
-  .visit-header-filters span.select2-container,
-  .visit-header-filters .select2-container--default {
-    width: 180px !important;
-    min-width: 180px !important;
-  }
-
-  .visit-header-filters .select2-container .select2-selection--single {
-    min-height: 40px !important;
-    height: 40px !important;
-  }
-
-  .visit-header-filters .select2-container .select2-selection--single .select2-selection__rendered {
-    line-height: 40px !important;
-  }
-
-  .visit-header-filters .select2-container .select2-selection--single .select2-selection__arrow {
-    height: 40px !important;
-  }
-
-  @media (max-width: 991.98px) {
-    .visit-header-layout {
-      flex-direction: column !important;
-      align-items: stretch !important;
-      gap: 12px !important;
-    }
-
-    .visit-header-left {
-      width: 100% !important;
-      flex-direction: column !important;
-      align-items: stretch !important;
-      gap: 10px !important;
-    }
-
-    .visit-header-left .btn {
-      width: 100% !important;
-    }
-
-    .visit-header-filters {
-      flex-direction: column !important;
-      align-items: stretch !important;
-      width: 100% !important;
-      gap: 10px !important;
-    }
-
-    .visit-search-wrapper {
-      width: 100% !important;
-      max-width: 100% !important;
-    }
-
-    .visit-filter-select,
-    .visit-header-filters span.select2-container,
-    .visit-header-filters .select2-container--default {
-      width: 100% !important;
-      min-width: 100% !important;
-      display: block !important;
-    }
-
-    .visit-filter-buttons-wrapper {
-      display: flex !important;
-      width: 100% !important;
-      gap: 8px !important;
-    }
-
-    .visit-filter-button,
-    .visit-reset-button {
-      flex: 1 !important;
-      width: 100% !important;
-    }
-  }
+  .select2-container--open { z-index: 99999 !important; }
+  .select2-dropdown { z-index: 99999 !important; border: 1px solid #d2d6da !important; box-shadow: 0 8px 26px -4px rgba(20, 20, 20, 0.15) !important; }
 </style>
 
 {% endblock %}
@@ -609,71 +478,144 @@
 <script>
   $(document).ready(function () {
 
+    let lastTypedQuery = '';
+    // Store branch in active JS session state, initialized from server template
+    let currentSessionBranch = "{{ saved_modal_branch }}";
+
+    $(document).on('input keyup', '.select2-search__field', function () {
+      const val = $(this).val();
+      if (val !== undefined && val !== null) {
+        lastTypedQuery = val.trim();
+      }
+    });
+
     function initHeaderFilters() {
       const isMobile = window.innerWidth < 992;
       const selectWidth = isMobile ? '100%' : '180px';
-
       $('.filter-select').each(function () {
-        if ($(this).hasClass('select2-hidden-accessible')) {
-          $(this).select2('destroy');
-        }
-
-        $(this).select2({
-          width: selectWidth,
-          minimumResultsForSearch: 8
-        });
+        if ($(this).hasClass('select2-hidden-accessible')) { $(this).select2('destroy'); }
+        $(this).select2({ width: selectWidth, minimumResultsForSearch: 8 });
       });
     }
 
     initHeaderFilters();
+    $(window).on('resize', initHeaderFilters);
 
-    $(window).on('resize', function() {
-      initHeaderFilters();
+    function loadBacklogEmployeesForBranch(selectedBranch, saveSession, callback) {
+      $.getJSON('/visits/api/employees/', { branch: selectedBranch, save_session: saveSession ? '1' : '0' }, function (data) {
+        const $empSelect = $('#addEmployeeSelect');
+        $empSelect.empty().append('<option value="">Search employee by PNO or name</option>');
+        $.each(data.employees, function (i, emp) {
+          $empSelect.append(new Option(emp.text, emp.id, false, false));
+        });
+        $empSelect.trigger('change');
+        $('#addBacklogModal .employee-branch-notice').text('Showing employees for Branch: ' + selectedBranch).removeClass('text-danger text-success').addClass('text-muted');
+        if (callback) callback();
+      });
+    }
+
+    $('#addBacklogModal').on('show.bs.modal', function () {
+      lastTypedQuery = '';
+      const urlParams = new URLSearchParams(window.location.search);
+
+      if (urlParams.get('open_add_backlog') === '1' || currentSessionBranch) {
+        const branchToLoad = currentSessionBranch || $('#backlogStep1BranchSelect').val();
+        loadBacklogEmployeesForBranch(branchToLoad, false, function () {
+          $('#backlogModalStep1').addClass('d-none');
+          $('#backlogModalStep1Footer').addClass('d-none');
+          $('#backlogModalStep2').removeClass('d-none');
+          $('#backlogModalStep2Footer').removeClass('d-none');
+          $('#backlogModalTitle').text('Add Back Log - Details');
+        });
+      } else {
+        $('#backlogModalStep1').removeClass('d-none');
+        $('#backlogModalStep1Footer').removeClass('d-none');
+        $('#backlogModalStep2').addClass('d-none');
+        $('#backlogModalStep2Footer').addClass('d-none');
+        $('#backlogModalTitle').text('Add Back Log - Select Branch');
+      }
     });
 
-    /*
-     * Initialize Select2 for modals.
-     */
     $('#addBacklogModal, #editBacklogModal').on('shown.bs.modal', function () {
       const modal = $(this);
       modal.find('.searchable-select').each(function () {
-        if ($(this).hasClass('select2-hidden-accessible')) {
-          $(this).select2('destroy');
-        }
-        $(this).select2({
-          dropdownParent: modal,
-          width: '100%',
-          placeholder: $(this).find('option:first').text()
-        });
+        if ($(this).hasClass('select2-hidden-accessible')) { $(this).select2('destroy'); }
+        $(this).select2({ dropdownParent: modal, width: '100%' });
       });
     });
 
-    /*
-     * Auto-Select Host Employee from Visitor's Last Visit
-     */
+    $('#btnBacklogGoToStep2').on('click', function () {
+      const selectedBranch = $('#backlogStep1BranchSelect').val();
+      // Immediately remember selected branch for current session
+      currentSessionBranch = selectedBranch;
+
+      loadBacklogEmployeesForBranch(selectedBranch, true, function () {
+        $('#backlogModalStep1').addClass('d-none');
+        $('#backlogModalStep1Footer').addClass('d-none');
+        $('#backlogModalStep2').removeClass('d-none');
+        $('#backlogModalStep2Footer').removeClass('d-none');
+        $('#backlogModalTitle').text('Add Back Log - Details');
+      });
+    });
+
+    $('.btn-find-global-employee').on('click', function () {
+      const btn = $(this);
+      const container = btn.closest('.col-md-6');
+      const $empSelect = container.find('.employee-select');
+      const notice = container.find('.employee-branch-notice');
+
+      let query = lastTypedQuery;
+
+      if (!query) {
+        const currentSelect2Field = $('.select2-search__field');
+        if (currentSelect2Field.length) {
+          query = currentSelect2Field.val().trim();
+        }
+      }
+
+      if (!query) {
+        alert("Please type a name or PNO into the employee search box first, then click 'Find Elsewhere'.");
+        return;
+      }
+
+      btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i>');
+
+      $.getJSON('/visits/api/employees/', { search_all: '1', q: query }, function (data) {
+        $empSelect.empty().append('<option value="">Select matching employee</option>');
+
+        if (!data.employees || data.employees.length === 0) {
+          notice.text('No matching employee found across all branches for "' + query + '".').removeClass('text-muted text-success').addClass('text-danger fw-bold');
+        } else {
+          $.each(data.employees, function (i, emp) {
+            $empSelect.append(new Option(emp.text, emp.id, false, false));
+          });
+          notice.text('Found ' + data.employees.length + ' match(es) for "' + query + '" across other branches.').removeClass('text-muted text-danger').addClass('text-success fw-bold');
+          
+          if ($empSelect.hasClass('select2-hidden-accessible')) { $empSelect.select2('destroy'); }
+          $empSelect.select2({ dropdownParent: $('#addBacklogModal'), width: '100%' });
+          
+          $empSelect.select2('open');
+        }
+
+        btn.prop('disabled', false).html('<i class="fa-solid fa-magnifying-glass me-1"></i> Find Elsewhere');
+      });
+    });
+
     $('#addVisitorSelect').on('change', function () {
       const visitorId = $(this).val();
       if (!visitorId) return;
-
       $.getJSON('/backlogs/last-employee/' + visitorId + '/', function (data) {
         if (data.employee_id) {
           $('#addEmployeeSelect').val(data.employee_id).trigger('change');
-        } else {
-          $('#addEmployeeSelect').val('').trigger('change');
         }
       });
     });
 
-    /*
-     * Sync Check-Out Date with Check-In Date automatically
-     */
     $('#addCheckInInput').on('change input', function () {
       const checkinVal = $(this).val();
       if (!checkinVal) return;
-
       const checkinDate = checkinVal.split('T')[0];
       const checkoutVal = $('#addCheckOutInput').val();
-
       if (checkoutVal) {
         const checkoutTime = checkoutVal.split('T')[1] || '';
         $('#addCheckOutInput').val(checkinDate + (checkoutTime ? 'T' + checkoutTime : ''));
@@ -682,9 +624,6 @@
       }
     });
 
-    /*
-     * Purpose select toggle for Add Modal.
-     */
     $('#visitPurposeSelect').on('change', function () {
       const selectedText = $('#visitPurposeSelect option:selected').text().trim().toLowerCase();
       if (selectedText === 'other' || selectedText === 'others') {
@@ -696,9 +635,6 @@
       }
     });
 
-    /*
-     * Purpose select toggle for Edit Modal.
-     */
     $('#editVisitPurposeSelect').on('change', function () {
       const selectedText = $('#editVisitPurposeSelect option:selected').text().trim().toLowerCase();
       if (selectedText === 'other' || selectedText === 'others') {
@@ -710,9 +646,6 @@
       }
     });
 
-    /*
-     * Populate and open Edit Modal.
-     */
     $('.btn-edit-backlog').on('click', function () {
       const btn = $(this);
       const actionUrl = btn.data('action-url');
@@ -756,9 +689,6 @@
       editModal.show();
     });
 
-    /*
-     * Populate and open Delete Modal.
-     */
     $('.btn-delete-backlog').on('click', function () {
       const btn = $(this);
       const actionUrl = btn.data('action-url');
@@ -771,9 +701,6 @@
       deleteModal.show();
     });
 
-    /*
-     * Auto-submit Company and Branch filters.
-     */
     $('#companyFilter, #branchFilter').on('change', function () {
       $(this).closest('form').submit();
     });
