@@ -8,4 +8,5 @@ urlpatterns = [
     path("backlogs/", views.backlog_list_create, name="backlog_list_create"),
     path('backlogs/<int:visit_id>/edit/', views.backlog_edit, name='backlog_edit'),
     path('backlogs/<int:visit_id>/delete/', views.backlog_delete, name='backlog_delete'),
+    path("backlogs/last-employee/<int:visitor_id>/", views.get_last_employee_for_visitor, name="get_last_employee_for_visitor"),
 ]

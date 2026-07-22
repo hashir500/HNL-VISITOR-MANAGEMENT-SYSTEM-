@@ -4,14 +4,12 @@
 {% block breadcrumb %}Revisions Logs{% endblock %}
 {% block page_heading %}Revisions Logs{% endblock %}
 
-<!-- SUPPRESS GLOBAL BANNER -->
 {% block alerts %}{% endblock %}
 {% block messages %}{% endblock %}
 {% block message %}{% endblock %}
 
 {% block content %}
 
-<!-- CSS Override: Hides any global alert banner on the page that is NOT inside our card container -->
 <style>
   .alert:not(.card .alert) {
     display: none !important;
@@ -34,7 +32,7 @@
           data-bs-toggle="modal"
           data-bs-target="#addBacklogModal">
           <i class="fa-solid fa-clock-rotate-left me-1"></i>
-          Add Back Log
+          Add
         </button>
       </div>
 
@@ -91,7 +89,6 @@
 
   <div class="card-body px-0 pt-0 pb-2">
 
-    <!-- SINGLE CONTAINED ALERT BLOCK -->
     {% if messages %}
       <div class="px-4 pt-3">
         {% for message in messages %}
@@ -168,7 +165,6 @@
               {% endif %}
             </td>
             <td class="text-center">
-              <!-- EDIT BUTTON -->
               <button
                 type="button"
                 class="btn btn-link text-dark px-2 mb-0 btn-edit-backlog"
@@ -184,7 +180,6 @@
                 <i class="fa-solid fa-pen text-dark"></i>
               </button>
 
-              <!-- DELETE BUTTON -->
               <button
                 type="button"
                 class="btn btn-link text-danger px-2 mb-0 btn-delete-backlog"
@@ -211,7 +206,7 @@
 <div class="modal fade" id="addBacklogModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
-      <form method="POST" action="{% url 'backlog_list_create' %}">
+      <form method="POST" action="{% url 'backlog_list_create' %}" id="addBacklogForm">
         {% csrf_token %}
 
         <div class="modal-header">
@@ -225,7 +220,7 @@
             <!-- Visitor Dropdown -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Visitor</label>
-              <select name="visitor" class="form-control searchable-select" required>
+              <select name="visitor" id="addVisitorSelect" class="form-control searchable-select" required>
                 <option value="">Search visitor by name or phone</option>
                 {% for visitor in visitors %}
                 <option 
@@ -243,7 +238,7 @@
             <!-- Employee Dropdown -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Employee To Visit</label>
-              <select name="employee" class="form-control searchable-select" required>
+              <select name="employee" id="addEmployeeSelect" class="form-control searchable-select" required>
                 <option value="">Search employee by PNO, name or phone</option>
                 {% for emp in employees %}
                 <option value="{{ emp.pk }}">
@@ -271,7 +266,9 @@
               <select name="purpose" id="visitPurposeSelect" class="form-control searchable-select" required>
                 <option value="">Select Purpose</option>
                 {% for purpose in purposes %}
-                <option value="{{ purpose.pur_id }}">{{ purpose.pur_purpose }}</option>
+                <option value="{{ purpose.pur_id }}" {% if purpose.pur_purpose|lower == 'meeting' %}selected{% endif %}>
+                  {{ purpose.pur_purpose }}
+                </option>
                 {% endfor %}
               </select>
             </div>
@@ -285,13 +282,13 @@
             <!-- Custom Check-In Timestamps -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Custom Check-In Date & Time</label>
-              <input type="datetime-local" name="check_in_time" class="form-control" required>
+              <input type="datetime-local" name="check_in_time" id="addCheckInInput" value="{{ last_checkin }}" class="form-control" required>
             </div>
 
             <!-- Custom Check-Out Timestamps -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Custom Check-Out Date & Time (Optional)</label>
-              <input type="datetime-local" name="check_out_time" class="form-control">
+              <input type="datetime-local" name="check_out_time" id="addCheckOutInput" value="{{ last_checkout }}" class="form-control">
               <small class="text-muted text-xxs mt-1 d-block">Leave blank if the visitor has not checked out yet.</small>
             </div>
 
@@ -300,7 +297,7 @@
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">Save Backlog</button>
+          <button type="submit" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">Save & Next</button>
         </div>
 
       </form>
@@ -323,7 +320,6 @@
         <div class="modal-body">
           <div class="row">
 
-            <!-- Visitor Dropdown -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Visitor</label>
               <select name="visitor" id="editVisitorSelect" class="form-control searchable-select" required>
@@ -336,7 +332,6 @@
               </select>
             </div>
 
-            <!-- Employee Dropdown -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Employee To Visit</label>
               <select name="employee" id="editEmployeeSelect" class="form-control searchable-select" required>
@@ -350,7 +345,6 @@
               </select>
             </div>
 
-            <!-- Card Dropdown -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Visitor Card</label>
               <select name="visitor_card" id="editCardSelect" class="form-control searchable-select" required>
@@ -361,7 +355,6 @@
               </select>
             </div>
 
-            <!-- Purpose Dropdown -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Purpose</label>
               <select name="purpose" id="editVisitPurposeSelect" class="form-control searchable-select" required>
@@ -372,19 +365,16 @@
               </select>
             </div>
 
-            <!-- Other Custom Purpose Input -->
             <div class="col-md-6 mb-3 d-none" id="editOtherPurposeWrapper">
               <label class="form-label">Write Purpose</label>
               <input type="text" name="other_purpose" id="editOtherPurposeInput" class="form-control" placeholder="Enter purpose">
             </div>
 
-            <!-- Custom Check-In Timestamps -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Custom Check-In Date & Time</label>
               <input type="datetime-local" name="check_in_time" id="editCheckInInput" class="form-control" required>
             </div>
 
-            <!-- Custom Check-Out Timestamps -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Custom Check-Out Date & Time (Optional)</label>
               <input type="datetime-local" name="check_out_time" id="editCheckOutInput" class="form-control">
@@ -642,7 +632,7 @@
     });
 
     /*
-     * Select2 dropdowns for Add & Edit Modals.
+     * Initialize Select2 for modals.
      */
     $('#addBacklogModal, #editBacklogModal').on('shown.bs.modal', function () {
       const modal = $(this);
@@ -656,6 +646,40 @@
           placeholder: $(this).find('option:first').text()
         });
       });
+    });
+
+    /*
+     * Auto-Select Host Employee from Visitor's Last Visit
+     */
+    $('#addVisitorSelect').on('change', function () {
+      const visitorId = $(this).val();
+      if (!visitorId) return;
+
+      $.getJSON('/backlogs/last-employee/' + visitorId + '/', function (data) {
+        if (data.employee_id) {
+          $('#addEmployeeSelect').val(data.employee_id).trigger('change');
+        } else {
+          $('#addEmployeeSelect').val('').trigger('change');
+        }
+      });
+    });
+
+    /*
+     * Sync Check-Out Date with Check-In Date automatically
+     */
+    $('#addCheckInInput').on('change input', function () {
+      const checkinVal = $(this).val();
+      if (!checkinVal) return;
+
+      const checkinDate = checkinVal.split('T')[0];
+      const checkoutVal = $('#addCheckOutInput').val();
+
+      if (checkoutVal) {
+        const checkoutTime = checkoutVal.split('T')[1] || '';
+        $('#addCheckOutInput').val(checkinDate + (checkoutTime ? 'T' + checkoutTime : ''));
+      } else {
+        $('#addCheckOutInput').val(checkinDate + 'T18:00');
+      }
     });
 
     /*
@@ -704,7 +728,6 @@
       $('#editEmployeeSelect').val(employeeId).trigger('change');
       $('#editCardSelect').val(cardId).trigger('change');
 
-      // Check if purpose matches a known dropdown item, otherwise set to 'other'
       let matched = false;
       $('#editVisitPurposeSelect option').each(function () {
         if ($(this).text().trim().toLowerCase() === String(purposeText).toLowerCase()) {
@@ -715,7 +738,6 @@
       });
 
       if (!matched) {
-        // Set dropdown to Other and fill custom purpose text input
         $('#editVisitPurposeSelect option').each(function () {
           const text = $(this).text().trim().toLowerCase();
           if (text === 'other' || text === 'others') {
@@ -726,15 +748,9 @@
         });
       }
 
-      if (checkinVal) {
-        $('#editCheckInInput').val(checkinVal);
-      }
-
-      if (checkoutVal) {
-        $('#editCheckOutInput').val(checkoutVal);
-      } else {
-        $('#editCheckOutInput').val('');
-      }
+      if (checkinVal) $('#editCheckInInput').val(checkinVal);
+      if (checkoutVal) $('#editCheckOutInput').val(checkoutVal);
+      else $('#editCheckOutInput').val('');
 
       const editModal = new bootstrap.Modal(document.getElementById('editBacklogModal'));
       editModal.show();

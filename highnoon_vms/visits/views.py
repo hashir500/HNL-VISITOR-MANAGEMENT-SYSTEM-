@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -20,10 +21,6 @@ from masters.models import (
 
 
 def get_logged_in_vms_user(request):
-    """
-    Return the sys_usr_system record linked to the logged-in
-    Django authentication user.
-    """
     if request.user.is_superuser:
         return None
 
@@ -42,9 +39,6 @@ def get_logged_in_vms_user(request):
 
 
 def get_visit_access_settings(request):
-    """
-    Resolve the logged-in user's Company and Branch access profiles.
-    """
     user_master = get_logged_in_vms_user(request)
 
     if request.user.is_superuser:
@@ -183,7 +177,6 @@ def visit_list(request):
     start_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
     end_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.max.time()))
 
-    # Exclude backlogs from the main live screen view
     visits = visit.objects.select_related(
         "visitor", "employee", "employee__emp_cmp", "employee__emp_bra_code", "employee__emp_dep_code", "visitor_card"
     ).filter(
@@ -325,7 +318,7 @@ def visit_create(request):
 @permission_required("visits.can_view_backlogs", raise_exception=True)
 def backlog_list_create(request):
     """
-    Renders, filters, and saves manual backlog visits straight into the main 'visit' table.
+    Renders, filters, and saves manual backlog visits with auto-modal persistence and date carryover.
     """
     if request.method == 'POST':
         visitor_id = request.POST.get('visitor')
@@ -341,7 +334,7 @@ def backlog_list_create(request):
         check_out_time = parse_datetime(checkout_str) if checkout_str else None
 
         if not visitor_id or not employee_id or not card_id or not purpose_id or not check_in_time:
-            messages.error(request, "Visitor, Host Employee, Card, Purpose, and Check-In time are all required.")
+            messages.error(request, "Visitor, Host Employee, Card, Purpose, and Check-In time are required.")
         elif check_out_time and check_out_time <= check_in_time:
             messages.error(request, "Error: Checkout time must be chronologically after Check-In time.")
         else:
@@ -373,11 +366,15 @@ def backlog_list_create(request):
                     is_backlog=True
                 )
                 messages.success(request, f"Backlogged visit for {visitor_obj.visitor_name} recorded successfully!")
-                return redirect('backlog_list_create')
+                
+                # Store timestamps in session to carry forward to the next entry
+                request.session['last_backlog_checkin'] = checkin_str
+                request.session['last_backlog_checkout'] = checkout_str or ''
+
+                return redirect(reverse('backlog_list_create') + '?open_add_backlog=1')
 
             except Exception as e:
                 messages.error(request, f"Database Write Error: {str(e)}")
-
 
     search = (request.GET.get('search') or '').strip()
     selected_visitor_id = request.GET.get('selected_visitor_id')
@@ -429,16 +426,27 @@ def backlog_list_create(request):
         'has_visit_access': access["has_user_master"],
         'selected_visitor_id': selected_visitor_id,
         'open_add_backlog': request.GET.get('open_add_backlog'),
+        'last_checkin': request.session.get('last_backlog_checkin', ''),
+        'last_checkout': request.session.get('last_backlog_checkout', ''),
     }
     return render(request, 'visits/backlogs.html', context)
 
 
 @login_required
 @permission_required("visits.can_view_backlogs", raise_exception=True)
+def get_last_employee_for_visitor(request, visitor_id):
+    """
+    JSON endpoint to return the ID of the last employee visited by this visitor.
+    """
+    last_visit = visit.objects.filter(visitor_id=visitor_id).order_by('-check_in_time').first()
+    if last_visit and last_visit.employee:
+        return JsonResponse({'employee_id': last_visit.employee.pk})
+    return JsonResponse({'employee_id': None})
+
+
+@login_required
+@permission_required("visits.can_view_backlogs", raise_exception=True)
 def backlog_edit(request, visit_id):
-    """
-    Updates an existing backlogged visit record.
-    """
     visit_obj = get_object_or_404(visit, visit_id=visit_id, is_backlog=True)
 
     if not user_can_access_employee(request, visit_obj.employee):
@@ -502,9 +510,6 @@ def backlog_edit(request, visit_id):
 @login_required
 @permission_required("visits.can_view_backlogs", raise_exception=True)
 def backlog_delete(request, visit_id):
-    """
-    Deletes a backlogged visit record.
-    """
     visit_obj = get_object_or_404(visit, visit_id=visit_id, is_backlog=True)
 
     if not user_can_access_employee(request, visit_obj.employee):
