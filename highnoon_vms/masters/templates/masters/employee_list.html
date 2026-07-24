@@ -45,16 +45,19 @@
 
   <div class="card-body px-0 pt-0 pb-2">
 
-    <form method="GET" class="px-3 pb-3">
+    <form method="GET" class="px-3 pb-3" id="employeeSearchForm">
       <div class="d-flex align-items-center gap-2">
 
         <input
           type="text"
           name="search"
+          id="employeeSearchInput"
           class="form-control"
-          placeholder="Search by PNO, Name, Department..."
+          placeholder="Type at least 3 characters (PNO, Name, Dept...)"
           value="{{ search }}"
-          style="max-width: 420px;">
+          minlength="3"
+          style="max-width: 420px;"
+          required>
 
         <button
           type="submit"
@@ -92,7 +95,7 @@
         <tbody>
           {% for emp in employees %}
           <tr>
-            <td>{{emp.id}}</td>
+            <td>{{ emp.id }}</td>
             <td>{{ emp.emp_pno }}</td>
             <td>{{ emp.emp_name }}</td>
             <td>{{ emp.emp_designation }}</td>
@@ -100,9 +103,9 @@
             <td>{{ emp.emp_bra_code.bra_desc }}</td>
             <td>{{ emp.emp_dep_code.dep_desc }}</td>
             <td class="employee-email">
-  {{ emp.emp_email|default_if_none:"-"|default:"-" }}
-</td>
-            <td>{{emp.emp_phone|default:"-"}}</td>
+              {{ emp.emp_email|default_if_none:"-"|default:"-" }}
+            </td>
+            <td>{{ emp.emp_phone|default:"-" }}</td>
             <td>
               {% if emp.emp_active %}
                 <span class="badge bg-success">Active</span>
@@ -110,7 +113,6 @@
                 <span class="badge bg-danger">Inactive</span>
               {% endif %}
             </td>
-            
 
             <td class="text-end">
               <button class="icon-action icon-edit" type="button" data-bs-toggle="modal" data-bs-target="#editEmployeeModal{{ emp.id }}" title="Edit">
@@ -123,6 +125,7 @@
             </td>
           </tr>
 
+          <!-- Edit Modal -->
           <div class="modal fade" id="editEmployeeModal{{ emp.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
               <div class="modal-content">
@@ -216,6 +219,7 @@
             </div>
           </div>
 
+          <!-- Delete Modal -->
           <div class="modal fade" id="deleteEmployeeModal{{ emp.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content">
@@ -241,7 +245,13 @@
 
           {% empty %}
           <tr>
-            <td colspan="9" class="text-center text-muted">No employees found.</td>
+            <td colspan="11" class="text-center text-muted py-4">
+              {% if search %}
+                No employees matching "<strong>{{ search }}</strong>" were found.
+              {% else %}
+                <i class="fa-solid fa-magnifying-glass me-1"></i> Enter at least 3 characters in the search bar above to view employee records.
+              {% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -250,6 +260,7 @@
   </div>
 </div>
 
+<!-- Add Employee Modal -->
 <div class="modal fade" id="addEmployeeModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
@@ -346,6 +357,7 @@
   </div>
 </div>
 
+<!-- Import Modal -->
 <div class="modal fade" id="importEmployeeModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -372,73 +384,27 @@
   </div>
 </div>
 
-<div class="modal fade"
-     id="deleteAllEmployeeModal"
-     tabindex="-1">
-
-    <div class="modal-dialog modal-dialog-centered">
-
-        <div class="modal-content">
-
-            <form method="POST"
-                  action="{% url 'employee_delete_all' %}">
-
-                {% csrf_token %}
-
-                <div class="modal-header">
-
-                    <h5 class="modal-title text-danger">
-                        Delete All Employees
-                    </h5>
-
-                    <button
-                        type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal">
-                    </button>
-
-                </div>
-
-                <div class="modal-body">
-
-                    This will permanently delete every employee.
-
-                    <br><br>
-
-                    <strong class="text-danger">
-                        This action cannot be undone.
-                    </strong>
-
-                </div>
-
-                <div class="modal-footer">
-
-                    <button
-                        type="button"
-                        class="btn btn-secondary btn-sm"
-                        data-bs-dismiss="modal">
-
-                        Cancel
-
-                    </button>
-
-                    <button
-                        type="submit"
-                        class="btn btn-danger btn-sm">
-
-                        Delete All
-
-                    </button>
-
-                </div>
-
-            </form>
-
+<!-- Delete All Modal -->
+<div class="modal fade" id="deleteAllEmployeeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="POST" action="{% url 'employee_delete_all' %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title text-danger">Delete All Employees</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-
+        <div class="modal-body">
+          This will permanently delete every employee.<br><br>
+          <strong class="text-danger">This action cannot be undone.</strong>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger btn-sm">Delete All</button>
+        </div>
+      </form>
     </div>
-
-</div>
+  </div>
 </div>
 
 <style>
@@ -452,4 +418,16 @@
     color: #344767 !important;
   }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById('employeeSearchForm').addEventListener('submit', function(e) {
+    var searchInput = document.getElementById('employeeSearchInput').value.trim();
+    if (searchInput.length < 3) {
+      e.preventDefault();
+      alert('Please enter at least 3 characters to search.');
+    }
+  });
+</script>
 {% endblock %}

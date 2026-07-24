@@ -375,27 +375,32 @@ def department_delete_all(request):
 def employee_master_list(request):
     search = (request.GET.get("search") or "").strip()
 
-    employees = (
-        employees_visible_to_user(request.user)
-        .select_related(
-            "emp_cmp",
-            "emp_bra_code",
-            "emp_dep_code",
-        )
-        .order_by("emp_pno")
-    )
-
-    if search:
-        employees = employees.filter(
-            Q(emp_pno__icontains=search)
-            | Q(emp_name__icontains=search)
-            | Q(emp_designation__icontains=search)
-            | Q(emp_email__icontains=search)
-            | Q(emp_mobile__icontains=search)
-            | Q(emp_phone__icontains=search)
-            | Q(emp_cmp__cmp_desc__icontains=search)
-            | Q(emp_bra_code__bra_desc__icontains=search)
-            | Q(emp_dep_code__dep_desc__icontains=search)
+    # Default to an empty queryset to avoid loading 3,600+ records on initial render
+    if not search:
+        employees = sys_emp_master.objects.none()
+    elif len(search) < 3:
+        messages.warning(request, "Please enter at least 3 characters to search employees.")
+        employees = sys_emp_master.objects.none()
+    else:
+        employees = (
+            employees_visible_to_user(request.user)
+            .select_related(
+                "emp_cmp",
+                "emp_bra_code",
+                "emp_dep_code",
+            )
+            .filter(
+                Q(emp_pno__icontains=search)
+                | Q(emp_name__icontains=search)
+                | Q(emp_designation__icontains=search)
+                | Q(emp_email__icontains=search)
+                | Q(emp_mobile__icontains=search)
+                | Q(emp_phone__icontains=search)
+                | Q(emp_cmp__cmp_desc__icontains=search)
+                | Q(emp_bra_code__bra_desc__icontains=search)
+                | Q(emp_dep_code__dep_desc__icontains=search)
+            )
+            .order_by("emp_pno")[:50]  # Cap results at 50 records for instant DOM rendering
         )
 
     companies = sys_cmp_master.objects.all().order_by("cmp_code")
