@@ -198,7 +198,6 @@ def get_employees_by_branch(request):
             (Q(emp_bra_code__bra_code__icontains=clean_branch) if clean_branch else Q())
         )
     elif search_all:
-        # If user master restricts company, apply it, but allow searching across branches
         if access["has_user_master"] and not access["can_select_company"] and access["assigned_company_code"]:
             employees = employees.filter(emp_cmp__cmp_code=access["assigned_company_code"])
 
@@ -213,16 +212,30 @@ def get_employees_by_branch(request):
 
     data = []
     for emp in employees:
-        dep_str = f" - {emp.emp_dep_code.dep_code}" if emp.emp_dep_code else ""
-        cmp_str = f" - {emp.emp_cmp.cmp_code}" if emp.emp_cmp else ""
-        bra_str = f" - {emp.emp_bra_code.bra_code}" if emp.emp_bra_code else ""
+        des_desc = ""
+        
+        # Safe extraction of designation regardless of field name
+        for attr in ["emp_des_code", "emp_designation", "emp_desig", "designation"]:
+            if hasattr(emp, attr):
+                val = getattr(emp, attr)
+                if val:
+                    des_desc = getattr(val, "des_desc", getattr(val, "des_name", str(val)))
+                    break
+
+        # Format as "Employee Name (Designation)"
+        if des_desc:
+            formatted_text = f"{emp.emp_name} ({des_desc})"
+        else:
+            formatted_text = emp.emp_name
+
         data.append({
             "id": emp.pk,
-            "text": f"{emp.emp_pno} - {emp.emp_name}{dep_str}{cmp_str}{bra_str}"
+            "text": formatted_text,
+            "emp_name": emp.emp_name,
+            "designation": des_desc
         })
 
     return JsonResponse({"results": data, "employees": data})
-
 
 @login_required
 @permission_required("visits.can_view_backlogs", raise_exception=True)

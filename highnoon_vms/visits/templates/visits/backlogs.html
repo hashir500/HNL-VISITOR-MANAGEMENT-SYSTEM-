@@ -9,6 +9,8 @@
 {% block message %}{% endblock %}
 
 {% block extra_css %}
+<!-- Flatpickr 24h Picker CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
   .alert:not(.card .alert) { display: none !important; }
   .visit-header-layout { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; }
@@ -58,6 +60,7 @@
 
   .select2-container--open { z-index: 99999 !important; }
   .select2-dropdown { z-index: 99999 !important; border: 1px solid #d2d6da !important; box-shadow: 0 8px 26px -4px rgba(20, 20, 20, 0.15) !important; }
+  .flatpickr-calendar { z-index: 999999 !important; }
 </style>
 {% endblock %}
 
@@ -78,7 +81,7 @@
           data-bs-toggle="modal"
           data-bs-target="#addBacklogModal">
           <i class="fa-solid fa-clock-rotate-left me-1"></i>
-          Add Back Log
+          Add
         </button>
       </div>
 
@@ -183,8 +186,10 @@
             <td>{% if v.employee.emp_bra_code %}<span title="{{ v.employee.emp_bra_code.bra_desc }}">{{ v.employee.emp_bra_code.bra_code }}</span>{% else %}-{% endif %}</td>
             <td>{% if v.visitor_card %}<span class="card-number-badge">{{ v.visitor_card.CRD_No }}</span>{% else %}-{% endif %}</td>
             <td><span class="visit-purpose" title="{{ v.visit_purpose }}">{{ v.visit_purpose }}</span></td>
-            <td>{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
-            <td>{% if v.check_out_time %}{{ v.check_out_time|date:"d M Y, h:i A" }}{% else %}-{% endif %}</td>
+
+            <td>{{ v.check_in_time|date:"d M Y" }}, {{ v.check_in_time|time:"H:i" }}</td>
+            <td>{% if v.check_out_time %}{{ v.check_out_time|date:"d M Y" }}, {{ v.check_out_time|time:"H:i" }}{% else %}-{% endif %}</td>
+
             <td>
               {% if v.status == "Checked In" %}
                 <span class="badge bg-success">{{ v.status }}</span>
@@ -202,8 +207,8 @@
                 data-employee-id="{{ v.employee.pk }}"
                 data-card-id="{{ v.visitor_card.id }}"
                 data-purpose="{{ v.visit_purpose }}"
-                data-checkin="{{ v.check_in_time|date:'Y-m-d\TH:i' }}"
-                data-checkout="{% if v.check_out_time %}{{ v.check_out_time|date:'Y-m-d\TH:i' }}{% endif %}"
+                data-checkin="{{ v.check_in_time|date:'Y-m-d H:i' }}"
+                data-checkout="{% if v.check_out_time %}{{ v.check_out_time|date:'Y-m-d H:i' }}{% endif %}"
                 data-action-url="{% url 'backlog_edit' v.visit_id %}">
                 <i class="fa-solid fa-pen text-dark"></i>
               </button>
@@ -328,13 +333,13 @@
               </div>
 
               <div class="col-md-6 mb-3">
-                <label class="form-label">Custom Check-In Date & Time</label>
-                <input type="datetime-local" name="check_in_time" id="addCheckInInput" value="{{ last_checkin }}" class="form-control" required>
+                <label class="form-label">Custom Check-In Date & Time (24h)</label>
+                <input type="text" name="check_in_time" id="addCheckInInput" value="{{ last_checkin }}" class="form-control" placeholder="YYYY-MM-DD HH:MM" required>
               </div>
 
               <div class="col-md-6 mb-3">
-                <label class="form-label">Custom Check-Out Date & Time (Optional)</label>
-                <input type="datetime-local" name="check_out_time" id="addCheckOutInput" value="{{ last_checkout }}" class="form-control">
+                <label class="form-label">Custom Check-Out Date & Time (Optional 24h)</label>
+                <input type="text" name="check_out_time" id="addCheckOutInput" value="{{ last_checkout }}" class="form-control" placeholder="YYYY-MM-DD HH:MM">
                 <small class="text-muted text-xxs mt-1 d-block">Leave blank if the visitor has not checked out yet.</small>
               </div>
 
@@ -353,7 +358,7 @@
 
           <div id="backlogModalStep2Footer" class="w-100 d-flex justify-content-between {% if not saved_modal_branch %}d-none{% endif %}">
             <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">
+            <button type="submit" id="btnSaveBacklog" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">
               Save & Next
             </button>
           </div>
@@ -394,7 +399,9 @@
               <select name="employee" id="editEmployeeSelect" class="form-control searchable-select employee-select" required>
                 <option value="">Search employee by PNO or name</option>
                 {% for emp in employees %}
-                <option value="{{ emp.pk }}">{{ emp.emp_pno }} - {{ emp.emp_name }}</option>
+                <option value="{{ emp.pk }}">
+                  {{ emp.emp_name }}{% if emp.emp_dep_code %} ({{ emp.emp_dep_code.dep_desc }}){% endif %}
+                </option>
                 {% endfor %}
               </select>
             </div>
@@ -425,13 +432,13 @@
             </div>
 
             <div class="col-md-6 mb-3">
-              <label class="form-label">Custom Check-In Date & Time</label>
-              <input type="datetime-local" name="check_in_time" id="editCheckInInput" class="form-control" required>
+              <label class="form-label">Custom Check-In Date & Time (24h)</label>
+              <input type="text" name="check_in_time" id="editCheckInInput" class="form-control" placeholder="YYYY-MM-DD HH:MM" required>
             </div>
 
             <div class="col-md-6 mb-3">
-              <label class="form-label">Custom Check-Out Date & Time (Optional)</label>
-              <input type="datetime-local" name="check_out_time" id="editCheckOutInput" class="form-control">
+              <label class="form-label">Custom Check-Out Date & Time (Optional 24h)</label>
+              <input type="text" name="check_out_time" id="editCheckOutInput" class="form-control" placeholder="YYYY-MM-DD HH:MM">
               <small class="text-muted text-xxs mt-1 d-block">Leave blank if the visitor has not checked out yet.</small>
             </div>
 
@@ -472,10 +479,75 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
 <script>
   $(document).ready(function () {
 
     let lastTypedQuery = '';
+
+    // 1. Initialize Check-Out Pickers
+    const checkOutPicker = $("#addCheckOutInput").flatpickr({
+      enableTime: true,
+      time_24hr: true,
+      dateFormat: "Y-m-d H:i",
+      allowInput: true
+    });
+
+    const editCheckOutPicker = $("#editCheckOutInput").flatpickr({
+      enableTime: true,
+      time_24hr: true,
+      dateFormat: "Y-m-d H:i",
+      allowInput: true
+    });
+
+    // 2. Initialize Check-In Pickers
+    const checkInPicker = $("#addCheckInInput").flatpickr({
+      enableTime: true,
+      time_24hr: true,
+      dateFormat: "Y-m-d H:i",
+      allowInput: true,
+      onChange: function (selectedDates) {
+        if (!selectedDates || selectedDates.length === 0) return;
+
+        const checkInDate = selectedDates[0];
+        const existingCheckoutDate = checkOutPicker.selectedDates[0];
+
+        if (existingCheckoutDate) {
+          const newCheckoutDate = new Date(checkInDate);
+          newCheckoutDate.setHours(existingCheckoutDate.getHours(), existingCheckoutDate.getMinutes());
+          checkOutPicker.setDate(newCheckoutDate, true);
+        } else {
+          const defaultCheckoutDate = new Date(checkInDate);
+          defaultCheckoutDate.setHours(18, 0, 0, 0);
+          checkOutPicker.setDate(defaultCheckoutDate, true);
+        }
+      }
+    });
+
+    $("#editCheckInInput").flatpickr({
+      enableTime: true,
+      time_24hr: true,
+      dateFormat: "Y-m-d H:i",
+      allowInput: true,
+      onChange: function (selectedDates) {
+        if (!selectedDates || selectedDates.length === 0) return;
+
+        const checkInDate = selectedDates[0];
+        const existingCheckoutDate = editCheckOutPicker.selectedDates[0];
+
+        if (existingCheckoutDate) {
+          const newCheckoutDate = new Date(checkInDate);
+          newCheckoutDate.setHours(existingCheckoutDate.getHours(), existingCheckoutDate.getMinutes());
+          editCheckOutPicker.setDate(newCheckoutDate, true);
+        } else {
+          const defaultCheckoutDate = new Date(checkInDate);
+          defaultCheckoutDate.setHours(18, 0, 0, 0);
+          editCheckOutPicker.setDate(defaultCheckoutDate, true);
+        }
+      }
+    });
 
     $(document).on('input keyup', '.select2-search__field', function () {
       const val = $(this).val();
@@ -496,6 +568,18 @@
     initHeaderFilters();
     $(window).on('resize', initHeaderFilters);
 
+    /* Formats Employee Options as "Name (Department)" in Select2 */
+    function formatEmployeeResult(item) {
+      if (!item.id) return item.text;
+      let textStr = item.text || item.emp_name || '';
+      let depStr = item.department || item.dep_name || item.dep_desc || '';
+
+      if (depStr && !textStr.includes('(' + depStr + ')')) {
+        return textStr + ' (' + depStr + ')';
+      }
+      return textStr;
+    }
+
     function initEmployeeSelect2($selectElement, modalId) {
       if ($selectElement.hasClass('select2-hidden-accessible')) {
         $selectElement.select2('destroy');
@@ -506,6 +590,8 @@
         width: '100%',
         placeholder: 'Search employee by PNO or name',
         allowClear: true,
+        templateResult: formatEmployeeResult,
+        templateSelection: formatEmployeeResult,
         ajax: {
           url: '/visits/api/employees/',
           dataType: 'json',
@@ -518,7 +604,22 @@
             };
           },
           processResults: function (data) {
-            return { results: data.results || data.employees };
+            const rawResults = data.results || data.employees || [];
+            const formatted = $.map(rawResults, function (emp) {
+              let name = emp.text || emp.emp_name || '';
+              let dep = emp.department || emp.dep_name || emp.dep_desc || '';
+
+              if (dep && !name.includes('(' + dep + ')')) {
+                name = name + ' (' + dep + ')';
+              }
+
+              return {
+                id: emp.id || emp.pk,
+                text: name,
+                department: dep
+              };
+            });
+            return { results: formatted };
           },
           cache: true
         }
@@ -531,6 +632,11 @@
       $('#backlogModalStep2').removeClass('d-none');
       $('#backlogModalStep2Footer').removeClass('d-none');
       $('#backlogModalTitle').text('Add Back Log - Details');
+
+      $('#addBacklogModal').find('.searchable-select:not(.employee-select)').each(function () {
+        if ($(this).hasClass('select2-hidden-accessible')) { $(this).select2('destroy'); }
+        $(this).select2({ dropdownParent: $('#addBacklogModal'), width: '100%' });
+      });
     }
 
     function showStep1() {
@@ -554,19 +660,16 @@
 
     $('#addBacklogModal, #editBacklogModal').on('shown.bs.modal', function () {
       const modal = $(this);
-      modal.find('.searchable-select:not(.employee-select)').each(function () {
-        if ($(this).hasClass('select2-hidden-accessible')) { $(this).select2('destroy'); }
-        $(this).select2({ dropdownParent: modal, width: '100%' });
-      });
-
-      const modalId = '#' + modal.attr('id');
-      const $empSelect = modal.find('.employee-select');
-      if ($empSelect.length) {
-        initEmployeeSelect2($empSelect, modalId);
+      if (!$('#backlogModalStep2').hasClass('d-none')) {
+        modal.find('.searchable-select:not(.employee-select)').each(function () {
+          if ($(this).hasClass('select2-hidden-accessible')) { $(this).select2('destroy'); }
+          $(this).select2({ dropdownParent: modal, width: '100%' });
+        });
+        initEmployeeSelect2(modal.find('.employee-select'), '#' + modal.attr('id'));
       }
     });
 
-   $('#btnBacklogGoToStep2').on('click', function (e) {
+    $('#btnBacklogGoToStep2').on('click', function (e) {
       e.preventDefault();
 
       const $branchElem = $('#backlogStep1BranchSelect');
@@ -609,6 +712,17 @@
       initEmployeeSelect2($('#addEmployeeSelect'), '#addBacklogModal');
     });
 
+    // Form submit safeguard
+    $('#addBacklogForm').on('submit', function (e) {
+      const selectedBranch = $('#hiddenSelectedBranch').val() || $('#backlogStep1BranchSelect').val();
+      if (!selectedBranch) {
+        e.preventDefault();
+        alert('Please select a branch first.');
+        showStep1();
+        return false;
+      }
+    });
+
     $('.btn-find-global-employee').on('click', function () {
       const btn = $(this);
       const container = btn.closest('.col-md-6');
@@ -636,7 +750,12 @@
           notice.text('No matching employee found across all branches for "' + query + '".').removeClass('text-muted text-success').addClass('text-danger fw-bold');
         } else {
           $.each(results, function (i, emp) {
-            $empSelect.append(new Option(emp.text, emp.id, false, false));
+            let label = emp.text || emp.emp_name;
+            let dep = emp.department || emp.dep_name || emp.dep_desc || '';
+            if (dep && !label.includes('(' + dep + ')')) {
+              label = label + ' (' + dep + ')';
+            }
+            $empSelect.append(new Option(label, emp.id || emp.pk, false, false));
           });
           notice.text('Found ' + results.length + ' match(es) for "' + query + '" across other branches. Select one below.').removeClass('text-muted text-danger').addClass('text-success fw-bold');
           
@@ -657,19 +776,6 @@
           $('#addEmployeeSelect').val(data.employee_id).trigger('change');
         }
       });
-    });
-
-    $('#addCheckInInput').on('change input', function () {
-      const checkinVal = $(this).val();
-      if (!checkinVal) return;
-      const checkinDate = checkinVal.split('T')[0];
-      const checkoutVal = $('#addCheckOutInput').val();
-      if (checkoutVal) {
-        const checkoutTime = checkoutVal.split('T')[1] || '';
-        $('#addCheckOutInput').val(checkinDate + (checkoutTime ? 'T' + checkoutTime : ''));
-      } else {
-        $('#addCheckOutInput').val(checkinDate + 'T18:00');
-      }
     });
 
     $('#visitPurposeSelect').on('change', function () {
@@ -729,9 +835,9 @@
         });
       }
 
-      if (checkinVal) $('#editCheckInInput').val(checkinVal);
-      if (checkoutVal) $('#editCheckOutInput').val(checkoutVal);
-      else $('#editCheckOutInput').val('');
+      if (checkinVal) checkInPicker.setDate(checkinVal, true);
+      if (checkoutVal) checkOutPicker.setDate(checkoutVal, true);
+      else checkOutPicker.clear();
 
       const editModal = new bootstrap.Modal(document.getElementById('editBacklogModal'));
       editModal.show();
