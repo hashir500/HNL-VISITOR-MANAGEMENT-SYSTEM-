@@ -13,13 +13,27 @@ class visitor_card(models.Model):
         return f"{self.CRD_No} - {self.CRD_Desc}"
     
 # visitor model
+
 class visitor(models.Model):
     visitor_id = models.AutoField(primary_key=True)
     visitor_name = models.CharField(max_length=100)
     visitor_phone = models.CharField(max_length=15)
     visitor_cnic = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    visitor_address = models.CharField(max_length=255)
+    visitor_address = models.CharField(max_length=255, null=True, blank=True)
+    visitor_company = models.CharField(max_length=150, null=True, blank=True)
+    
+    company_type = models.ForeignKey("company_type", on_delete=models.SET_NULL, null=True, blank=True)
+    
     visitor_created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.visitor_name
+
+#company model
+class company_type(models.Model):
+    id = models.AutoField(primary_key=True)
+    company_name = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.company_name

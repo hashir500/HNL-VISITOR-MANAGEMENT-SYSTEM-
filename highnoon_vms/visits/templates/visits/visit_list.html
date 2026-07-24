@@ -109,7 +109,7 @@
           <option value="ALL">All Branches</option>
           {% for branch in branches %}
           <option value="{{ branch.bra_code }}" {% if selected_branch == branch.bra_code %}selected{% endif %}>
-            {{ branch.bra_code }} - {{ branch.bra_desc }}
+            {{ branch.bra_code }} : {{ branch.bra_desc }}
           </option>
           {% endfor %}
         </select>
@@ -217,23 +217,27 @@
       <form method="POST" action="{% url 'visit_create' %}" id="addVisitForm">
         {% csrf_token %}
 
+        <input type="hidden" name="selected_branch" id="hiddenSelectedBranch" value="{{ saved_modal_branch }}">
+
         <div class="modal-header">
-          <h5 class="modal-title" id="visitModalTitle">Add Visit - Select Branch</h5>
+          <h5 class="modal-title" id="visitModalTitle">
+            {% if saved_modal_branch %}Add Visit - Details{% else %}Add Visit - Select Branch{% endif %}
+          </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
 
         <div class="modal-body">
 
           <!-- STEP 1: BRANCH SELECTION -->
-          <div id="visitModalStep1">
+          <div id="visitModalStep1" class="{% if saved_modal_branch %}d-none{% endif %}">
             <div class="p-3 bg-light border-radius-lg mb-3">
               <label class="form-label fw-bold">Select Visit Branch</label>
               {% if can_select_branch %}
                 <select id="visitStep1BranchSelect" class="form-control searchable-select">
                   <option value="ALL">All Branches</option>
                   {% for branch in branches %}
-                    <option value="{{ branch.bra_code }}" {% if selected_branch == branch.bra_code %}selected{% endif %}>
-                      {{ branch.bra_code }} - {{ branch.bra_desc }}
+                    <option value="{{ branch.bra_code }}" {% if saved_modal_branch == branch.bra_code or selected_branch == branch.bra_code %}selected{% endif %}>
+                      {{ branch.bra_code }} : {{ branch.bra_desc }}
                     </option>
                   {% endfor %}
                 </select>
@@ -245,7 +249,7 @@
           </div>
 
           <!-- STEP 2: MAIN FORM -->
-          <div id="visitModalStep2" class="d-none">
+          <div id="visitModalStep2" class="{% if not saved_modal_branch %}d-none{% endif %}">
             <div class="row">
 
               <div class="col-md-6 mb-3">
@@ -272,9 +276,6 @@
                 </div>
                 <select name="employee" id="addVisitEmployeeSelect" class="form-control searchable-select employee-select" required>
                   <option value="">Search employee by PNO or name</option>
-                  {% for emp in employees %}
-                  <option value="{{ emp.pk }}">{{ emp.emp_pno }} - {{ emp.emp_name }}</option>
-                  {% endfor %}
                 </select>
                 <small class="employee-branch-notice text-muted text-xxs mt-1 d-block">Showing employees for selected branch.</small>
               </div>
@@ -312,14 +313,14 @@
         </div>
 
         <div class="modal-footer">
-          <div id="visitModalStep1Footer" class="w-100 d-flex justify-content-between">
+          <div id="visitModalStep1Footer" class="w-100 d-flex justify-content-between {% if saved_modal_branch %}d-none{% endif %}">
             <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
             <button type="button" id="btnVisitGoToStep2" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">
               Next <i class="fa-solid fa-arrow-right ms-1"></i>
             </button>
           </div>
 
-          <div id="visitModalStep2Footer" class="w-100 d-flex justify-content-between d-none">
+          <div id="visitModalStep2Footer" class="w-100 d-flex justify-content-between {% if not saved_modal_branch %}d-none{% endif %}">
             <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">
               Save Visit
@@ -339,7 +340,6 @@
   $(document).ready(function () {
 
     let lastTypedQuery = '';
-    let currentSessionBranch = "{{ saved_modal_branch }}";
 
     $(document).on('input keyup', '.select2-search__field', function () {
       const val = $(this).val();
@@ -360,57 +360,128 @@
     initHeaderFilters();
     $(window).on('resize', initHeaderFilters);
 
-    function loadEmployeesForBranch(selectedBranch, saveSession, callback) {
-      $.getJSON('/visits/api/employees/', { branch: selectedBranch, save_session: saveSession ? '1' : '0' }, function (data) {
-        const $empSelect = $('#addVisitEmployeeSelect');
-        $empSelect.empty().append('<option value="">Search employee by PNO or name</option>');
-        $.each(data.employees, function (i, emp) {
-          $empSelect.append(new Option(emp.text, emp.id, false, false));
-        });
-        $empSelect.trigger('change');
-        $('#addVisitModal .employee-branch-notice').text('Showing employees for Branch: ' + selectedBranch).removeClass('text-danger text-success').addClass('text-muted');
-        if (callback) callback();
+    function initEmployeeSelect2($selectElement, modalId) {
+      if ($selectElement.hasClass('select2-hidden-accessible')) {
+        $selectElement.select2('destroy');
+      }
+
+      $selectElement.select2({
+        dropdownParent: $(modalId),
+        width: '100%',
+        placeholder: 'Search employee by PNO or name',
+        allowClear: true,
+        ajax: {
+          url: '/visits/api/employees/',
+          dataType: 'json',
+          delay: 250,
+          data: function (params) {
+            return {
+              q: params.term || '',
+              branch: $('#hiddenSelectedBranch').val() || $('#visitStep1BranchSelect').val(),
+              save_session: '1'
+            };
+          },
+          processResults: function (data) {
+            return { results: data.results || data.employees };
+          },
+          cache: true
+        }
       });
+    }
+
+    function showStep2() {
+      $('#visitModalStep1').addClass('d-none');
+      $('#visitModalStep1Footer').addClass('d-none');
+      $('#visitModalStep2').removeClass('d-none');
+      $('#visitModalStep2Footer').removeClass('d-none');
+      $('#visitModalTitle').text('Add Visit - Details');
+
+      // Re-initialize visible Select2 dropdowns so they calculate 100% width correctly
+      $('#addVisitModal').find('.searchable-select:not(.employee-select)').each(function () {
+        if ($(this).hasClass('select2-hidden-accessible')) {
+          $(this).select2('destroy');
+        }
+        $(this).select2({ dropdownParent: $('#addVisitModal'), width: '100%' });
+      });
+    }
+
+    function showStep1() {
+      $('#visitModalStep2').addClass('d-none');
+      $('#visitModalStep2Footer').addClass('d-none');
+      $('#visitModalStep1').removeClass('d-none');
+      $('#visitModalStep1Footer').removeClass('d-none');
+      $('#visitModalTitle').text('Add Visit - Select Branch');
     }
 
     $('#addVisitModal').on('show.bs.modal', function () {
       lastTypedQuery = '';
+      const activeBranch = $('#hiddenSelectedBranch').val() || $('#visitStep1BranchSelect').val();
 
-      if (currentSessionBranch) {
-        loadEmployeesForBranch(currentSessionBranch, false, function () {
-          $('#visitModalStep1').addClass('d-none');
-          $('#visitModalStep1Footer').addClass('d-none');
-          $('#visitModalStep2').removeClass('d-none');
-          $('#visitModalStep2Footer').removeClass('d-none');
-          $('#visitModalTitle').text('Add Visit - Details');
-        });
+      if (activeBranch && $('#hiddenSelectedBranch').val()) {
+        showStep2();
       } else {
-        $('#visitModalStep1').removeClass('d-none');
-        $('#visitModalStep1Footer').removeClass('d-none');
-        $('#visitModalStep2').addClass('d-none');
-        $('#visitModalStep2Footer').addClass('d-none');
-        $('#visitModalTitle').text('Add Visit - Select Branch');
+        showStep1();
       }
     });
 
     $('#addVisitModal').on('shown.bs.modal', function () {
-      $('#addVisitModal .searchable-select').each(function () {
-        if ($(this).hasClass('select2-hidden-accessible')) { $(this).select2('destroy'); }
-        $(this).select2({ dropdownParent: $('#addVisitModal'), width: '100%' });
-      });
+      const modal = $(this);
+      if (!$('#visitModalStep2').hasClass('d-none')) {
+        modal.find('.searchable-select:not(.employee-select)').each(function () {
+          if ($(this).hasClass('select2-hidden-accessible')) { $(this).select2('destroy'); }
+          $(this).select2({ dropdownParent: modal, width: '100%' });
+        });
+        initEmployeeSelect2($('#addVisitEmployeeSelect'), '#addVisitModal');
+      } else {
+        modal.find('#visitStep1BranchSelect.searchable-select').each(function () {
+          if ($(this).hasClass('select2-hidden-accessible')) { $(this).select2('destroy'); }
+          $(this).select2({ dropdownParent: modal, width: '100%' });
+        });
+      }
     });
 
-    $('#btnVisitGoToStep2').on('click', function () {
-      const selectedBranch = $('#visitStep1BranchSelect').val();
-      currentSessionBranch = selectedBranch;
+    /* BULLETPROOF NEXT BUTTON HANDLER */
+    $('#btnVisitGoToStep2').on('click', function (e) {
+      e.preventDefault();
 
-      loadEmployeesForBranch(selectedBranch, true, function () {
-        $('#visitModalStep1').addClass('d-none');
-        $('#visitModalStep1Footer').addClass('d-none');
-        $('#visitModalStep2').removeClass('d-none');
-        $('#visitModalStep2Footer').removeClass('d-none');
-        $('#visitModalTitle').text('Add Visit - Details');
-      });
+      const $branchElem = $('#visitStep1BranchSelect');
+      const selectedBranch = $branchElem.val();
+
+      if (!selectedBranch) {
+        alert('Please select a branch first.');
+        return;
+      }
+
+      let rawText = '';
+      if ($branchElem.is('select')) {
+        rawText = $branchElem.find('option:selected').text().trim();
+      } else {
+        rawText = $branchElem.val() || '';
+      }
+
+      $('#hiddenSelectedBranch').val(selectedBranch);
+
+      let formattedBranch = '';
+      if (selectedBranch && selectedBranch !== 'ALL') {
+        const parts = rawText.split(/[-:]/);
+        if (parts.length >= 2) {
+          const code = parts[0].trim();
+          const desc = parts.slice(1).join(' : ').trim();
+          formattedBranch = code + ' : ' + desc;
+        } else {
+          formattedBranch = rawText;
+        }
+      } else if (selectedBranch === 'ALL') {
+        formattedBranch = 'All Branches';
+      }
+
+      if (formattedBranch) {
+        $('#topUserBranch').text(formattedBranch);
+        localStorage.setItem('vms_active_branch_label', formattedBranch);
+      }
+
+      showStep2();
+      initEmployeeSelect2($('#addVisitEmployeeSelect'), '#addVisitModal');
     });
 
     $('.btn-find-global-employee').on('click', function () {
@@ -435,15 +506,16 @@
       btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i>');
 
       $.getJSON('/visits/api/employees/', { search_all: '1', q: query }, function (data) {
+        const results = data.results || data.employees;
         $empSelect.empty().append('<option value="">Select matching employee</option>');
 
-        if (!data.employees || data.employees.length === 0) {
+        if (!results || results.length === 0) {
           notice.text('No matching employee found across all branches for "' + query + '".').removeClass('text-muted text-success').addClass('text-danger fw-bold');
         } else {
-          $.each(data.employees, function (i, emp) {
+          $.each(results, function (i, emp) {
             $empSelect.append(new Option(emp.text, emp.id, false, false));
           });
-          notice.text('Found ' + data.employees.length + ' match(es) for "' + query + '" across other branches.').removeClass('text-muted text-danger').addClass('text-success fw-bold');
+          notice.text('Found ' + results.length + ' match(es) for "' + query + '" across other branches. Select one below.').removeClass('text-muted text-danger').addClass('text-success fw-bold');
           
           if ($empSelect.hasClass('select2-hidden-accessible')) { $empSelect.select2('destroy'); }
           $empSelect.select2({ dropdownParent: $('#addVisitModal'), width: '100%' });

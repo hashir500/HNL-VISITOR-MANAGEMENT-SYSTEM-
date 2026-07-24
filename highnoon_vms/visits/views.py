@@ -177,37 +177,39 @@ def get_employees_by_branch(request):
 
     if clear_session:
         request.session.pop("vms_modal_selected_branch", None)
-        return JsonResponse({"status": "cleared"})
+        return JsonResponse({"employees": [], "status": "cleared"})
 
-    if save_session and branch_code and branch_code != "ALL":
+    if save_session and branch_code and branch_code.upper() != "ALL":
         request.session["vms_modal_selected_branch"] = branch_code
 
     access = get_visit_access_settings(request)
-    employees = sys_emp_master.objects.select_related("emp_cmp", "emp_bra_code", "emp_dep_code").filter(emp_active=True)
+    employees = sys_emp_master.objects.select_related(
+        "emp_cmp", "emp_bra_code", "emp_dep_code"
+    ).filter(emp_active=True)
 
+    # Clean branch code (e.g. '02' -> '2' for fallback matching)
+    clean_branch = branch_code.lstrip('0') if branch_code else ''
+
+    # Filter by branch unless searching globally
     if not search_all and branch_code and branch_code.upper() != "ALL":
-        # Extracts digits (e.g. '02' or 'BR02' -> '02')
-        clean_digits = ''.join(filter(str.isdigit, branch_code))
-        
-        # Matches 'BR02', '02', 'BR2', or exact code
         employees = employees.filter(
             Q(emp_bra_code__bra_code__iexact=branch_code) |
             Q(emp_bra_code__bra_code__icontains=branch_code) |
-            Q(emp_bra_code__bra_code__icontains=clean_digits)
+            (Q(emp_bra_code__bra_code__icontains=clean_branch) if clean_branch else Q())
         )
-    else:
-        selected_company = access["assigned_company_code"] if not access["can_select_company"] else None
-        employees = apply_employee_access_filter(employees, access, selected_company=selected_company)
+    elif search_all:
+        # If user master restricts company, apply it, but allow searching across branches
+        if access["has_user_master"] and not access["can_select_company"] and access["assigned_company_code"]:
+            employees = employees.filter(emp_cmp__cmp_code=access["assigned_company_code"])
 
+    # Live search query by Name or PNO
     if search_term:
         employees = employees.filter(
-            Q(emp_name__icontains=search_term)
-            | Q(emp_pno__icontains=search_term)
+            Q(emp_name__icontains=search_term) |
+            Q(emp_pno__icontains=search_term)
         )
 
-    # Return matching records (up to 400 for Branch 02 which has 303 employees)
-    limit = 100 if search_term else 400
-    employees = employees.order_by("emp_name")[:limit]
+    employees = employees.order_by("emp_name")[:100]
 
     data = []
     for emp in employees:
@@ -219,7 +221,7 @@ def get_employees_by_branch(request):
             "text": f"{emp.emp_pno} - {emp.emp_name}{dep_str}{cmp_str}{bra_str}"
         })
 
-    return JsonResponse({"employees": data})
+    return JsonResponse({"results": data, "employees": data})
 
 
 @login_required

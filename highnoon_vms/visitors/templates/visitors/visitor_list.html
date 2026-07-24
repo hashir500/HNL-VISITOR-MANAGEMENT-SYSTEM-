@@ -35,16 +35,17 @@
               type="text"
               name="search"
               class="form-control visitor-search-input"
-              placeholder="Search name, phone, CNIC or address"
+              placeholder="Search name, phone, CNIC or company"
               value="{{ search }}">
           </div>
 
           <button
             type="submit"
             class="btn btn-primary btn-sm visitor-search-button mb-0"
+            style="background: #f26322; border-color: #f26322;"
             title="Search">
 
-            <i class="fa-solid fa-search"></i>
+            <i class="fa-solid fa-magnifying-glass"></i>
           </button>
 
           {% if search %}
@@ -88,8 +89,7 @@
           <tr>
             <th>ID</th>
             <th>Visitor</th>
-            <th>Phone</th>
-            <th>CNIC</th>
+            <th>Company</th>
             <th>Address</th>
             <th class="text-end">Actions</th>
           </tr>
@@ -105,19 +105,18 @@
             </td>
 
             <td>
-              <h6 class="text-sm mb-0">
-               {{ v.visitor_name }}
-              </h6>
+              <div class="visitor-info-cell">
+                <strong class="text-sm text-dark d-block">{{ v.visitor_name }}</strong>
+                <span class="text-xs text-muted d-block">{{ v.visitor_phone }}</span>
+                <span class="text-xs text-secondary d-block">{{ v.visitor_cnic|default:"-" }}</span>
+              </div>
             </td>
 
             <td>
-              {{ v.visitor_phone }}
-            </td>
-
-            <td>
-              <span class="cnic-badge">
-                {{ v.visitor_cnic|default:"-" }}
-              </span>
+              <div class="company-info-cell">
+                <strong class="text-sm text-dark d-block">{{ v.visitor_company|default:"-" }}</strong>
+                <span class="text-xs text-muted d-block">{{ v.company_type.company_name|default:"-" }}</span>
+              </div>
             </td>
 
             <td>
@@ -139,7 +138,7 @@
                 data-bs-target="#editVisitorModal{{ v.visitor_id }}"
                 title="Edit Visitor">
 
-                <i class="fa-solid fa-pen"></i>
+                <i class="fa-solid fa-pen text-dark"></i>
               </button>
               {% endif %}
 
@@ -151,7 +150,7 @@
                 data-bs-target="#deleteVisitorModal{{ v.visitor_id }}"
                 title="Delete Visitor">
 
-                <i class="fa-solid fa-trash"></i>
+                <i class="fa-solid fa-trash text-dark"></i>
               </button>
               {% endif %}
 
@@ -162,7 +161,7 @@
           {% empty %}
           <tr>
             <td
-              colspan="6"
+              colspan="5"
               class="text-center text-muted py-4">
 
               No visitors found.
@@ -233,79 +232,106 @@
 
           <div class="row">
 
-            <!-- Name -->
-            <div class="col-md-6 mb-3">
+            <!-- LEFT COLUMN -->
+            <div class="col-md-6">
 
-              <label class="form-label">
-                Visitor Name
-                <span class="required-star">*</span>
-              </label>
+              <!-- Name -->
+              <div class="mb-3">
+                <label class="form-label">
+                  Visitor Name
+                  <span class="required-star">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="visitor_name"
+                  class="form-control"
+                  value="{{ v.visitor_name }}"
+                  maxlength="100"
+                  required>
+              </div>
 
-              <input
-                type="text"
-                name="visitor_name"
-                class="form-control"
-                value="{{ v.visitor_name }}"
-                maxlength="100"
-                required>
+              <!-- Phone -->
+              <div class="mb-3">
+                <label class="form-label">
+                  Phone
+                  <span class="required-star">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="visitor_phone"
+                  class="form-control"
+                  value="{{ v.visitor_phone }}"
+                  maxlength="15"
+                  placeholder="Example: 03001234567"
+                  required>
+              </div>
 
-            </div>
-
-            <!-- Phone -->
-            <div class="col-md-6 mb-3">
-
-              <label class="form-label">
-                Phone
-                <span class="required-star">*</span>
-              </label>
-
-              <input
-                type="text"
-                name="visitor_phone"
-                class="form-control"
-                value="{{ v.visitor_phone }}"
-                maxlength="15"
-                placeholder="Example: 03001234567"
-                required>
-
-            </div>
-
-            <!-- CNIC (Optional) -->
-            <div class="col-md-6 mb-3">
-
-              <label class="form-label">
-                CNIC
-              </label>
-
-              <input
-                type="text"
-                name="visitor_cnic"
-                class="form-control cnic-input"
-                value="{{ v.visitor_cnic }}"
-                maxlength="15"
-                inputmode="numeric"
-                placeholder="Example: 35202-1234567-1">
-
-              <small class="text-muted">
-                Enter with or without hyphens.
-              </small>
+              <!-- CNIC (Optional) -->
+              <div class="mb-3">
+                <label class="form-label">
+                  CNIC
+                </label>
+                <input
+                  type="text"
+                  name="visitor_cnic"
+                  class="form-control cnic-input"
+                  value="{{ v.visitor_cnic|default:'' }}"
+                  maxlength="15"
+                  inputmode="numeric"
+                  placeholder="Example: 35202-1234567-1">
+                <small class="text-muted d-block mt-1">
+                  Enter with or without hyphens.
+                </small>
+              </div>
 
             </div>
 
+            <!-- RIGHT COLUMN -->
+            <div class="col-md-6">
+
+              <!-- Company (Optional) -->
+              <div class="mb-3">
+                <label class="form-label">
+                  Company
+                </label>
+                <input
+                  type="text"
+                  name="visitor_company"
+                  class="form-control"
+                  value="{{ v.visitor_company|default:'' }}"
+                  maxlength="150"
+                  placeholder="Enter company name">
+              </div>
+
+              <!-- Company Type (Optional Dropdown) -->
+              <div class="mb-3">
+                <label class="form-label">
+                  Company Type
+                </label>
+                <select name="company_type" class="form-control">
+                  <option value="">Select Company Type</option>
+                  {% for ct in company_types %}
+                  <option value="{{ ct.id }}" {% if v.company_type_id == ct.id %}selected{% endif %}>
+                    {{ ct.company_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+            </div>
+
+            <!-- FULL WIDTH BOTTOM ROW -->
             <!-- Address (Optional) -->
             <div class="col-md-12 mb-3">
-
               <label class="form-label">
                 Address
               </label>
-
               <textarea
                 name="visitor_address"
                 class="form-control"
                 rows="3"
                 maxlength="255"
-                placeholder="Enter complete visitor address">{{ v.visitor_address }}</textarea>
-
+                placeholder="Enter complete visitor address">{{ v.visitor_address|default:'' }}</textarea>
             </div>
 
           </div>
@@ -324,7 +350,8 @@
 
           <button
             type="submit"
-            class="btn btn-primary btn-sm">
+            class="btn btn-primary btn-sm"
+            style="background: #f26322; border-color: #f26322;">
 
             Update Visitor
           </button>
@@ -464,77 +491,107 @@
 
           <div class="row">
 
-            <!-- Name -->
-            <div class="col-md-6 mb-3">
+            <!-- LEFT COLUMN -->
+            <div class="col-md-6">
 
-              <label class="form-label">
-                Visitor Name
-                <span class="required-star">*</span>
-              </label>
+              <!-- Name -->
+              <div class="mb-3">
+                <label class="form-label">
+                  Visitor Name
+                  <span class="required-star">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="visitor_name"
+                  class="form-control"
+                  maxlength="100"
+                  placeholder="Enter visitor name"
+                  value="{{ form_name }}"
+                  required>
+              </div>
 
-              <input
-                type="text"
-                name="visitor_name"
-                class="form-control"
-                maxlength="100"
-                placeholder="Enter visitor name"
-                required>
+              <!-- Phone -->
+              <div class="mb-3">
+                <label class="form-label">
+                  Phone
+                  <span class="required-star">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="visitor_phone"
+                  class="form-control"
+                  maxlength="15"
+                  placeholder="Example: 03001234567"
+                  value="{{ form_phone }}"
+                  required>
+              </div>
 
-            </div>
-
-            <!-- Phone -->
-            <div class="col-md-6 mb-3">
-
-              <label class="form-label">
-                Phone
-                <span class="required-star">*</span>
-              </label>
-
-              <input
-                type="text"
-                name="visitor_phone"
-                class="form-control"
-                maxlength="15"
-                placeholder="Example: 03001234567"
-                required>
-
-            </div>
-
-            <!-- CNIC (Optional) -->
-            <div class="col-md-6 mb-3">
-
-              <label class="form-label">
-                CNIC
-              </label>
-
-              <input
-                type="text"
-                name="visitor_cnic"
-                class="form-control cnic-input"
-                maxlength="15"
-                inputmode="numeric"
-                placeholder="Example: 35202-1234567-1">
-
-              <small class="text-muted">
-                Enter with or without hyphens.
-              </small>
+              <!-- CNIC (Optional) -->
+              <div class="mb-3">
+                <label class="form-label">
+                  CNIC
+                </label>
+                <input
+                  type="text"
+                  name="visitor_cnic"
+                  class="form-control cnic-input"
+                  maxlength="15"
+                  inputmode="numeric"
+                  placeholder="Example: 35202-1234567-1"
+                  value="{{ form_cnic }}">
+                <small class="text-muted d-block mt-1">
+                  Enter with or without hyphens.
+                </small>
+              </div>
 
             </div>
 
+            <!-- RIGHT COLUMN -->
+            <div class="col-md-6">
+
+              <!-- Company (Optional) -->
+              <div class="mb-3">
+                <label class="form-label">
+                  Company
+                </label>
+                <input
+                  type="text"
+                  name="visitor_company"
+                  class="form-control"
+                  maxlength="150"
+                  placeholder="Enter company name"
+                  value="{{ form_company }}">
+              </div>
+
+              <!-- Company Type (Optional Dropdown) -->
+              <div class="mb-3">
+                <label class="form-label">
+                  Company Type
+                </label>
+                <select name="company_type" class="form-control">
+                  <option value="">Select Company Type</option>
+                  {% for ct in company_types %}
+                  <option value="{{ ct.id }}" {% if form_company_type == ct.id|stringformat:"s" %}selected{% endif %}>
+                    {{ ct.company_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+            </div>
+
+            <!-- FULL WIDTH BOTTOM ROW -->
             <!-- Address (Optional) -->
             <div class="col-md-12 mb-3">
-
               <label class="form-label">
                 Address
               </label>
-
               <textarea
                 name="visitor_address"
                 class="form-control"
                 rows="3"
                 maxlength="255"
-                placeholder="Enter complete visitor address"></textarea>
-
+                placeholder="Enter complete visitor address">{{ form_address }}</textarea>
             </div>
 
           </div>
@@ -553,7 +610,8 @@
 
           <button
             type="submit"
-            class="btn btn-primary btn-sm">
+            class="btn btn-primary btn-sm"
+            style="background: #f26322; border-color: #f26322;">
 
             Save Visitor
           </button>
@@ -620,25 +678,39 @@
     padding: 0 !important;
   }
 
+  .icon-add {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    color: #344767 !important;
+    font-size: 18px !important;
+    box-shadow: none !important;
+    cursor: pointer;
+  }
+  .icon-add:hover {
+    color: #f26322 !important;
+  }
+
   .visitor-table td {
     vertical-align: middle;
   }
 
-  .cnic-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 5px 9px;
-    border-radius: 8px;
-    background: rgba(52, 71, 103, 0.08);
-    color: #344767;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+  .visitor-info-cell, .company-info-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
   .visitor-address {
     display: inline-block;
-    max-width: 300px;
+    max-width: 250px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -724,7 +796,6 @@
 
       /*
        * Allow only digits, spaces and hyphens in CNIC fields.
-       * Backend validation still remains authoritative.
        */
       document.querySelectorAll(
         ".cnic-input"

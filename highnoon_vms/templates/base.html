@@ -26,38 +26,12 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <link id="pagestyle" href="{% static 'assets/css/soft-ui-dashboard.css' %}?v=1.1.0" rel="stylesheet" />
-
-  <style>
-    :root {
-     --hn-orange: {{ system_settings.primary_color|default:'#f26322'|cut:' ' }};
-     --hn-logo-color: {{ system_settings.logo_color|default:'#ffffff'|cut:' ' }};
-     --hn-orange-hover: #d95518;
-     --hn-dark: #20232a;
-     --hn-muted: #677084;
-     --hn-bg: #f8f9fb;
-     --hn-sidebar: var(--hn-orange);
-    }
-
-    /* FIX FOR FOUC / LAYOUT SHIFT: Hide un-initialized Select2 dropdowns before JS runs */
-    select.filter-select:not(.select2-hidden-accessible),
-    select.searchable-select:not(.select2-hidden-accessible),
-    select.visit-filter-select:not(.select2-hidden-accessible) {
-      visibility: hidden !important;
-      height: 40px !important;
-    }
-
-    /* Prevent body flicker during asset compilation */
-    body {
-      opacity: 1;
-      transition: opacity 0.15s ease-in-out;
-    }
-  </style>
   <link rel="stylesheet" href="{% static 'assets/css/vms-custom.css' %}">
 
   {% block extra_css %}{% endblock %}
 </head>
 
-<body class="g-sidenav-show bg-gray-100">
+<body class="g-sidenav-show g-sidenav-pinned bg-gray-100">
 
   <aside class="sidenav navbar navbar-vertical navbar-expand-xs fixed-start" id="sidenav-main">
 
@@ -81,65 +55,42 @@
     <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
       <ul class="navbar-nav">
 
-        {% if perms.visitors.view_visitor or perms.visitors.view_visitor_card or request.user.is_staff %}
+        {% if request.user.is_staff %}
         <li class="nav-item admin-folder">
           <button type="button"
-                  class="nav-link sidebar-folder-toggle {% if request.resolver_match.url_name == 'visitor_list' or request.resolver_match.url_name == 'visitor_card_list' %}is-open{% endif %}"
+                  class="nav-link sidebar-folder-toggle"
                   data-target="administratorMenu"
-                  aria-expanded="{% if request.resolver_match.url_name == 'visitor_list' or request.resolver_match.url_name == 'visitor_card_list' %}true{% else %}false{% endif %}">
+                  aria-expanded="false">
             <i class="fa-solid fa-folder folder-icon"></i>
             <span class="nav-link-text">Administrator</span>
             <i class="fa-solid fa-chevron-right folder-chevron"></i>
           </button>
 
-          <div id="administratorMenu"
-               class="admin-submenu-wrap {% if request.resolver_match.url_name == 'visitor_list' or request.resolver_match.url_name == 'visitor_card_list' %}is-open{% endif %}">
+          <div id="administratorMenu" class="admin-submenu-wrap">
             <ul class="admin-submenu">
-
-              {% if request.user.is_staff %}
               <li class="nav-item">
                 <a class="nav-link" href="https://mehmaan.highnoon.com.pk/admin/login/?next=/admin/">
                   <span class="nav-link-text">Admin Center</span>
                 </a>
               </li>
-              {% endif %}
-
-              {% if perms.visitors.view_visitor %}
-              <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.url_name == 'visitor_list' %}active{% endif %}"
-                   href="{% url 'visitor_list' %}">
-                  <span class="nav-link-text">Visitor</span>
-                </a>
-              </li>
-              {% endif %}
-
-              {% if perms.visitors.view_visitor_card %}
-              <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.url_name == 'visitor_card_list' %}active{% endif %}"
-                   href="{% url 'visitor_card_list' %}">
-                  <span class="nav-link-text">Visitor Card</span>
-                </a>
-              </li>
-              {% endif %}
-
             </ul>
           </div>
         </li>
         {% endif %}
 
-        {% if perms.masters.view_sys_cmp_master or perms.masters.view_sys_bra_master or perms.masters.view_sys_div_master or perms.masters.view_sys_dep_master or perms.masters.view_sys_emp_master or perms.masters.view_sys_pur_master or perms.masters.view_sys_usr_system or perms.auth.view_group %}
+        {% if perms.masters.view_sys_cmp_master or perms.masters.view_sys_bra_master or perms.masters.view_sys_div_master or perms.masters.view_sys_dep_master or perms.masters.view_sys_emp_master or perms.masters.view_sys_pur_master or perms.masters.view_sys_usr_system or perms.auth.view_group or perms.visitors.view_visitor or perms.visitors.view_visitor_card or perms.visitors.view_company_type %}
         <li class="nav-item admin-folder">
           <button type="button"
-                  class="nav-link sidebar-folder-toggle {% if request.resolver_match.url_name == 'company_list' or request.resolver_match.url_name == 'branch_list' or request.resolver_match.url_name == 'division_list' or request.resolver_match.url_name == 'department_master_list' or request.resolver_match.url_name == 'employee_master_list' or request.resolver_match.url_name == 'purpose_list' or request.resolver_match.url_name == 'user_master_list' or request.resolver_match.url_name == 'access_group_list' %}is-open{% endif %}"
+                  class="nav-link sidebar-folder-toggle {% if request.resolver_match.url_name in 'company_list branch_list division_list department_master_list employee_master_list purpose_list user_master_list access_group_list visitor_list visitor_card_list company_type_list' %}is-open{% endif %}"
                   data-target="mastersMenu"
-                  aria-expanded="{% if request.resolver_match.url_name == 'company_list' or request.resolver_match.url_name == 'branch_list' or request.resolver_match.url_name == 'division_list' or request.resolver_match.url_name == 'department_master_list' or request.resolver_match.url_name == 'employee_master_list' or request.resolver_match.url_name == 'purpose_list' or request.resolver_match.url_name == 'user_master_list' or request.resolver_match.url_name == 'access_group_list' %}true{% else %}false{% endif %}">
+                  aria-expanded="{% if request.resolver_match.url_name in 'company_list branch_list division_list department_master_list employee_master_list purpose_list user_master_list access_group_list visitor_list visitor_card_list company_type_list' %}true{% else %}false{% endif %}">
             <i class="fa-solid fa-folder-tree folder-icon"></i>
             <span class="nav-link-text">Masters</span>
             <i class="fa-solid fa-chevron-right folder-chevron"></i>
           </button>
 
           <div id="mastersMenu"
-               class="admin-submenu-wrap {% if request.resolver_match.url_name == 'company_list' or request.resolver_match.url_name == 'branch_list' or request.resolver_match.url_name == 'division_list' or request.resolver_match.url_name == 'department_master_list' or request.resolver_match.url_name == 'employee_master_list' or request.resolver_match.url_name == 'purpose_list' or request.resolver_match.url_name == 'user_master_list' or request.resolver_match.url_name == 'access_group_list' %}is-open{% endif %}">
+               class="admin-submenu-wrap {% if request.resolver_match.url_name in 'company_list branch_list division_list department_master_list employee_master_list purpose_list user_master_list access_group_list visitor_list visitor_card_list company_type_list' %}is-open{% endif %}">
             <ul class="admin-submenu">
 
               {% if perms.masters.view_sys_cmp_master %}
@@ -147,6 +98,15 @@
                 <a class="nav-link {% if request.resolver_match.url_name == 'company_list' %}active{% endif %}"
                    href="{% url 'company_list' %}">
                   <span class="nav-link-text">Company</span>
+                </a>
+              </li>
+              {% endif %}
+
+              {% if perms.visitors.view_company_type %}
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'company_type_list' %}active{% endif %}"
+                   href="{% url 'company_type_list' %}">
+                  <span class="nav-link-text">Company Types</span>
                 </a>
               </li>
               {% endif %}
@@ -183,6 +143,24 @@
                 <a class="nav-link {% if request.resolver_match.url_name == 'employee_master_list' %}active{% endif %}"
                    href="{% url 'employee_master_list' %}">
                   <span class="nav-link-text">Employee</span>
+                </a>
+              </li>
+              {% endif %}
+
+              {% if perms.visitors.view_visitor %}
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'visitor_list' %}active{% endif %}"
+                   href="{% url 'visitor_list' %}">
+                  <span class="nav-link-text">Visitor</span>
+                </a>
+              </li>
+              {% endif %}
+
+              {% if perms.visitors.view_visitor_card %}
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'visitor_card_list' %}active{% endif %}"
+                   href="{% url 'visitor_card_list' %}">
+                  <span class="nav-link-text">Visitor Card</span>
                 </a>
               </li>
               {% endif %}
@@ -328,8 +306,9 @@
                 <i class="fa-solid fa-user"></i>
               </div>
 
-              <div class="top-user-info">
-                <span class="top-user-name">{{ request.user.username }}</span>
+              <div class="top-user-info d-flex flex-column justify-content-center lh-1">
+                <span class="top-user-name fw-bold mb-0" style="font-size: 13px;">{{ request.user.username }}</span>
+                <span id="topUserBranch" class="top-user-branch text-xs text-muted" style="font-size: 11px;">{% if request.user.sys_usr_system.BRA_Code %}{{ request.user.sys_usr_system.BRA_Code.BRA_Code }} : {{ request.user.sys_usr_system.BRA_Code.BRA_Desc }}{% elif saved_modal_branch_desc %}{{ saved_modal_branch_desc }}{% elif selected_branch_desc %}{{ selected_branch_desc }}{% endif %}</span>
               </div>
 
               <a href="{% url 'logout' %}" class="top-logout-icon" title="Logout">
@@ -382,6 +361,22 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
+
+      // Bulletproof Branch Label Persistence
+      const branchSpan = document.getElementById("topUserBranch");
+      if (branchSpan) {
+        const textFromDjango = branchSpan.textContent.trim();
+        if (textFromDjango.length > 0) {
+          localStorage.setItem("vms_active_branch_label", textFromDjango);
+        } else {
+          const cachedBranch = localStorage.getItem("vms_active_branch_label");
+          if (cachedBranch) {
+            branchSpan.textContent = cachedBranch;
+          }
+        }
+      }
+
+      // Sidebar Accordion Logic
       document.querySelectorAll(".sidebar-folder-toggle").forEach(function (toggle) {
         const targetId = toggle.getAttribute("data-target");
         const target = document.getElementById(targetId);
@@ -390,13 +385,31 @@
 
         const shouldOpen = toggle.getAttribute("aria-expanded") === "true";
 
-        toggle.classList.toggle("is-open", shouldOpen);
-        target.classList.toggle("is-open", shouldOpen);
+        if (shouldOpen) {
+          toggle.classList.add("is-open");
+          target.classList.add("is-open");
+          target.removeAttribute("style");
+        } else {
+          toggle.classList.remove("is-open");
+          target.classList.remove("is-open");
+        }
 
-        toggle.addEventListener("click", function () {
-          const isOpen = target.classList.toggle("is-open");
-          toggle.classList.toggle("is-open", isOpen);
-          toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        toggle.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const isOpen = target.classList.contains("is-open");
+
+          if (isOpen) {
+            toggle.classList.remove("is-open");
+            target.classList.remove("is-open");
+            toggle.setAttribute("aria-expanded", "false");
+          } else {
+            toggle.classList.add("is-open");
+            target.classList.add("is-open");
+            toggle.setAttribute("aria-expanded", "true");
+            target.removeAttribute("style");
+          }
         });
       });
     });

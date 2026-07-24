@@ -3,8 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.urls import reverse
 from openpyxl import load_workbook
-from django.contrib import messages
-from .models import visitor_card, visitor
+from .models import visitor_card, visitor, company_type
 import os
 from urllib.parse import urlencode
 from django.db.models import Q
@@ -80,6 +79,88 @@ def visitor_card_delete(request, pk):
 
     return redirect("visitor_card_list")
 
+
+# Company Type Views
+
+@login_required
+@permission_required("visitors.view_company_type", raise_exception=True)
+def company_type_list(request):
+    search = (request.GET.get("search") or "").strip()
+    company_types = company_type.objects.all().order_by("-created_at")
+
+    if search:
+        company_types = company_types.filter(company_name__icontains=search)
+
+    return render(
+        request,
+        "visitors/company_type_list.html",
+        {
+            "company_types": company_types,
+            "search": search,
+        },
+    )
+
+
+@login_required
+@permission_required("visitors.add_company_type", raise_exception=True)
+def company_type_create(request):
+    if request.method == "POST":
+        company_name = (request.POST.get("company_name") or "").strip()
+
+        if not company_name:
+            messages.error(request, "Company type is required.")
+            return redirect("company_type_list")
+
+        if company_type.objects.filter(company_name__iexact=company_name).exists():
+            messages.error(request, f"Company type '{company_name}' already exists.")
+            return redirect("company_type_list")
+
+        company_type.objects.create(company_name=company_name)
+        messages.success(request, "Company type created successfully.")
+
+    return redirect("company_type_list")
+
+
+@login_required
+@permission_required("visitors.change_company_type", raise_exception=True)
+def company_type_update(request, pk):
+    comp_type = get_object_or_404(company_type, pk=pk)
+
+    if request.method == "POST":
+        company_name = (request.POST.get("company_name") or "").strip()
+
+        if not company_name:
+            messages.error(request, "Company type is required.")
+            return redirect("company_type_list")
+
+        if company_type.objects.filter(company_name__iexact=company_name).exclude(pk=pk).exists():
+            messages.error(request, f"Company type '{company_name}' already exists.")
+            return redirect("company_type_list")
+
+        comp_type.company_name = company_name
+        comp_type.save(update_fields=["company_name"])
+
+        messages.success(request, "Company type updated successfully.")
+
+    return redirect("company_type_list")
+
+
+@login_required
+@permission_required("visitors.delete_company_type", raise_exception=True)
+def company_type_delete(request, pk):
+    comp_type = get_object_or_404(company_type, pk=pk)
+
+    if request.method == "POST":
+        company_name = comp_type.company_name
+        try:
+            comp_type.delete()
+            messages.success(request, f"Company type '{company_name}' deleted successfully.")
+        except ProtectedError:
+            messages.error(request, f"Company type '{company_name}' cannot be deleted because it is in use.")
+
+    return redirect("company_type_list")
+
+
 # visitor views
 
 @login_required
@@ -87,7 +168,8 @@ def visitor_card_delete(request, pk):
 def visitor_list(request):
     search = (request.GET.get("search") or "").strip()
 
-    visitors = visitor.objects.all().order_by("-visitor_created_at")
+    visitors = visitor.objects.select_related("company_type").all().order_by("-visitor_created_at")
+    company_types = company_type.objects.all().order_by("company_name")
 
     if search:
         visitors = visitors.filter(
@@ -95,6 +177,8 @@ def visitor_list(request):
             | Q(visitor_phone__icontains=search)
             | Q(visitor_cnic__icontains=search)
             | Q(visitor_address__icontains=search)
+            | Q(visitor_company__icontains=search)
+            | Q(company_type__company_name__icontains=search)
         )
 
     return render(
@@ -102,9 +186,16 @@ def visitor_list(request):
         "visitors/visitor_list.html",
         {
             "visitors": visitors,
+            "company_types": company_types,
             "search": search,
             "open_add_visitor": request.GET.get("open_add_visitor"),
             "next_page": request.GET.get("next", ""),
+            "form_name": request.GET.get("visitor_name", ""),
+            "form_phone": request.GET.get("visitor_phone", ""),
+            "form_cnic": request.GET.get("visitor_cnic", ""),
+            "form_company": request.GET.get("visitor_company", ""),
+            "form_company_type": request.GET.get("company_type", ""),
+            "form_address": request.GET.get("visitor_address", ""),
         },
     )
 
@@ -115,78 +206,63 @@ def visitor_create(request):
     if request.method != "POST":
         return redirect("visitor_list")
 
-    visitor_name = (
-        request.POST.get("visitor_name") or ""
-    ).strip()
+    visitor_name = (request.POST.get("visitor_name") or "").strip()
+    visitor_phone = (request.POST.get("visitor_phone") or "").strip()
+    visitor_cnic = (request.POST.get("visitor_cnic") or "").strip()
+    visitor_address = (request.POST.get("visitor_address") or "").strip()
+    visitor_company = (request.POST.get("visitor_company") or "").strip()
+    company_type_id = request.POST.get("company_type") or None
 
-    visitor_phone = (
-        request.POST.get("visitor_phone") or ""
-    ).strip()
+    next_page = (request.POST.get("next") or "").strip()
 
-    visitor_cnic = (
-        request.POST.get("visitor_cnic") or ""
-    ).strip()
-
-    visitor_address = (
-        request.POST.get("visitor_address") or ""
-    ).strip()
-
-    next_page = (
-        request.POST.get("next") or ""
-    ).strip()
-
-   
     if not visitor_name:
         messages.error(request, "Visitor name is required.")
-        return _visitor_form_redirect(next_page)
+        return _visitor_form_redirect(
+            next_page, visitor_name, visitor_phone, visitor_cnic, visitor_company, company_type_id, visitor_address
+        )
 
     if not visitor_phone:
         messages.error(request, "Visitor phone is required.")
-        return _visitor_form_redirect(next_page)
+        return _visitor_form_redirect(
+            next_page, visitor_name, visitor_phone, visitor_cnic, visitor_company, company_type_id, visitor_address
+        )
 
     normalized_cnic = normalize_cnic(visitor_cnic) if visitor_cnic else None
 
-    
-    if normalized_cnic and visitor.objects.filter(
-        visitor_cnic=normalized_cnic
-    ).exists():
-        messages.error(
-            request,
-            f"A visitor with CNIC {normalized_cnic} already exists.",
+    if normalized_cnic and visitor.objects.filter(visitor_cnic=normalized_cnic).exists():
+        messages.error(request, f"A visitor with CNIC {normalized_cnic} already exists.")
+        return _visitor_form_redirect(
+            next_page, visitor_name, visitor_phone, visitor_cnic, visitor_company, company_type_id, visitor_address
         )
-        return _visitor_form_redirect(next_page)
+
+    comp_type_obj = None
+    if company_type_id:
+        comp_type_obj = company_type.objects.filter(pk=company_type_id).first()
 
     new_visitor = visitor.objects.create(
         visitor_name=visitor_name,
         visitor_phone=visitor_phone,
-        visitor_cnic=normalized_cnic,  # Inserts NULL in MySQL if blank
+        visitor_cnic=normalized_cnic,
         visitor_address=visitor_address,
+        visitor_company=visitor_company,
+        company_type=comp_type_obj,
     )
 
-    messages.success(
-        request,
-        "Visitor created successfully.",
-    )
+    messages.success(request, "Visitor created successfully.")
 
-    
     if next_page == "visits":
         query_string = urlencode({
             "open_add_visit": "1",
             "visitor_id": new_visitor.visitor_id,
         })
-        return redirect(
-            f"{reverse('visit_list')}?{query_string}"
-        )
+        return redirect(f"{reverse('visit_list')}?{query_string}")
 
-    
     if next_page == "backlogs":
         query_string = urlencode({
             "open_add_backlog": "1",
             "selected_visitor_id": new_visitor.visitor_id,
         })
-        return redirect(
-            f"{reverse('backlog_list_create')}?{query_string}"
-        )
+        return redirect(f"{reverse('backlog_list_create')}?{query_string}")
 
     return redirect("visitor_list")
 
@@ -194,29 +270,17 @@ def visitor_create(request):
 @login_required
 @permission_required("visitors.change_visitor", raise_exception=True)
 def visitor_update(request, visitor_id):
-    visitor_obj = get_object_or_404(
-        visitor,
-        visitor_id=visitor_id,
-    )
+    visitor_obj = get_object_or_404(visitor, visitor_id=visitor_id)
 
     if request.method != "POST":
         return redirect("visitor_list")
 
-    visitor_name = (
-        request.POST.get("visitor_name") or ""
-    ).strip()
-
-    visitor_phone = (
-        request.POST.get("visitor_phone") or ""
-    ).strip()
-
-    visitor_cnic = (
-        request.POST.get("visitor_cnic") or ""
-    ).strip()
-
-    visitor_address = (
-        request.POST.get("visitor_address") or ""
-    ).strip()
+    visitor_name = (request.POST.get("visitor_name") or "").strip()
+    visitor_phone = (request.POST.get("visitor_phone") or "").strip()
+    visitor_cnic = (request.POST.get("visitor_cnic") or "").strip()
+    visitor_address = (request.POST.get("visitor_address") or "").strip()
+    visitor_company = (request.POST.get("visitor_company") or "").strip()
+    company_type_id = request.POST.get("company_type") or None
 
     if not visitor_name:
         messages.error(request, "Visitor name is required.")
@@ -226,7 +290,6 @@ def visitor_update(request, visitor_id):
         messages.error(request, "Visitor phone is required.")
         return redirect("visitor_list")
 
-    # Set to None if blank
     normalized_cnic = normalize_cnic(visitor_cnic) if visitor_cnic else None
 
     if normalized_cnic:
@@ -238,16 +301,19 @@ def visitor_update(request, visitor_id):
         )
 
         if duplicate_cnic:
-            messages.error(
-                request,
-                f"Another visitor with CNIC {normalized_cnic} already exists.",
-            )
+            messages.error(request, f"Another visitor with CNIC {normalized_cnic} already exists.")
             return redirect("visitor_list")
+
+    comp_type_obj = None
+    if company_type_id:
+        comp_type_obj = company_type.objects.filter(pk=company_type_id).first()
 
     visitor_obj.visitor_name = visitor_name
     visitor_obj.visitor_phone = visitor_phone
     visitor_obj.visitor_cnic = normalized_cnic
     visitor_obj.visitor_address = visitor_address
+    visitor_obj.visitor_company = visitor_company
+    visitor_obj.company_type = comp_type_obj
 
     visitor_obj.save(
         update_fields=[
@@ -255,77 +321,58 @@ def visitor_update(request, visitor_id):
             "visitor_phone",
             "visitor_cnic",
             "visitor_address",
+            "visitor_company",
+            "company_type",
         ]
     )
 
-    messages.success(
-        request,
-        "Visitor updated successfully.",
-    )
-
+    messages.success(request, "Visitor updated successfully.")
     return redirect("visitor_list")
 
 
 @login_required
 @permission_required("visitors.delete_visitor", raise_exception=True)
 def visitor_delete(request, visitor_id):
-    visitor_obj = get_object_or_404(
-        visitor,
-        visitor_id=visitor_id,
-    )
+    visitor_obj = get_object_or_404(visitor, visitor_id=visitor_id)
 
     if request.method == "POST":
         visitor_name = visitor_obj.visitor_name
 
         try:
             visitor_obj.delete()
-
-            messages.success(
-                request,
-                f"{visitor_name} deleted successfully.",
-            )
-
+            messages.success(request, f"{visitor_name} deleted successfully.")
         except ProtectedError:
-            messages.error(
-                request,
-                "This visitor cannot be deleted because visit records "
-                "are linked to them.",
-            )
+            messages.error(request, "This visitor cannot be deleted because visit records are linked to them.")
 
     return redirect("visitor_list")
 
 
 def normalize_cnic(cnic):
-    """
-    Store CNIC consistently.
-
-    Examples:
-    35202-1234567-1 -> 3520212345671
-    35202 1234567 1 -> 3520212345671
-    """
-    return "".join(
-        character
-        for character in str(cnic)
-        if character.isdigit()
-    )
+    return "".join(character for character in str(cnic) if character.isdigit())
 
 
-def _visitor_form_redirect(next_page):
+def _visitor_form_redirect(next_page, name="", phone="", cnic="", company="", comp_type="", address=""):
     """
-    Reopen the Add Visitor modal when validation fails.
+    Reopen the Add Visitor modal and preserve inputs when validation fails.
     """
-    query_parameters = {
-        "open_add_visitor": "1",
-    }
+    query_parameters = {"open_add_visitor": "1"}
 
     if next_page:
         query_parameters["next"] = next_page
+    if name:
+        query_parameters["visitor_name"] = name
+    if phone:
+        query_parameters["visitor_phone"] = phone
+    if cnic:
+        query_parameters["visitor_cnic"] = cnic
+    if company:
+        query_parameters["visitor_company"] = company
+    if comp_type:
+        query_parameters["company_type"] = comp_type
+    if address:
+        query_parameters["visitor_address"] = address
 
-    return redirect(
-        f"{reverse('visitor_list')}?"
-        f"{urlencode(query_parameters)}"
-    )
-
+    return redirect(f"{reverse('visitor_list')}?{urlencode(query_parameters)}")
 
 
 # visitor card import
@@ -351,10 +398,7 @@ def visitor_card_import_upload(request):
         workbook = load_workbook(file_path)
         sheet = workbook.active
 
-        headers = [
-            str(cell.value).strip() if cell.value else ""
-            for cell in sheet[1]
-        ]
+        headers = [str(cell.value).strip() if cell.value else "" for cell in sheet[1]]
 
         request.session["visitor_card_import_file"] = file_path
         request.session["visitor_card_import_headers"] = headers
@@ -379,10 +423,7 @@ def visitor_card_import_process(request):
         workbook = load_workbook(file_path)
         sheet = workbook.active
 
-        headers = [
-            str(cell.value).strip() if cell.value else ""
-            for cell in sheet[1]
-        ]
+        headers = [str(cell.value).strip() if cell.value else "" for cell in sheet[1]]
 
         mapping = {
             "CRD_No": request.POST.get("CRD_No"),
@@ -423,14 +464,7 @@ def visitor_card_import_process(request):
                 continue
 
             active_text = str(crd_active).strip().lower() if crd_active else "true"
-
-            is_active = active_text in [
-                "true",
-                "1",
-                "yes",
-                "y",
-                "active",
-            ]
+            is_active = active_text in ["true", "1", "yes", "y", "active"]
 
             card, created = visitor_card.objects.update_or_create(
                 CRD_No=crd_no,

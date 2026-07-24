@@ -78,7 +78,7 @@
           data-bs-toggle="modal"
           data-bs-target="#addBacklogModal">
           <i class="fa-solid fa-clock-rotate-left me-1"></i>
-          Add
+          Add Back Log
         </button>
       </div>
 
@@ -112,7 +112,7 @@
           <option value="ALL">All Branches</option>
           {% for branch in branches %}
           <option value="{{ branch.bra_code }}" {% if selected_branch == branch.bra_code %}selected{% endif %}>
-            {{ branch.bra_code }} - {{ branch.bra_desc }}
+            {{ branch.bra_code }} : {{ branch.bra_desc }}
           </option>
           {% endfor %}
         </select>
@@ -257,7 +257,7 @@
                   <option value="ALL">All Branches</option>
                   {% for branch in branches %}
                     <option value="{{ branch.bra_code }}" {% if saved_modal_branch == branch.bra_code or selected_branch == branch.bra_code %}selected{% endif %}>
-                      {{ branch.bra_code }} - {{ branch.bra_desc }}
+                      {{ branch.bra_code }} : {{ branch.bra_desc }}
                     </option>
                   {% endfor %}
                 </select>
@@ -296,9 +296,6 @@
                 </div>
                 <select name="employee" id="addEmployeeSelect" class="form-control searchable-select employee-select" required>
                   <option value="">Search employee by PNO or name</option>
-                  {% for emp in employees %}
-                  <option value="{{ emp.pk }}">{{ emp.emp_pno }} - {{ emp.emp_name }}</option>
-                  {% endfor %}
                 </select>
                 <small class="employee-branch-notice text-muted text-xxs mt-1 d-block">Showing employees for selected branch.</small>
               </div>
@@ -355,9 +352,7 @@
           </div>
 
           <div id="backlogModalStep2Footer" class="w-100 d-flex justify-content-between {% if not saved_modal_branch %}d-none{% endif %}">
-            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-              Cancel
-            </button>
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">
               Save & Next
             </button>
@@ -396,7 +391,7 @@
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Employee To Visit</label>
-              <select name="employee" id="editEmployeeSelect" class="form-control searchable-select" required>
+              <select name="employee" id="editEmployeeSelect" class="form-control searchable-select employee-select" required>
                 <option value="">Search employee by PNO or name</option>
                 {% for emp in employees %}
                 <option value="{{ emp.pk }}">{{ emp.emp_pno }} - {{ emp.emp_name }}</option>
@@ -501,17 +496,32 @@
     initHeaderFilters();
     $(window).on('resize', initHeaderFilters);
 
-    function loadBacklogEmployeesForBranch(selectedBranch, callback) {
-      $('#hiddenSelectedBranch').val(selectedBranch);
-      $.getJSON('/visits/api/employees/', { branch: selectedBranch, save_session: '1' }, function (data) {
-        const $empSelect = $('#addEmployeeSelect');
-        $empSelect.empty().append('<option value="">Search employee by PNO or name</option>');
-        $.each(data.employees, function (i, emp) {
-          $empSelect.append(new Option(emp.text, emp.id, false, false));
-        });
-        $empSelect.trigger('change');
-        $('#addBacklogModal .employee-branch-notice').text('Showing employees for Branch: ' + selectedBranch).removeClass('text-danger text-success').addClass('text-muted');
-        if (callback) callback();
+    function initEmployeeSelect2($selectElement, modalId) {
+      if ($selectElement.hasClass('select2-hidden-accessible')) {
+        $selectElement.select2('destroy');
+      }
+
+      $selectElement.select2({
+        dropdownParent: $(modalId),
+        width: '100%',
+        placeholder: 'Search employee by PNO or name',
+        allowClear: true,
+        ajax: {
+          url: '/visits/api/employees/',
+          dataType: 'json',
+          delay: 250,
+          data: function (params) {
+            return {
+              q: params.term || '',
+              branch: $('#hiddenSelectedBranch').val() || $('#backlogStep1BranchSelect').val(),
+              save_session: '1'
+            };
+          },
+          processResults: function (data) {
+            return { results: data.results || data.employees };
+          },
+          cache: true
+        }
       });
     }
 
@@ -537,7 +547,6 @@
 
       if (activeBranch && $('#hiddenSelectedBranch').val()) {
         showStep2();
-        loadBacklogEmployeesForBranch(activeBranch);
       } else {
         showStep1();
       }
@@ -545,16 +554,59 @@
 
     $('#addBacklogModal, #editBacklogModal').on('shown.bs.modal', function () {
       const modal = $(this);
-      modal.find('.searchable-select').each(function () {
+      modal.find('.searchable-select:not(.employee-select)').each(function () {
         if ($(this).hasClass('select2-hidden-accessible')) { $(this).select2('destroy'); }
         $(this).select2({ dropdownParent: modal, width: '100%' });
       });
+
+      const modalId = '#' + modal.attr('id');
+      const $empSelect = modal.find('.employee-select');
+      if ($empSelect.length) {
+        initEmployeeSelect2($empSelect, modalId);
+      }
     });
 
-    $('#btnBacklogGoToStep2').on('click', function () {
-      const selectedBranch = $('#backlogStep1BranchSelect').val();
+   $('#btnBacklogGoToStep2').on('click', function (e) {
+      e.preventDefault();
+
+      const $branchElem = $('#backlogStep1BranchSelect');
+      const selectedBranch = $branchElem.val();
+
+      if (!selectedBranch) {
+        alert('Please select a branch first.');
+        return;
+      }
+
+      let rawText = '';
+      if ($branchElem.is('select')) {
+        rawText = $branchElem.find('option:selected').text().trim();
+      } else {
+        rawText = $branchElem.val() || '';
+      }
+
+      $('#hiddenSelectedBranch').val(selectedBranch);
+
+      let formattedBranch = '';
+      if (selectedBranch && selectedBranch !== 'ALL') {
+        const parts = rawText.split(/[-:]/);
+        if (parts.length >= 2) {
+          const code = parts[0].trim();
+          const desc = parts.slice(1).join(' : ').trim();
+          formattedBranch = code + ' : ' + desc;
+        } else {
+          formattedBranch = rawText;
+        }
+      } else if (selectedBranch === 'ALL') {
+        formattedBranch = 'All Branches';
+      }
+
+      if (formattedBranch) {
+        $('#topUserBranch').text(formattedBranch);
+        localStorage.setItem('vms_active_branch_label', formattedBranch);
+      }
+
       showStep2();
-      loadBacklogEmployeesForBranch(selectedBranch);
+      initEmployeeSelect2($('#addEmployeeSelect'), '#addBacklogModal');
     });
 
     $('.btn-find-global-employee').on('click', function () {
@@ -564,12 +616,9 @@
       const notice = container.find('.employee-branch-notice');
 
       let query = lastTypedQuery;
-
       if (!query) {
         const currentSelect2Field = $('.select2-search__field');
-        if (currentSelect2Field.length) {
-          query = currentSelect2Field.val().trim();
-        }
+        if (currentSelect2Field.length) { query = currentSelect2Field.val().trim(); }
       }
 
       if (!query) {
@@ -580,19 +629,19 @@
       btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i>');
 
       $.getJSON('/visits/api/employees/', { search_all: '1', q: query }, function (data) {
+        const results = data.results || data.employees;
         $empSelect.empty().append('<option value="">Select matching employee</option>');
 
-        if (!data.employees || data.employees.length === 0) {
+        if (!results || results.length === 0) {
           notice.text('No matching employee found across all branches for "' + query + '".').removeClass('text-muted text-success').addClass('text-danger fw-bold');
         } else {
-          $.each(data.employees, function (i, emp) {
+          $.each(results, function (i, emp) {
             $empSelect.append(new Option(emp.text, emp.id, false, false));
           });
-          notice.text('Found ' + data.employees.length + ' match(es) for "' + query + '" across other branches. Select one below.').removeClass('text-muted text-danger').addClass('text-success fw-bold');
+          notice.text('Found ' + results.length + ' match(es) for "' + query + '" across other branches. Select one below.').removeClass('text-muted text-danger').addClass('text-success fw-bold');
           
           if ($empSelect.hasClass('select2-hidden-accessible')) { $empSelect.select2('destroy'); }
           $empSelect.select2({ dropdownParent: $('#addBacklogModal'), width: '100%' });
-          
           $empSelect.select2('open');
         }
 
