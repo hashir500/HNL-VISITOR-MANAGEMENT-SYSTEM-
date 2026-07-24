@@ -8,7 +8,6 @@
 
   <link rel="Highnoon logo" sizes="76x76" href="{% static 'assets/img/hn_logo.png' %}">
   <link rel="icon" type="image/png" href="{% static 'assets/img/hn_logo.png' %}">
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
   <title>
     {% block title %}
@@ -20,12 +19,13 @@
     {% endblock %}
   </title>
 
+  <!-- Google Fonts & Core CSS -->
   <link href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,800" rel="stylesheet" />
   <link href="{% static 'assets/css/nucleo-icons.css' %}" rel="stylesheet" />
   <link href="{% static 'assets/css/nucleo-svg.css' %}" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link id="pagestyle" href="{% static 'assets/css/soft-ui-dashboard.css' %}?v=1.1.0" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <link id="pagestyle" href="{% static 'assets/css/soft-ui-dashboard.css' %}?v=1.1.0" rel="stylesheet" />
 
   <style>
     :root {
@@ -36,6 +36,20 @@
      --hn-muted: #677084;
      --hn-bg: #f8f9fb;
      --hn-sidebar: var(--hn-orange);
+    }
+
+    /* FIX FOR FOUC / LAYOUT SHIFT: Hide un-initialized Select2 dropdowns before JS runs */
+    select.filter-select:not(.select2-hidden-accessible),
+    select.searchable-select:not(.select2-hidden-accessible),
+    select.visit-filter-select:not(.select2-hidden-accessible) {
+      visibility: hidden !important;
+      height: 40px !important;
+    }
+
+    /* Prevent body flicker during asset compilation */
+    body {
+      opacity: 1;
+      transition: opacity 0.15s ease-in-out;
     }
   </style>
   <link rel="stylesheet" href="{% static 'assets/css/vms-custom.css' %}">

@@ -173,15 +173,28 @@ def get_employees_by_branch(request):
     search_term = (request.GET.get("q") or "").strip()
     search_all = request.GET.get("search_all") == "1"
     save_session = request.GET.get("save_session") == "1"
+    clear_session = request.GET.get("clear_session") == "1"
 
-    if save_session and branch_code:
+    if clear_session:
+        request.session.pop("vms_modal_selected_branch", None)
+        return JsonResponse({"status": "cleared"})
+
+    if save_session and branch_code and branch_code != "ALL":
         request.session["vms_modal_selected_branch"] = branch_code
 
     access = get_visit_access_settings(request)
     employees = sys_emp_master.objects.select_related("emp_cmp", "emp_bra_code", "emp_dep_code").filter(emp_active=True)
 
-    if not search_all and branch_code and branch_code != "ALL":
-        employees = employees.filter(emp_bra_code__bra_code=branch_code)
+    if not search_all and branch_code and branch_code.upper() != "ALL":
+        # Extracts digits (e.g. '02' or 'BR02' -> '02')
+        clean_digits = ''.join(filter(str.isdigit, branch_code))
+        
+        # Matches 'BR02', '02', 'BR2', or exact code
+        employees = employees.filter(
+            Q(emp_bra_code__bra_code__iexact=branch_code) |
+            Q(emp_bra_code__bra_code__icontains=branch_code) |
+            Q(emp_bra_code__bra_code__icontains=clean_digits)
+        )
     else:
         selected_company = access["assigned_company_code"] if not access["can_select_company"] else None
         employees = apply_employee_access_filter(employees, access, selected_company=selected_company)
@@ -192,7 +205,9 @@ def get_employees_by_branch(request):
             | Q(emp_pno__icontains=search_term)
         )
 
-    employees = employees.order_by("emp_name")[:50]
+    # Return matching records (up to 400 for Branch 02 which has 303 employees)
+    limit = 100 if search_term else 400
+    employees = employees.order_by("emp_name")[:limit]
 
     data = []
     for emp in employees:
@@ -320,6 +335,10 @@ def visit_create(request):
     if request.method != "POST":
         return redirect("visit_list")
 
+    selected_modal_branch = request.POST.get('selected_branch', '').strip()
+    if selected_modal_branch:
+        request.session['vms_modal_selected_branch'] = selected_modal_branch
+
     visitor_obj = get_object_or_404(visitor, visitor_id=request.POST.get("visitor"))
     employee_obj = get_object_or_404(
         sys_emp_master.objects.select_related("emp_cmp", "emp_bra_code", "emp_dep_code"),
@@ -374,7 +393,11 @@ def backlog_list_create(request):
         card_id = request.POST.get('visitor_card')
         purpose_id = request.POST.get('purpose')
         other_purpose = request.POST.get('other_purpose', '').strip()
+        selected_modal_branch = request.POST.get('selected_branch', '').strip()
         
+        if selected_modal_branch:
+            request.session['vms_modal_selected_branch'] = selected_modal_branch
+
         checkin_str = request.POST.get('check_in_time')
         checkout_str = request.POST.get('check_out_time')
 

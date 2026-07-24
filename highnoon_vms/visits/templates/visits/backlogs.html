@@ -8,12 +8,60 @@
 {% block messages %}{% endblock %}
 {% block message %}{% endblock %}
 
-{% block content %}
-
+{% block extra_css %}
 <style>
   .alert:not(.card .alert) { display: none !important; }
-</style>
+  .visit-header-layout { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; }
+  .visit-header-left { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+  .visit-header-filters { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 1 1 auto; min-width: 0; }
+  .visit-search-wrapper { position: relative !important; width: 280px; max-width: 100%; height: 40px !important; display: flex !important; align-items: center !important; margin: 0 !important; }
+  .visit-search-input { width: 100% !important; height: 40px !important; min-height: 40px !important; padding-left: 38px !important; margin-bottom: 0 !important; }
+  .visit-search-wrapper .visit-search-icon, .visit-search-icon { position: absolute !important; left: 14px !important; top: 50% !important; transform: translateY(-50%) !important; z-index: 10 !important; color: #8392ab !important; font-size: 13px !important; pointer-events: none !important; }
+  .visit-filter-select { width: 180px; height: 40px !important; }
+  .visit-filter-buttons-wrapper { display: flex; gap: 6px; }
+  .visit-filter-button, .visit-reset-button { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 42px !important; height: 40px !important; min-width: 42px !important; padding: 0 !important; margin: 0 !important; }
+  .visit-employee-cell { display: flex; flex-direction: column; }
+  .visit-employee-cell strong { color: #344767; font-size: 13px; }
+  .visit-employee-cell span { color: #67748e; font-size: 11px; }
+  .card-number-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 48px; padding: 5px 9px; border-radius: 8px; background: rgba(242, 99, 34, 0.1); color: #f26322; font-size: 12px; font-weight: 700; }
+  .visit-purpose { display: inline-block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+  .visit-header-filters span.select2-container, .visit-header-filters .select2-container--default { width: 180px !important; min-width: 180px !important; }
+  .visit-header-filters .select2-container .select2-selection--single { min-height: 40px !important; height: 40px !important; }
+  .visit-header-filters .select2-container .select2-selection--single .select2-selection__rendered { line-height: 40px !important; }
+  .visit-header-filters .select2-container .select2-selection--single .select2-selection__arrow { height: 40px !important; }
 
+  .btn-find-global-employee {
+    background-color: #f26322 !important;
+    color: #ffffff !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    height: 26px !important;
+    width: 125px !important;
+    min-width: 125px !important;
+    max-width: 125px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 4px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    flex-shrink: 0 !important;
+  }
+  .btn-find-global-employee:hover {
+    background-color: #d9531e !important;
+    color: #ffffff !important;
+  }
+
+  .select2-container--open { z-index: 99999 !important; }
+  .select2-dropdown { z-index: 99999 !important; border: 1px solid #d2d6da !important; box-shadow: 0 8px 26px -4px rgba(20, 20, 20, 0.15) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
 <div class="card">
 
   <!-- Header -->
@@ -189,22 +237,26 @@
       <form method="POST" action="{% url 'backlog_list_create' %}" id="addBacklogForm">
         {% csrf_token %}
 
+        <input type="hidden" name="selected_branch" id="hiddenSelectedBranch" value="{{ saved_modal_branch }}">
+
         <div class="modal-header">
-          <h5 class="modal-title" id="backlogModalTitle">Add Back Log - Select Branch</h5>
+          <h5 class="modal-title" id="backlogModalTitle">
+            {% if saved_modal_branch %}Add Back Log - Details{% else %}Add Back Log - Select Branch{% endif %}
+          </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
 
         <div class="modal-body">
 
           <!-- STEP 1: BRANCH SELECTION -->
-          <div id="backlogModalStep1">
+          <div id="backlogModalStep1" class="{% if saved_modal_branch %}d-none{% endif %}">
             <div class="p-3 bg-light border-radius-lg mb-3">
               <label class="form-label fw-bold">Select Backlog Branch</label>
               {% if can_select_branch %}
                 <select id="backlogStep1BranchSelect" class="form-control searchable-select">
                   <option value="ALL">All Branches</option>
                   {% for branch in branches %}
-                    <option value="{{ branch.bra_code }}" {% if selected_branch == branch.bra_code %}selected{% endif %}>
+                    <option value="{{ branch.bra_code }}" {% if saved_modal_branch == branch.bra_code or selected_branch == branch.bra_code %}selected{% endif %}>
                       {{ branch.bra_code }} - {{ branch.bra_desc }}
                     </option>
                   {% endfor %}
@@ -217,7 +269,7 @@
           </div>
 
           <!-- STEP 2: MAIN FORM -->
-          <div id="backlogModalStep2" class="d-none">
+          <div id="backlogModalStep2" class="{% if not saved_modal_branch %}d-none{% endif %}">
             <div class="row">
 
               <div class="col-md-6 mb-3">
@@ -295,15 +347,17 @@
         </div>
 
         <div class="modal-footer">
-          <div id="backlogModalStep1Footer" class="w-100 d-flex justify-content-between">
+          <div id="backlogModalStep1Footer" class="w-100 d-flex justify-content-between {% if saved_modal_branch %}d-none{% endif %}">
             <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
             <button type="button" id="btnBacklogGoToStep2" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">
               Next <i class="fa-solid fa-arrow-right ms-1"></i>
             </button>
           </div>
 
-          <div id="backlogModalStep2Footer" class="w-100 d-flex justify-content-between d-none">
-            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <div id="backlogModalStep2Footer" class="w-100 d-flex justify-content-between {% if not saved_modal_branch %}d-none{% endif %}">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+              Cancel
+            </button>
             <button type="submit" class="btn btn-primary btn-sm" style="background: #f26322; border-color: #f26322;">
               Save & Next
             </button>
@@ -420,58 +474,6 @@
     </div>
   </div>
 </div>
-
-<style>
-  .visit-header-layout { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; }
-  .visit-header-left { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
-  .visit-header-filters { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 1 1 auto; min-width: 0; }
-  .visit-search-wrapper { position: relative !important; width: 280px; max-width: 100%; height: 40px !important; display: flex !important; align-items: center !important; margin: 0 !important; }
-  .visit-search-input { width: 100% !important; height: 40px !important; min-height: 40px !important; padding-left: 38px !important; margin-bottom: 0 !important; }
-  .visit-search-wrapper .visit-search-icon, .visit-search-icon { position: absolute !important; left: 14px !important; top: 50% !important; transform: translateY(-50%) !important; z-index: 10 !important; color: #8392ab !important; font-size: 13px !important; pointer-events: none !important; }
-  .visit-filter-select { width: 180px; height: 40px !important; }
-  .visit-filter-buttons-wrapper { display: flex; gap: 6px; }
-  .visit-filter-button, .visit-reset-button { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 42px !important; height: 40px !important; min-width: 42px !important; padding: 0 !important; margin: 0 !important; }
-  .visit-employee-cell { display: flex; flex-direction: column; }
-  .visit-employee-cell strong { color: #344767; font-size: 13px; }
-  .visit-employee-cell span { color: #67748e; font-size: 11px; }
-  .card-number-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 48px; padding: 5px 9px; border-radius: 8px; background: rgba(242, 99, 34, 0.1); color: #f26322; font-size: 12px; font-weight: 700; }
-  .visit-purpose { display: inline-block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
-  .visit-header-filters span.select2-container, .visit-header-filters .select2-container--default { width: 180px !important; min-width: 180px !important; }
-  .visit-header-filters .select2-container .select2-selection--single { min-height: 40px !important; height: 40px !important; }
-  .visit-header-filters .select2-container .select2-selection--single .select2-selection__rendered { line-height: 40px !important; }
-  .visit-header-filters .select2-container .select2-selection--single .select2-selection__arrow { height: 40px !important; }
-
-  /* Locked button dimensions to prevent shape deformation */
-  .btn-find-global-employee {
-    background-color: #f26322 !important;
-    color: #ffffff !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    height: 26px !important;
-    width: 125px !important;
-    min-width: 125px !important;
-    max-width: 125px !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    border: none !important;
-    border-radius: 4px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    white-space: nowrap !important;
-    text-transform: none !important;
-    box-shadow: none !important;
-    flex-shrink: 0 !important;
-  }
-  .btn-find-global-employee:hover {
-    background-color: #d9531e !important;
-    color: #ffffff !important;
-  }
-
-  .select2-container--open { z-index: 99999 !important; }
-  .select2-dropdown { z-index: 99999 !important; border: 1px solid #d2d6da !important; box-shadow: 0 8px 26px -4px rgba(20, 20, 20, 0.15) !important; }
-</style>
-
 {% endblock %}
 
 {% block extra_js %}
@@ -479,8 +481,6 @@
   $(document).ready(function () {
 
     let lastTypedQuery = '';
-    // Store branch in active JS session state, initialized from server template
-    let currentSessionBranch = "{{ saved_modal_branch }}";
 
     $(document).on('input keyup', '.select2-search__field', function () {
       const val = $(this).val();
@@ -501,8 +501,9 @@
     initHeaderFilters();
     $(window).on('resize', initHeaderFilters);
 
-    function loadBacklogEmployeesForBranch(selectedBranch, saveSession, callback) {
-      $.getJSON('/visits/api/employees/', { branch: selectedBranch, save_session: saveSession ? '1' : '0' }, function (data) {
+    function loadBacklogEmployeesForBranch(selectedBranch, callback) {
+      $('#hiddenSelectedBranch').val(selectedBranch);
+      $.getJSON('/visits/api/employees/', { branch: selectedBranch, save_session: '1' }, function (data) {
         const $empSelect = $('#addEmployeeSelect');
         $empSelect.empty().append('<option value="">Search employee by PNO or name</option>');
         $.each(data.employees, function (i, emp) {
@@ -514,25 +515,31 @@
       });
     }
 
+    function showStep2() {
+      $('#backlogModalStep1').addClass('d-none');
+      $('#backlogModalStep1Footer').addClass('d-none');
+      $('#backlogModalStep2').removeClass('d-none');
+      $('#backlogModalStep2Footer').removeClass('d-none');
+      $('#backlogModalTitle').text('Add Back Log - Details');
+    }
+
+    function showStep1() {
+      $('#backlogModalStep2').addClass('d-none');
+      $('#backlogModalStep2Footer').addClass('d-none');
+      $('#backlogModalStep1').removeClass('d-none');
+      $('#backlogModalStep1Footer').removeClass('d-none');
+      $('#backlogModalTitle').text('Add Back Log - Select Branch');
+    }
+
     $('#addBacklogModal').on('show.bs.modal', function () {
       lastTypedQuery = '';
-      const urlParams = new URLSearchParams(window.location.search);
+      const activeBranch = $('#hiddenSelectedBranch').val() || $('#backlogStep1BranchSelect').val();
 
-      if (urlParams.get('open_add_backlog') === '1' || currentSessionBranch) {
-        const branchToLoad = currentSessionBranch || $('#backlogStep1BranchSelect').val();
-        loadBacklogEmployeesForBranch(branchToLoad, false, function () {
-          $('#backlogModalStep1').addClass('d-none');
-          $('#backlogModalStep1Footer').addClass('d-none');
-          $('#backlogModalStep2').removeClass('d-none');
-          $('#backlogModalStep2Footer').removeClass('d-none');
-          $('#backlogModalTitle').text('Add Back Log - Details');
-        });
+      if (activeBranch && $('#hiddenSelectedBranch').val()) {
+        showStep2();
+        loadBacklogEmployeesForBranch(activeBranch);
       } else {
-        $('#backlogModalStep1').removeClass('d-none');
-        $('#backlogModalStep1Footer').removeClass('d-none');
-        $('#backlogModalStep2').addClass('d-none');
-        $('#backlogModalStep2Footer').addClass('d-none');
-        $('#backlogModalTitle').text('Add Back Log - Select Branch');
+        showStep1();
       }
     });
 
@@ -546,16 +553,8 @@
 
     $('#btnBacklogGoToStep2').on('click', function () {
       const selectedBranch = $('#backlogStep1BranchSelect').val();
-      // Immediately remember selected branch for current session
-      currentSessionBranch = selectedBranch;
-
-      loadBacklogEmployeesForBranch(selectedBranch, true, function () {
-        $('#backlogModalStep1').addClass('d-none');
-        $('#backlogModalStep1Footer').addClass('d-none');
-        $('#backlogModalStep2').removeClass('d-none');
-        $('#backlogModalStep2Footer').removeClass('d-none');
-        $('#backlogModalTitle').text('Add Back Log - Details');
-      });
+      showStep2();
+      loadBacklogEmployeesForBranch(selectedBranch);
     });
 
     $('.btn-find-global-employee').on('click', function () {
@@ -589,7 +588,7 @@
           $.each(data.employees, function (i, emp) {
             $empSelect.append(new Option(emp.text, emp.id, false, false));
           });
-          notice.text('Found ' + data.employees.length + ' match(es) for "' + query + '" across other branches.').removeClass('text-muted text-danger').addClass('text-success fw-bold');
+          notice.text('Found ' + data.employees.length + ' match(es) for "' + query + '" across other branches. Select one below.').removeClass('text-muted text-danger').addClass('text-success fw-bold');
           
           if ($empSelect.hasClass('select2-hidden-accessible')) { $empSelect.select2('destroy'); }
           $empSelect.select2({ dropdownParent: $('#addBacklogModal'), width: '100%' });
