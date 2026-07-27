@@ -25,22 +25,211 @@
   <link href="{% static 'assets/css/nucleo-svg.css' %}" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  
+  <!-- DataTables Responsive CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+
   <link id="pagestyle" href="{% static 'assets/css/soft-ui-dashboard.css' %}?v=1.1.0" rel="stylesheet" />
   <link rel="stylesheet" href="{% static 'assets/css/vms-custom.css' %}">
+
+  <style>
+    /* =========================================================
+       1. GLOBAL OVERFLOW & RESPONSIVE SIDEBAR FIXES
+       ========================================================= */
+    html, body {
+      overflow-x: hidden !important;
+      width: 100% !important;
+    }
+
+    @media (max-width: 1199.98px) {
+      aside.sidenav {
+        transform: translateX(-110%) !important;
+        transition: transform 0.25s ease-in-out !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        margin-left: 0 !important;
+        height: 100vh !important;
+        z-index: 99999 !important;
+        box-shadow: 0 8px 26px -4px rgba(20, 20, 20, 0.25) !important;
+      }
+
+      .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      body.g-sidenav-pinned aside.sidenav {
+        transform: translateX(0) !important;
+      }
+
+      body.g-sidenav-pinned::after {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 99990;
+        pointer-events: auto;
+      }
+
+      .navbar-main .container-fluid {
+        flex-wrap: wrap !important;
+        gap: 10px;
+      }
+      .navbar-main .collapse.navbar-collapse {
+        display: flex !important;
+        flex-basis: auto !important;
+        width: 100% !important;
+        justify-content: space-between !important;
+        margin-top: 8px !important;
+      }
+
+      .visit-header-layout {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+      }
+      .visit-header-left {
+        width: 100% !important;
+        justify-content: space-between !important;
+      }
+      .visit-header-filters {
+        flex-direction: column !important;
+        width: 100% !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+      }
+      .visit-search-wrapper,
+      .visit-filter-select,
+      .visit-header-filters span.select2-container,
+      .visit-header-filters .select2-container--default {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+      }
+      .visit-filter-buttons-wrapper {
+        justify-content: flex-end;
+        width: 100%;
+      }
+    }
+
+    /* =========================================================
+       2. REMOVE HORIZONTAL SCROLLBARS FOR DATATABLES RESPONSIVE
+       ========================================================= */
+    /* Remove outer container scrollbar when DataTables Responsive collapses rows */
+    .table-responsive:has(.dataTables_wrapper),
+    .table-responsive:has(table.dataTable),
+    div.dataTables_wrapper {
+      overflow-x: hidden !important;
+      overflow-y: visible !important;
+    }
+
+    /* Force tables inside DataTables wrapper to fit container width cleanly */
+    table.dataTable {
+      width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+
+    div.dataTables_wrapper {
+      padding: 0 1rem 1rem 1rem !important;
+    }
+
+    .dataTables_wrapper .dataTables_length {
+      float: left !important;
+      margin-bottom: 0.5rem !important;
+    }
+
+    .dataTables_wrapper .dataTables_length select {
+      padding: 0.3rem 2rem 0.3rem 0.75rem !important;
+      border-radius: 0.5rem !important;
+      border: 1px solid #d2d6da !important;
+      font-size: 0.8125rem !important;
+      background-color: #fff !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-end !important;
+      padding-top: 1rem !important;
+      float: right !important;
+    }
+
+    .dataTables_wrapper .pagination {
+      margin-bottom: 0 !important;
+      gap: 4px !important;
+      display: flex !important;
+      align-items: center !important;
+      flex-wrap: wrap !important;
+    }
+
+    .dataTables_wrapper .pagination .page-item .page-link {
+      border-radius: 0.5rem !important;
+      min-width: 36px !important;
+      height: 36px !important;
+      padding: 0 12px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 0.8125rem !important;
+      font-weight: 600 !important;
+      color: #67748e !important;
+      border: 1px solid #e9ecef !important;
+      background-color: #ffffff !important;
+      box-shadow: none !important;
+      text-decoration: none !important;
+      white-space: nowrap !important;
+    }
+
+    .dataTables_wrapper .pagination .page-item.previous .page-link,
+    .dataTables_wrapper .pagination .page-item.next .page-link {
+      width: auto !important;
+      min-width: 80px !important;
+      padding: 0 16px !important;
+      border-radius: 0.5rem !important;
+    }
+
+    .dataTables_wrapper .pagination .page-item.active .page-link {
+      background-color: #f26322 !important;
+      border-color: #f26322 !important;
+      color: #ffffff !important;
+    }
+
+    .dataTables_wrapper .pagination .page-item.disabled .page-link {
+      opacity: 0.5 !important;
+      background-color: #f8f9fa !important;
+      cursor: not-allowed !important;
+      color: #8392ab !important;
+    }
+
+    .dataTables_wrapper .dataTables_info {
+      font-size: 0.8125rem !important;
+      color: #67748e !important;
+      padding-top: 1.2rem !important;
+      float: left !important;
+    }
+  </style>
 
   {% block extra_css %}{% endblock %}
 </head>
 
-<body class="g-sidenav-show g-sidenav-pinned bg-gray-100">
+<body class="g-sidenav-show bg-gray-100">
 
-  <aside class="sidenav navbar navbar-vertical navbar-expand-xs fixed-start" id="sidenav-main">
+  <!-- Responsive Sidebar -->
+  <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-0 border-radius-xl my-3 fixed-start ms-3 bg-white" id="sidenav-main">
 
     <div class="sidenav-header">
-      <i class="fas fa-times p-3 cursor-pointer text-secondary opacity-5 position-absolute end-0 top-0 d-none d-xl-none"
+      <i class="fas fa-times p-3 cursor-pointer text-secondary opacity-5 position-absolute end-0 top-0 d-xl-none"
          aria-hidden="true" id="iconSidenav"></i>
 
       <a class="navbar-brand m-0" href="{% url 'login' %}">
-        <span class="brand-text">
+        <span class="brand-text ms-1 font-weight-bold">
           {% if system_settings %}
             {{ system_settings.company_name }}
           {% else %}
@@ -52,7 +241,7 @@
 
     <hr class="horizontal dark mt-0">
 
-    <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
+    <div class="collapse navbar-collapse w-auto h-auto max-height-vh-100" id="sidenav-collapse-main">
       <ul class="navbar-nav">
 
         {% if request.user.is_staff %}
@@ -268,7 +457,7 @@
 
   <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
 
-    <nav class="navbar navbar-main navbar-expand-lg px-0 mx-4 shadow-none border-radius-xl"
+    <nav class="navbar navbar-main navbar-expand-lg px-0 mx-3 mx-md-4 shadow-none border-radius-xl"
          id="navbarBlur" navbar-scroll="true">
 
       <div class="container-fluid py-1 px-3">
@@ -299,8 +488,8 @@
           </h6>
         </nav>
 
-        <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
-          <div class="ms-md-auto pe-md-3 d-flex align-items-center">
+        <div class="collapse navbar-collapse mt-2 mt-sm-0 me-md-0" id="navbar">
+          <div class="ms-auto pe-md-3 d-flex align-items-center">
             <div class="top-user-menu">
               <div class="top-user-avatar">
                 <i class="fa-solid fa-user"></i>
@@ -317,17 +506,16 @@
             </div>
           </div>
 
-          <ul class="navbar-nav justify-content-end">
-            <li class="nav-item d-xl-none ps-3 d-flex align-items-center">
-              <a href="javascript:;" class="nav-link text-body p-0" id="iconNavbarSidenav">
-                <div class="sidenav-toggler-inner">
-                  <i class="sidenav-toggler-line"></i>
-                  <i class="sidenav-toggler-line"></i>
-                  <i class="sidenav-toggler-line"></i>
-                </div>
-              </a>
-            </li>
-          </ul>
+          <!-- Drawer Toggle Button for Mobile/Tablet -->
+          <div class="d-xl-none ps-3 d-flex align-items-center">
+            <a href="javascript:void(0);" class="nav-link text-body p-0" id="iconNavbarSidenav">
+              <div class="sidenav-toggler-inner">
+                <i class="sidenav-toggler-line"></i>
+                <i class="sidenav-toggler-line"></i>
+                <i class="sidenav-toggler-line"></i>
+              </div>
+            </a>
+          </div>
         </div>
 
       </div>
@@ -359,10 +547,20 @@
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- DataTables Responsive JS -->
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
   <script>
     document.addEventListener("DOMContentLoaded", function () {
 
-      // Bulletproof Branch Label Persistence
+      // Turn off DataTables alert dialog popups globally
+      if ($.fn.dataTable) {
+        $.fn.dataTable.ext.errMode = 'none';
+      }
+
+      // 1. Persistent Branch Label Logic
       const branchSpan = document.getElementById("topUserBranch");
       if (branchSpan) {
         const textFromDjango = branchSpan.textContent.trim();
@@ -376,7 +574,51 @@
         }
       }
 
-      // Sidebar Accordion Logic
+      // 2. Direct SideNav Drawer Toggle Handling
+      const iconSidenav = document.getElementById('iconSidenav');
+      const iconNavbarSidenav = document.getElementById('iconNavbarSidenav');
+      const body = document.body;
+      const pinnedClass = 'g-sidenav-pinned';
+
+      function toggleSidebar(e) {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        body.classList.toggle(pinnedClass);
+      }
+
+      function closeSidebar(e) {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        body.classList.remove(pinnedClass);
+      }
+
+      if (iconNavbarSidenav) {
+        iconNavbarSidenav.addEventListener("click", toggleSidebar);
+        const innerToggler = iconNavbarSidenav.querySelector('.sidenav-toggler-inner');
+        if (innerToggler) {
+          innerToggler.addEventListener("click", toggleSidebar);
+        }
+      }
+
+      if (iconSidenav) {
+        iconSidenav.addEventListener("click", closeSidebar);
+      }
+
+      document.addEventListener("click", function (e) {
+        if (window.innerWidth < 1200 && body.classList.contains(pinnedClass)) {
+          const sidenav = document.getElementById('sidenav-main');
+          const toggleBtn = document.getElementById('iconNavbarSidenav');
+          if (sidenav && !sidenav.contains(e.target) && toggleBtn && !toggleBtn.contains(e.target)) {
+            closeSidebar();
+          }
+        }
+      });
+
+      // 3. Sidebar Accordion Navigation
       document.querySelectorAll(".sidebar-folder-toggle").forEach(function (toggle) {
         const targetId = toggle.getAttribute("data-target");
         const target = document.getElementById(targetId);
@@ -412,6 +654,37 @@
           }
         });
       });
+
+      // 4. Safely Auto-Initialize DataTables cleanly with responsive options
+      if ($.fn.DataTable) {
+        $('.table').each(function() {
+          const $table = $(this);
+
+          if ($table.hasClass('no-datatable') || $table.closest('.modal').length > 0) {
+            return;
+          }
+
+          if (!$.fn.DataTable.isDataTable(this)) {
+            $table.DataTable({
+              responsive: true,
+              searching: false,
+              lengthMenu: [
+                [10, 20, 50, 100, -1],
+                [10, 20, 50, 100, "All"]
+              ],
+              pageLength: 10,
+              language: {
+                lengthMenu: "Show _MENU_ records per page",
+                paginate: {
+                  previous: "<i class='fa-solid fa-chevron-left text-xs me-1'></i> Previous",
+                  next: "Next <i class='fa-solid fa-chevron-right text-xs ms-1'></i>"
+                }
+              }
+            });
+          }
+        });
+      }
+
     });
   </script>
 

@@ -452,7 +452,8 @@
 
       <form
         method="POST"
-        action="{% url 'visitor_create' %}">
+        action="{% url 'visitor_create' %}"
+        id="addVisitorForm">
 
         {% csrf_token %}
 
@@ -503,6 +504,7 @@
                 <input
                   type="text"
                   name="visitor_name"
+                  id="addVisitorName"
                   class="form-control"
                   maxlength="100"
                   placeholder="Enter visitor name"
@@ -519,6 +521,7 @@
                 <input
                   type="text"
                   name="visitor_phone"
+                  id="addVisitorPhone"
                   class="form-control"
                   maxlength="15"
                   placeholder="Example: 03001234567"
@@ -534,6 +537,7 @@
                 <input
                   type="text"
                   name="visitor_cnic"
+                  id="addVisitorCnic"
                   class="form-control cnic-input"
                   maxlength="15"
                   inputmode="numeric"
@@ -557,6 +561,7 @@
                 <input
                   type="text"
                   name="visitor_company"
+                  id="addVisitorCompany"
                   class="form-control"
                   maxlength="150"
                   placeholder="Enter company name"
@@ -568,7 +573,7 @@
                 <label class="form-label">
                   Company Type
                 </label>
-                <select name="company_type" class="form-control">
+                <select name="company_type" id="addVisitorCompanyType" class="form-control">
                   <option value="">Select Company Type</option>
                   {% for ct in company_types %}
                   <option value="{{ ct.id }}" {% if form_company_type == ct.id|stringformat:"s" %}selected{% endif %}>
@@ -588,6 +593,7 @@
               </label>
               <textarea
                 name="visitor_address"
+                id="addVisitorAddress"
                 class="form-control"
                 rows="3"
                 maxlength="255"
@@ -610,6 +616,7 @@
 
           <button
             type="submit"
+            id="btnSaveVisitor"
             class="btn btn-primary btn-sm"
             style="background: #f26322; border-color: #f26322;">
 
@@ -774,45 +781,99 @@
     "DOMContentLoaded",
     function () {
 
-      const params = new URLSearchParams(
-        window.location.search
-      );
+      const params = new URLSearchParams(window.location.search);
 
-      if (
-        params.get("open_add_visitor") === "1"
-      ) {
-        const modalElement = document.getElementById(
-          "addVisitorModal"
-        );
-
+      if (params.get("open_add_visitor") === "1") {
+        const modalElement = document.getElementById("addVisitorModal");
         if (modalElement) {
-          const modal = new bootstrap.Modal(
-            modalElement
-          );
-
+          const modal = new bootstrap.Modal(modalElement);
           modal.show();
         }
+      }
+
+      /* Focus first input automatically when modal finishes opening */
+      const addModalElem = document.getElementById("addVisitorModal");
+      if (addModalElem) {
+        addModalElem.addEventListener("shown.bs.modal", function () {
+          const nameInput = document.getElementById("addVisitorName");
+          if (nameInput) {
+            nameInput.focus();
+          }
+        });
+      }
+
+      /* Handle ENTER key navigation across all form fields */
+      const nameInput = document.getElementById("addVisitorName");
+      const phoneInput = document.getElementById("addVisitorPhone");
+      const cnicInput = document.getElementById("addVisitorCnic");
+      const companyInput = document.getElementById("addVisitorCompany");
+      const typeSelect = document.getElementById("addVisitorCompanyType");
+      const addressInput = document.getElementById("addVisitorAddress");
+      const addForm = document.getElementById("addVisitorForm");
+
+      if (nameInput) {
+        nameInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            phoneInput.focus();
+          }
+        });
+      }
+
+      if (phoneInput) {
+        phoneInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            cnicInput.focus();
+          }
+        });
+      }
+
+      if (cnicInput) {
+        cnicInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            companyInput.focus();
+          }
+        });
+      }
+
+      if (companyInput) {
+        companyInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            typeSelect.focus();
+          }
+        });
+      }
+
+      if (typeSelect) {
+        typeSelect.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            addressInput.focus();
+          }
+        });
+      }
+
+      if (addressInput) {
+        addressInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            if (addForm) {
+              addForm.submit();
+            }
+          }
+        });
       }
 
       /*
        * Allow only digits, spaces and hyphens in CNIC fields.
        */
-      document.querySelectorAll(
-        ".cnic-input"
-      ).forEach(function (input) {
-
-        input.addEventListener(
-          "input",
-          function () {
-
-            input.value = input.value.replace(
-              /[^0-9-\s]/g,
-              ""
-            );
-
-          }
-        );
-
+      document.querySelectorAll(".cnic-input").forEach(function (input) {
+        input.addEventListener("input", function () {
+          input.value = input.value.replace(/[^0-9-\s]/g, "");
+        });
       });
 
     }
