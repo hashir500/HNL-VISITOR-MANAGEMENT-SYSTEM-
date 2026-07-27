@@ -16,7 +16,6 @@
     <form method="GET" action="{% url 'report_history' %}">
       <div class="row">
 
-        <!-- Visitor Filter Dropdown Fixed -->
         <div class="col-md-4 mb-3">
           <label class="form-label">Visitor</label>
           <select name="visitor" class="form-control select2">
@@ -145,15 +144,15 @@
   </div>
 </div>
 
-<!-- SINGLE FULL-WIDTH HORIZONTAL BAR CHART (WEB UI ONLY - EXCLUDED FROM PDF) -->
+<!-- SINGLE FULL-WIDTH HORIZONTAL BAR CHART GROUPED BY DEPARTMENT -->
 <div class="row">
   <div class="col-12">
     <div class="card">
       <div class="card-header pb-0">
-        <h6>Top Visit Purposes Volume</h6>
+        <h6>Top Visit Volume by Department</h6>
       </div>
       <div class="card-body">
-        <canvas id="historyPurposeBarChart" height="90"></canvas>
+        <canvas id="historyDepartmentBarChart" height="90"></canvas>
       </div>
     </div>
   </div>
@@ -168,17 +167,17 @@
     $('.select2').select2({ width: '100%' });
 
     {% if report_generated %}
-    const purposeLabels = {{ history_purpose_labels|safe }};
-    const purposeCounts = {{ history_purpose_counts|safe }};
+    const departmentLabels = {{ history_department_labels|safe }};
+    const departmentCounts = {{ history_department_counts|safe }};
 
-    // Single Horizontal Bar Chart: Purposes
-    new Chart(document.getElementById('historyPurposeBarChart'), {
+    // Single Horizontal Bar Chart: Grouped by Department
+    new Chart(document.getElementById('historyDepartmentBarChart'), {
       type: 'bar',
       data: {
-        labels: purposeLabels,
+        labels: departmentLabels,
         datasets: [{
           label: 'Visits Count',
-          data: purposeCounts,
+          data: departmentCounts,
           backgroundColor: '#f26322',
           borderRadius: 4
         }]

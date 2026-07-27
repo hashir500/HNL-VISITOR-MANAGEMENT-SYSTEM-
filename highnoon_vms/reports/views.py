@@ -247,13 +247,12 @@ def get_filtered_history_queryset(request):
     visits = apply_report_access_filter(visits, access, selected_company, selected_branch)
     visits = apply_date_filter(visits, date_settings)
 
-    # Correct Parameter Retrieval & Parsing
+    # Filter Parameters
     selected_visitor = normalize_filter_value(request.GET.get("visitor"))
     selected_employee = normalize_filter_value(request.GET.get("employee"))
     selected_purpose = normalize_filter_value(request.GET.get("purpose"))
     selected_status = normalize_filter_value(request.GET.get("status"))
 
-    # FIXED VISITOR FILTER LOGIC
     if selected_visitor:
         try:
             v_id = int(selected_visitor)
@@ -265,7 +264,6 @@ def get_filtered_history_queryset(request):
                 Q(visitor__visitor_name__iexact=selected_visitor) | Q(visitor_id=selected_visitor)
             )
 
-    # EMPLOYEE FILTER LOGIC
     if selected_employee:
         try:
             emp_id = int(selected_employee)
@@ -273,7 +271,6 @@ def get_filtered_history_queryset(request):
         except ValueError:
             visits = visits.filter(employee__emp_name__iexact=selected_employee)
 
-    # PURPOSE FILTER LOGIC
     if selected_purpose:
         purpose_obj = sys_pur_master.objects.filter(pur_id=selected_purpose).first()
         if purpose_obj:
@@ -281,7 +278,6 @@ def get_filtered_history_queryset(request):
         else:
             visits = visits.filter(visit_purpose__iexact=selected_purpose)
 
-    # STATUS FILTER LOGIC
     if selected_status:
         visits = visits.filter(status__iexact=selected_status)
 
@@ -298,14 +294,15 @@ def get_filtered_history_queryset(request):
             "duration_display": duration_str,
         })
 
-    # Top Visit Volume by Purpose (Single Horizontal Bar Chart Data)
-    purpose_qs = (
-        visits.values("visit_purpose")
+    # GROUP BY DEPARTMENT FOR THE HISTORY GRAPH
+    department_qs = (
+        visits.filter(employee__isnull=False)
+        .values("employee__emp_dep_code__dep_desc")
         .annotate(total=Count("visit_id"))
         .order_by("-total")[:8]
     )
-    purpose_labels = [p["visit_purpose"] or "Unknown" for p in purpose_qs]
-    purpose_counts = [p["total"] for p in purpose_qs]
+    department_labels = [d["employee__emp_dep_code__dep_desc"] or "Unassigned" for d in department_qs]
+    department_counts = [d["total"] for d in department_qs]
 
     title_suffix = date_settings["title_suffix"]
     report_title = "Visit History Report"
@@ -324,8 +321,8 @@ def get_filtered_history_queryset(request):
         "selected_purpose": selected_purpose or "ALL",
         "selected_status": selected_status or "ALL",
         "date_settings": date_settings,
-        "history_purpose_labels": purpose_labels,
-        "history_purpose_counts": purpose_counts,
+        "history_department_labels": department_labels,
+        "history_department_counts": department_counts,
     }
 
 
