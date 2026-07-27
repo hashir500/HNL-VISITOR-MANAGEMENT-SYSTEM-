@@ -526,7 +526,7 @@
       }
     });
 
-    $("#editCheckInInput").flatpickr({
+    const editCheckInPicker = $("#editCheckInInput").flatpickr({
       enableTime: true,
       time_24hr: true,
       dateFormat: "Y-m-d H:i",
@@ -800,7 +800,11 @@
       }
     });
 
-    $('.btn-edit-backlog').on('click', function () {
+    /* =========================================================
+       DELEGATED EVENT HANDLERS (WORKS ACROSS ALL DATATABLES PAGES)
+       ========================================================= */
+    $(document).on('click', '.btn-edit-backlog', function (e) {
+      e.preventDefault();
       const btn = $(this);
       const actionUrl = btn.data('action-url');
       const visitorId = btn.data('visitor-id');
@@ -835,15 +839,16 @@
         });
       }
 
-      if (checkinVal) checkInPicker.setDate(checkinVal, true);
-      if (checkoutVal) checkOutPicker.setDate(checkoutVal, true);
-      else checkOutPicker.clear();
+      if (checkinVal) editCheckInPicker.setDate(checkinVal, true);
+      if (checkoutVal) editCheckOutPicker.setDate(checkoutVal, true);
+      else editCheckOutPicker.clear();
 
       const editModal = new bootstrap.Modal(document.getElementById('editBacklogModal'));
       editModal.show();
     });
 
-    $('.btn-delete-backlog').on('click', function () {
+    $(document).on('click', '.btn-delete-backlog', function (e) {
+      e.preventDefault();
       const btn = $(this);
       const actionUrl = btn.data('action-url');
       const visitId = btn.data('visit-id');
