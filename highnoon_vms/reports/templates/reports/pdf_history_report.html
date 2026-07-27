@@ -3,15 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    /* FORCE VERTICAL ORIENTATION */
     @page {
       size: A4 portrait;
       margin: 15mm 10mm 15mm 15mm;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       font-family: Arial, sans-serif;
@@ -22,22 +19,17 @@
 
     .report-box {
       border: 2px solid #555;
-      min-height: 267mm; /* Scaled perfectly for portrait A4 dimensions */
+      min-height: 267mm;
       padding: 6px 8mm;
     }
 
-    /* ---------- Header Layout Structure ---------- */
     .header-table {
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 12px;
     }
 
-    .header-table td {
-      border: none;
-      padding: 8px 10px;
-    }
-
+    .header-table td { border: none; padding: 8px 10px; }
     .header-table .divider-row td {
       border-bottom: 2px solid #555;
       padding: 10px 10px 12px 10px;
@@ -52,27 +44,10 @@
       padding-left: 6px;
     }
 
-    .published .label {
-      font-weight: bold;
-    }
-
-    .title-cell {
-      text-align: center;
-      vertical-align: middle;
-      padding: 6px 20px;
-    }
-
-    .company-name {
-      font-size: 12pt;
-      font-weight: bold;
-      text-transform: uppercase;
-    }
-
-    .report-title {
-      font-size: 15pt;
-      font-weight: bold;
-      margin-top: 6px;
-    }
+    .published .label { font-weight: bold; }
+    .title-cell { text-align: center; vertical-align: middle; padding: 6px 20px; }
+    .company-name { font-size: 12pt; font-weight: bold; text-transform: uppercase; }
+    .report-title { font-size: 15pt; font-weight: bold; margin-top: 6px; }
 
     .page-cell {
       width: 35mm;
@@ -83,7 +58,6 @@
       padding-right: 6px;
     }
 
-    /* ---------- Data Logging Table ---------- */
     table.history-table {
       width: 100%;
       border-collapse: collapse;
@@ -112,7 +86,6 @@
 
     <table class="header-table">
       <tr class="divider-row">
-        <!-- Meta Generation Details -->
         <td class="published">
           <span class="label">Published</span><br>
           <span class="label">Date</span>&nbsp;&nbsp;: {{ published_date }}<br>
@@ -120,59 +93,50 @@
           <span class="label">By</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ generated_by }}
         </td>
 
-        <!-- Center Branding Elements -->
         <td class="title-cell">
           <div class="company-name">Highnoon Laboratories Limited</div>
           <div class="report-title">{{ report_title }}</div>
         </td>
 
-        <!-- Pagination Counters -->
         <td class="page-cell">
-          Page {{ current_page|default:1 }} of {{ total_pages|default:1 }}
+          Page 1 of 1
         </td>
       </tr>
     </table>
 
-    <!-- Vertical Optimized Grid -->
     <table class="history-table">
       <thead>
         <tr>
-          <th style="width: 6%;">ID</th>
-          <th style="width: 15%;">Visitor Name</th>
-          <th style="width: 15%;">Host Employee</th>
-          <th style="width: 12%;">Department</th>
-          <th style="width: 10%;">Card No</th>
+          <th style="width: 5%;">ID</th>
+          <th style="width: 16%;">Visitor Name</th>
+          <th style="width: 16%;">Host Employee</th>
+          <th style="width: 13%;">Department</th>
           <th style="width: 14%;">Visit Purpose</th>
-          <th style="width: 11%;">Check In</th>
-          <th style="width: 11%;">Check Out</th>
-          <th style="width: 6%;">Status</th>
+          <th style="width: 12%;">Check In</th>
+          <th style="width: 12%;">Check Out</th>
+          <th style="width: 12%;">Duration</th>
+          <th style="width: 10%;">Status</th>
         </tr>
       </thead>
 
       <tbody>
-        {% for v in visits %}
+        {% for item in visits_data %}
         <tr>
-          <td>{{ v.visit_id }}</td>
-          <td>{{ v.visitor.visitor_name }}</td>
-          <td>{{ v.employee.emp_name }}</td>
-          <td>{{ v.employee.emp_dep_code }}</td>
+          <td>{{ item.object.visit_id }}</td>
+          <td>{{ item.object.visitor.visitor_name }}</td>
+          <td>{{ item.object.employee.emp_name }}</td>
+          <td>{{ item.object.employee.emp_dep_code.dep_desc|default:"-" }}</td>
+          <td>{{ item.object.visit_purpose }}</td>
+          <td>{{ item.object.check_in_time|date:"d M Y, h:i A" }}</td>
           <td>
-            {% if v.visitor_card %}
-              {{ v.visitor_card.CRD_No }}
+            {% if item.object.check_out_time %}
+              {{ item.object.check_out_time|date:"d M Y, h:i A" }}
             {% else %}
               -
             {% endif %}
           </td>
-          <td>{{ v.visit_purpose }}</td>
-          <td>{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
-          <td>
-            {% if v.check_out_time %}
-              {{ v.check_out_time|date:"d M Y, h:i A" }}
-            {% else %}
-              -
-            {% endif %}
-          </td>
-          <td>{{ v.status }}</td>
+          <td style="font-weight: bold;">{{ item.duration_display }}</td>
+          <td>{{ item.object.status }}</td>
         </tr>
         {% empty %}
         <tr>

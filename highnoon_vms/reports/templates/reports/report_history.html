@@ -9,30 +9,33 @@
 <div class="card mb-4">
   <div class="card-header pb-0">
     <h6>Generate History Report</h6>
-    <p class="text-xs text-secondary">View detailed visit records using date, company, branch, visitor, employee, purpose, status, and card filters</p>
+    <p class="text-xs text-secondary">View detailed visit records using date, company, branch, visitor, employee, purpose, and status filters</p>
   </div>
 
   <div class="card-body">
     <form method="GET" action="{% url 'report_history' %}">
       <div class="row">
 
-        <!-- Row 1: Core Target Selectors -->
+        <!-- Visitor Filter Dropdown Fixed -->
         <div class="col-md-4 mb-3">
           <label class="form-label">Visitor</label>
           <select name="visitor" class="form-control select2">
             <option value="ALL" {% if selected_visitor == "ALL" %}selected{% endif %}>All Visitors</option>
             {% for v in visitors %}
-              <option value="{{ v.id }}" {% if selected_visitor == v.id|stringformat:"s" %}selected{% endif %}>{{ v.visitor_name }}</option>
+              <option value="{% if v.visitor_id %}{{ v.visitor_id }}{% else %}{{ v.id }}{% endif %}"
+                {% if selected_visitor == v.visitor_id|stringformat:"s" or selected_visitor == v.id|stringformat:"s" or selected_visitor == v.pk|stringformat:"s" %}selected{% endif %}>
+                {{ v.visitor_name }}{% if v.visitor_phone %} ({{ v.visitor_phone }}){% endif %}
+              </option>
             {% endfor %}
           </select>
         </div>
 
         <div class="col-md-4 mb-3">
-          <label class="form-label">Employee</label>
+          <label class="form-label">Employee (Designation)</label>
           <select name="employee" class="form-control select2">
             <option value="ALL" {% if selected_employee == "ALL" %}selected{% endif %}>All Employees</option>
-            {% for emp in employees %}
-              <option value="{{ emp.id }}" {% if selected_employee == emp.id|stringformat:"s" %}selected{% endif %}>{{ emp.emp_name }}</option>
+            {% for emp in formatted_employees %}
+              <option value="{{ emp.id }}" {% if selected_employee == emp.id|stringformat:"s" %}selected{% endif %}>{{ emp.name }}</option>
             {% endfor %}
           </select>
         </div>
@@ -47,7 +50,6 @@
           </select>
         </div>
 
-        <!-- Row 2: Secondary Identifiers -->
         <div class="col-md-4 mb-3">
           <label class="form-label">Status</label>
           <select name="status" class="form-control select2">
@@ -58,21 +60,6 @@
         </div>
 
         <div class="col-md-4 mb-3">
-          <label class="form-label">Visitor Card</label>
-          <select name="card" class="form-control select2">
-            <option value="ALL" {% if selected_card == "ALL" %}selected{% endif %}>All Cards</option>
-            {% for c in cards %}
-              <option value="{{ c.id }}" {% if selected_card == c.id|stringformat:"s" %}selected{% endif %}>{{ c.CRD_No }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="col-md-4 mb-3 d-none d-md-block">
-          <!-- Column placeholder spacer to align grid rows symmetrically -->
-        </div>
-
-        <!-- Row 3: Explicit Date Boundaries (Placed Directly Below Parameters) -->
-        <div class="col-md-4 mb-3">
           <label class="form-label">Start Date</label>
           <input type="date" name="start_date" class="form-control" value="{{ selected_start_date }}" required>
         </div>
@@ -82,8 +69,7 @@
           <input type="date" name="end_date" class="form-control" value="{{ selected_end_date }}" required>
         </div>
 
-        <!-- Form Dispatch Controls -->
-        <div class="col-md-4 mb-3 d-flex align-items-end justify-content-end gap-2">
+        <div class="col-md-12 d-flex justify-content-end gap-2 mt-2">
           <a href="{% url 'report_history' %}" class="btn btn-secondary btn-sm mb-0 py-2 px-4">
             <i class="fa-solid fa-rotate-left me-1"></i> Reset
           </a>
@@ -98,7 +84,7 @@
 </div>
 
 {% if report_generated %}
-<div class="card">
+<div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
     <div>
       <h6 class="mb-0">{{ report_title }}</h6>
@@ -108,7 +94,7 @@
     </div>
 
     {% if perms.reports.download_reports %}
-    <a href="{% url 'download_history_pdf' %}?start_date={{ selected_start_date }}&end_date={{ selected_end_date }}&visitor={{ selected_visitor }}&employee={{ selected_employee }}&purpose={{ selected_purpose }}&status={{ selected_status }}&card={{ selected_card }}"
+    <a href="{% url 'download_history_pdf' %}?start_date={{ selected_start_date }}&end_date={{ selected_end_date }}&visitor={{ selected_visitor }}&employee={{ selected_employee }}&purpose={{ selected_purpose }}&status={{ selected_status }}"
        class="btn btn-primary btn-sm mb-0">
       <i class="fa-solid fa-download me-1"></i> Download PDF
     </a>
@@ -120,31 +106,31 @@
       <table class="table align-items-center mb-0">
         <thead>
           <tr>
-            <th class="text-xs font-weight-bold">ID</th>
+            <th class="text-xs font-weight-bold ps-3">ID</th>
             <th class="text-xs font-weight-bold">Visitor</th>
             <th class="text-xs font-weight-bold">Employee</th>
             <th class="text-xs font-weight-bold">Department</th>
-            <th class="text-xs font-weight-bold">Card No</th>
             <th class="text-xs font-weight-bold">Purpose</th>
             <th class="text-xs font-weight-bold">Check In</th>
             <th class="text-xs font-weight-bold">Check Out</th>
+            <th class="text-xs font-weight-bold">Duration</th>
             <th class="text-xs font-weight-bold">Status</th>
           </tr>
         </thead>
         <tbody>
-          {% for v in visits %}
+          {% for item in visits_data %}
           <tr>
-            <td class="text-sm ps-3">{{ v.visit_id }}</td>
-            <td class="text-sm">{{ v.visitor.visitor_name }}</td>
-            <td class="text-sm">{{ v.employee.emp_name }}</td>
-            <td class="text-sm">{{ v.employee.emp_dep_code }}</td>
-            <td class="text-sm">{% if v.visitor_card %}{{ v.visitor_card.CRD_No }}{% else %}-{% endif %}</td>
-            <td class="text-sm">{{ v.visit_purpose }}</td>
-            <td class="text-sm">{{ v.check_in_time|date:"d M Y, h:i A" }}</td>
-            <td class="text-sm">{% if v.check_out_time %}{{ v.check_out_time|date:"d M Y, h:i A" }}{% else %}-{% endif %}</td>
+            <td class="text-sm ps-3">{{ item.object.visit_id }}</td>
+            <td class="text-sm">{{ item.object.visitor.visitor_name }}</td>
+            <td class="text-sm">{{ item.object.employee.emp_name }}</td>
+            <td class="text-sm">{{ item.object.employee.emp_dep_code.dep_desc|default:"-" }}</td>
+            <td class="text-sm">{{ item.object.visit_purpose }}</td>
+            <td class="text-sm">{{ item.object.check_in_time|date:"d M Y, h:i A" }}</td>
+            <td class="text-sm">{% if item.object.check_out_time %}{{ item.object.check_out_time|date:"d M Y, h:i A" }}{% else %}-{% endif %}</td>
+            <td class="text-sm font-weight-bold text-dark">{{ item.duration_display }}</td>
             <td class="text-sm">
-              <span class="badge {% if v.status == 'Checked In' %}bg-success{% else %}bg-secondary{% endif %} text-xxs">
-                {{ v.status }}
+              <span class="badge {% if item.object.status == 'Checked In' %}bg-success{% else %}bg-secondary{% endif %} text-xxs">
+                {{ item.object.status }}
               </span>
             </td>
           </tr>
@@ -158,6 +144,20 @@
     </div>
   </div>
 </div>
+
+<!-- SINGLE FULL-WIDTH HORIZONTAL BAR CHART (WEB UI ONLY - EXCLUDED FROM PDF) -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header pb-0">
+        <h6>Top Visit Purposes Volume</h6>
+      </div>
+      <div class="card-body">
+        <canvas id="historyPurposeBarChart" height="90"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
 {% endif %}
 
 {% endblock %}
@@ -165,9 +165,34 @@
 {% block extra_js %}
 <script>
   $(document).ready(function () {
-    $('.select2').select2({
-      width: '100%'
+    $('.select2').select2({ width: '100%' });
+
+    {% if report_generated %}
+    const purposeLabels = {{ history_purpose_labels|safe }};
+    const purposeCounts = {{ history_purpose_counts|safe }};
+
+    // Single Horizontal Bar Chart: Purposes
+    new Chart(document.getElementById('historyPurposeBarChart'), {
+      type: 'bar',
+      data: {
+        labels: purposeLabels,
+        datasets: [{
+          label: 'Visits Count',
+          data: purposeCounts,
+          backgroundColor: '#f26322',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0 } }
+        }
+      }
     });
+    {% endif %}
   });
 </script>
 {% endblock %}

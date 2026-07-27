@@ -3,15 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    /* Strict corporate Portrait Layout specs */
     @page {
       size: A4 portrait;
       margin: 15mm 10mm 15mm 15mm;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       font-family: Arial, sans-serif;
@@ -26,18 +23,13 @@
       padding: 6px 8mm;
     }
 
-    /* ---------- Header Layout Structure ---------- */
     .header-table {
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 12px;
     }
 
-    .header-table td {
-      border: none;
-      padding: 8px 10px;
-    }
-
+    .header-table td { border: none; padding: 8px 10px; }
     .header-table .divider-row td {
       border-bottom: 2px solid #555;
       padding: 10px 10px 12px 10px;
@@ -52,27 +44,10 @@
       padding-left: 6px;
     }
 
-    .published .label {
-      font-weight: bold;
-    }
-
-    .title-cell {
-      text-align: center;
-      vertical-align: middle;
-      padding: 6px 20px;
-    }
-
-    .company-name {
-      font-size: 12pt;
-      font-weight: bold;
-      text-transform: uppercase;
-    }
-
-    .report-title {
-      font-size: 14pt;
-      font-weight: bold;
-      margin-top: 6px;
-    }
+    .published .label { font-weight: bold; }
+    .title-cell { text-align: center; vertical-align: middle; padding: 6px 20px; }
+    .company-name { font-size: 12pt; font-weight: bold; text-transform: uppercase; }
+    .report-title { font-size: 14pt; font-weight: bold; margin-top: 6px; }
 
     .page-cell {
       width: 35mm;
@@ -83,7 +58,6 @@
       padding-right: 6px;
     }
 
-    /* ---------- Summary Stat Strip Cards ---------- */
     .stat-strip-table {
       width: 100%;
       border-collapse: collapse;
@@ -113,7 +87,6 @@
       margin-top: 3px;
     }
 
-    /* ---------- Data Table Grid ---------- */
     table.summary-table {
       width: 100%;
       border-collapse: collapse;
@@ -134,16 +107,13 @@
       color: #111827;
     }
 
-    table.summary-table td {
-      color: #344767;
-    }
+    table.summary-table td { color: #344767; }
   </style>
 </head>
 
 <body>
   <div class="report-box">
 
-    <!-- Top Generation Meta Branding Bar -->
     <table class="header-table">
       <tr class="divider-row">
         <td class="published">
@@ -159,38 +129,36 @@
         </td>
 
         <td class="page-cell">
-          Page {{ current_page|default:1 }} of {{ total_pages|default:1 }}
+          Page 1 of 1
         </td>
       </tr>
     </table>
 
-    <!-- Consolidated Symmetrical Analytics Metric Strip -->
     <table class="stat-strip-table">
       <tr>
         <td>
-          <div class="stat-label">Total Unique Visitors</div>
+          <div class="stat-label">No of visitors</div>
           <div class="stat-value">{{ total_unique_visitors }}</div>
         </td>
         <td>
-          <div class="stat-label">Total Formed Visits</div>
+          <div class="stat-label">No of Visits</div>
           <div class="stat-value">{{ total_visits }}</div>
         </td>
         <td>
-          <div class="stat-label">Overall Avg Duration</div>
-          <div class="stat-value">{{ overall_average_duration_display }}</div>
+          <div class="stat-label">Total Duration</div>
+          <div class="stat-value">{{ total_duration_display }}</div>
         </td>
       </tr>
     </table>
 
-    <!-- Main Segmented Matrix Grid -->
     <table class="summary-table">
       <thead>
         <tr>
-          <!-- Dynamically prints the precise category group heading constraint context -->
-          <th style="width: 46%;">{{ group_label }} Category</th>
-          <th style="width: 18%;">Distinct Visitors</th>
-          <th style="width: 18%;">Total Logged Visits</th>
-          <th style="width: 18%;">Avg Session Duration</th>
+          <th style="width: 35%;">{{ group_label }} Category</th>
+          <th style="width: 20%;">Total visit time</th>
+          <th style="width: 15%;">No of visitors</th>
+          <th style="width: 15%;">No of Visits</th>
+          <th style="width: 15%;">Visit Duration</th>
         </tr>
       </thead>
 
@@ -198,13 +166,14 @@
         {% for row in summary_rows %}
         <tr>
           <td style="font-weight: bold; color: #111827;">{{ row.dimension_value }}</td>
+          <td style="font-weight: bold; color: #111827;">{{ row.total_visit_time_display }}</td>
           <td>{{ row.visitor_count }}</td>
           <td>{{ row.total_visits }}</td>
-          <td style="font-weight: bold; color: #111827;">{{ row.average_duration_display }}</td>
+          <td style="font-weight: bold; color: #111827;">{{ row.visit_duration_display }}</td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="4" style="text-align: center; color: #555; padding: 15px;">No active system transactions match this summary date range scope window.</td>
+          <td colspan="5" style="text-align: center; color: #555; padding: 15px;">No active system transactions match this summary date range scope window.</td>
         </tr>
         {% endfor %}
       </tbody>
