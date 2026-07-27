@@ -187,10 +187,8 @@ def get_employees_by_branch(request):
         "emp_cmp", "emp_bra_code", "emp_dep_code"
     ).filter(emp_active=True)
 
-    # Clean branch code (e.g. '02' -> '2' for fallback matching)
     clean_branch = branch_code.lstrip('0') if branch_code else ''
 
-    # Filter by branch unless searching globally
     if not search_all and branch_code and branch_code.upper() != "ALL":
         employees = employees.filter(
             Q(emp_bra_code__bra_code__iexact=branch_code) |
@@ -201,7 +199,6 @@ def get_employees_by_branch(request):
         if access["has_user_master"] and not access["can_select_company"] and access["assigned_company_code"]:
             employees = employees.filter(emp_cmp__cmp_code=access["assigned_company_code"])
 
-    # Live search query by Name or PNO
     if search_term:
         employees = employees.filter(
             Q(emp_name__icontains=search_term) |
@@ -213,8 +210,6 @@ def get_employees_by_branch(request):
     data = []
     for emp in employees:
         des_desc = ""
-        
-        # Safe extraction of designation regardless of field name
         for attr in ["emp_des_code", "emp_designation", "emp_desig", "designation"]:
             if hasattr(emp, attr):
                 val = getattr(emp, attr)
@@ -222,11 +217,7 @@ def get_employees_by_branch(request):
                     des_desc = getattr(val, "des_desc", getattr(val, "des_name", str(val)))
                     break
 
-        # Format as "Employee Name (Designation)"
-        if des_desc:
-            formatted_text = f"{emp.emp_name} ({des_desc})"
-        else:
-            formatted_text = emp.emp_name
+        formatted_text = f"{emp.emp_name} ({des_desc})" if des_desc else emp.emp_name
 
         data.append({
             "id": emp.pk,
@@ -236,6 +227,7 @@ def get_employees_by_branch(request):
         })
 
     return JsonResponse({"results": data, "employees": data})
+
 
 @login_required
 @permission_required("visits.can_view_backlogs", raise_exception=True)
@@ -257,11 +249,11 @@ def visit_list(request):
     start_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
     end_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.max.time()))
 
+    # Show visits for today or those currently checked in
     visits = visit.objects.select_related(
         "visitor", "employee", "employee__emp_cmp", "employee__emp_bra_code", "employee__emp_dep_code", "visitor_card"
     ).filter(
-        (Q(check_in_time__range=(start_of_day, end_of_day)) | Q(status="Checked In")),
-        is_backlog=False
+        (Q(check_in_time__range=(start_of_day, end_of_day)) | Q(status="Checked In"))
     )
 
     visits = apply_visit_access_filter(visits, access, selected_company, selected_branch)
@@ -467,7 +459,8 @@ def backlog_list_create(request):
     access = get_visit_access_settings(request)
     selected_company, selected_branch = get_selected_access_filters(request, access)
 
-    backlogs = visit.objects.filter(is_backlog=True).select_related(
+    # REMOVED is_backlog=True filter so ALL visits appear in Revisions/Backlogs
+    backlogs = visit.objects.all().select_related(
         "visitor", "employee", "employee__emp_cmp", "employee__emp_bra_code", "employee__emp_dep_code", "visitor_card"
     )
     backlogs = apply_visit_access_filter(backlogs, access, selected_company, selected_branch)
@@ -521,10 +514,11 @@ def backlog_list_create(request):
 @login_required
 @permission_required("visits.can_view_backlogs", raise_exception=True)
 def backlog_edit(request, visit_id):
-    visit_obj = get_object_or_404(visit, visit_id=visit_id, is_backlog=True)
+    # REMOVED is_backlog=True requirement so live visits can also be edited here
+    visit_obj = get_object_or_404(visit, visit_id=visit_id)
 
     if not user_can_access_employee(request, visit_obj.employee):
-        messages.error(request, "You do not have permission to edit this backlog entry.")
+        messages.error(request, "You do not have permission to edit this entry.")
         return redirect('backlog_list_create')
 
     if request.method == "POST":
@@ -574,7 +568,7 @@ def backlog_edit(request, visit_id):
             visit_obj.status = final_status
             visit_obj.save()
 
-            messages.success(request, f"Backlog entry #{visit_obj.visit_id} updated successfully!")
+            messages.success(request, f"Revision entry #{visit_obj.visit_id} updated successfully!")
         except Exception as e:
             messages.error(request, f"Database Update Error: {str(e)}")
 
@@ -584,17 +578,18 @@ def backlog_edit(request, visit_id):
 @login_required
 @permission_required("visits.can_view_backlogs", raise_exception=True)
 def backlog_delete(request, visit_id):
-    visit_obj = get_object_or_404(visit, visit_id=visit_id, is_backlog=True)
+    # REMOVED is_backlog=True requirement so live visits can also be deleted here
+    visit_obj = get_object_or_404(visit, visit_id=visit_id)
 
     if not user_can_access_employee(request, visit_obj.employee):
-        messages.error(request, "You do not have permission to delete this backlog entry.")
+        messages.error(request, "You do not have permission to delete this entry.")
         return redirect('backlog_list_create')
 
     if request.method == "POST":
         try:
             visit_id_num = visit_obj.visit_id
             visit_obj.delete()
-            messages.success(request, f"Backlog record #{visit_id_num} deleted successfully.")
+            messages.success(request, f"Revision record #{visit_id_num} deleted successfully.")
         except Exception as e:
             messages.error(request, f"Delete Error: {str(e)}")
 
