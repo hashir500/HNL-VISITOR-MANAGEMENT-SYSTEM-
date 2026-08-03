@@ -1,0 +1,119 @@
+# Highnoon Visitor Management System (VMS)
+
+A robust, enterprise-grade Django application designed to streamline, track, and audit visitor traffic across multiple corporate facilities and branches. Built with Django, Bootstrap 5, Select2, and Chart.js, Highnoon VMS offers live check-in/check-out tracking, retroactive revision logging, dynamic role-based access control, and detailed analytics with downloadable PDF reports.
+
+---
+
+## Key Features
+
+### Multi-Branch & Role-Based Access Control
+- **Scoped Visibility** — Automatically filters visitor records based on the logged-in user's assigned company and branch (`sys_usr_system`).
+- **Superuser Controls** — Superusers and elevated roles can toggle filters to audit data across all corporate branches and companies.
+
+### Live Visit Management & Revisions
+- **On-the-Spot Check-In/Out** — Issue active visitor cards, log visit purposes, and record exact check-in/check-out timestamps.
+- **Backlogs & Revisions** — Log retroactive visits or update historical entries seamlessly using dynamic, single-series delegated modals across paginated data views.
+- **Smart Visitor-Employee Auto-fill** — Remembers previous host employees for returning visitors to speed up registration.
+
+### Analytics & Reporting Engine
+- **Summary Reports** — Aggregate visit counts, distinct visitor counts, total duration, and visit time breakdown dynamically grouped by Purpose, Company, Branch, Department, Division, Employee, or Visitor.
+- **History Reports** — Searchable historical logs with filters for date range (defaulting to the 1st of the current month through today), status, purpose, host employee (with designation), and visitor details.
+- **Visual Dashboards** — Integrated Chart.js horizontal bar charts and entry traffic load metrics (excluded from exports to keep PDFs clean).
+- **Exportable PDF Reports** — Single-click generation of formatted A4 portrait PDFs for both Summary and History reports.
+
+---
+
+## Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| **Backend** | Python 3.x, Django 4.x / 5.x |
+| **Frontend** | HTML5, CSS3, JavaScript (ES6+), Bootstrap 5, jQuery |
+| **UI Components** | Select2, Flatpickr (24h format), FontAwesome 6 |
+| **Analytics & Visualization** | Chart.js |
+| **PDF Generation** | xhtml2pdf / ReportLab |
+| **Database** | PostgreSQL / MySQL / SQLite |
+
+---
+
+## Repository Structure
+
+```text
+├── masters/            # Master tables (Companies, Branches, Departments, Employees, Purposes)
+├── visitors/            # Visitor profiles and Card assignment models
+├── visits/               # Core Visit models, backlog workflows, and check-in/out views
+├── reports/             # Summary & History aggregations, PDF export logic
+├── templates/
+│   ├── base.html        # Base layout template
+│   ├── visits/           # Visit listing & revision backlog templates
+│   └── reports/         # Summary/History HTML views & PDF layout templates
+├── manage.py
+└── requirements.txt
+```
+
+---
+
+## Installation & Setup
+
+### 1. Prerequisites
+Ensure you have Python 3.10+ and pip installed on your machine.
+
+### 2. Clone the Repository
+```bash
+git clone https://github.com/your-username/highnoon-vms.git
+cd highnoon-vms
+```
+
+### 3. Set Up Virtual Environment
+```bash
+# On Linux / macOS
+python3 -m venv venv
+source venv/bin/activate
+
+# On Windows
+python -m venv venv
+venv\Scripts\activate
+```
+
+### 4. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 5. Database Migrations
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+### 6. Create Superuser
+```bash
+python manage.py createsuperuser
+```
+
+### 7. Run Development Server
+```bash
+python manage.py runserver
+```
+
+Navigate to [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser.
+
+---
+
+## Permissions Configuration
+
+To access specific sections of the platform, ensure users or groups are assigned the proper Django permissions:
+
+| Permission | Grants Access To |
+|---|---|
+| `visits.view_visit` | Access live visit lists |
+| `visits.add_visit` / `visits.change_visit` | Create new visits and process check-outs |
+| `visits.can_view_backlogs` | Access Revisions / Backlogs management |
+| `reports.view_reports` | View Summary and History analytics tabs |
+| `reports.download_reports` | Download PDF summaries and history logs |
+
+---
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
